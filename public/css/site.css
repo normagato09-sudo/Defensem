@@ -40,6 +40,11 @@ nav .btn{padding:9px 18px;min-height:44px;font-size:.85rem;color:#fff}
 .hero{padding-top:clamp(36px,8vw,80px);overflow:hidden}
 .hero h1{font-size:clamp(2.3rem,9.5vw,5.6rem);font-weight:800;color:var(--color-defensem-vermell)}
 .hero h1 small{display:block;color:var(--color-defensem-verd);font-size:.42em;margin-top:10px}
+.hero-tit{display:flex;flex-direction:column;align-items:center;gap:20px}
+.hero-tit h1{align-self:stretch}
+.hero-logo{display:block;width:min(260px,100%)}
+.hero-logo img{display:block;width:100%;height:auto}
+@media(min-width:821px){.hero-tit{flex-direction:row;justify-content:space-between;gap:clamp(24px,4vw,48px)}.hero-tit h1{flex:1;min-width:0}.hero-logo{flex:none;width:clamp(260px,27vw,300px)}}
 .hero p.lead{font-size:clamp(1.05rem,2.4vw,1.25rem);max-width:56ch;margin:20px 0 26px}
 .cta{display:flex;flex-wrap:wrap;gap:12px}
 .paisatge{display:block;width:100%;height:clamp(260px,38vw,460px);margin-top:clamp(24px,4vw,44px)}
