@@ -7,7 +7,7 @@
    MAI no posis aquí la clau "service_role" (ni cap altra clau secreta): només va a Vercel com a variable d'entorn.
    Mentre estiguin buides, les notícies es llegeixen de /noticies.json i l'àrea privada no està disponible. */
 window.DEFENSEM = {
-  instagram: "",
+  instagram: "https://www.instagram.com/defensemlempordanet/",
   supabaseUrl: "https://uzkwfudbrozjzjtcjfry.supabase.co",
   supabaseAnonKey: "sb_publishable_YolBmLZfPv1BiL9F2Ecz7w_5aVcbtFw"
 };
