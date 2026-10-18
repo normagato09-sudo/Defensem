@@ -8,6 +8,6 @@
    Mentre estiguin buides, les notícies es llegeixen de /noticies.json i l'àrea privada no està disponible. */
 window.DEFENSEM = {
   instagram: "",
-  supabaseUrl: "",
-  supabaseAnonKey: ""
+  supabaseUrl: "https://uzkwfudbrozjzjtcjfry.supabase.co",
+  supabaseAnonKey: "sb_publishable_YolBmLZfPv1BiL9F2Ecz7w_5aVcbtFw"
 };
