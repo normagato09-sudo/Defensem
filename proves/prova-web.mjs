@@ -56,7 +56,7 @@ function dadesInicials() {
     permisos_document: []
   };
 }
-let BD = dadesInicials(), peticions = [];
+let BD = dadesInicials(), peticions = [], fallaLogout = false;
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (u) => b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: u.id, email: u.email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600, session_id: randomUUID() }) + '.signatura';
 const usuariAuth = (u) => ({ id: u.id, aud: 'authenticated', role: 'authenticated', email: u.email, app_metadata: {}, user_metadata: {}, created_at: u.created_at });
@@ -102,6 +102,7 @@ async function supabaseFals(route) {
     return json(200, sessio(u));
   }
   if (p === '/auth/v1/user') { const u = quiEs(h); if (!u) return json(401, { msg: 'invalid JWT' }); if (m === 'PUT') return json(200, usuariAuth(u)); return json(200, usuariAuth(u)); }
+  if (p === '/auth/v1/logout' && fallaLogout) return json(500, { msg: 'Error intern simulat' });
   if (p === '/auth/v1/logout') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
   if (p === '/auth/v1/recover') return json(200, {});
   if (p.startsWith('/rest/v1/')) {
@@ -133,8 +134,8 @@ const CONFIG = `window.DEFENSEM = { instagram: "", supabaseUrl: "${SB}", supabas
 // ---------------- navegador ----------------
 const nav = await chromium.launch();
 const MOBIL = { width: 390, height: 844 }, ESCRIPTORI = { width: 1280, height: 900 };
-async function pagina(viewport, ambSupabase) {
-  const ctx = await nav.newContext({ viewport });
+async function pagina(viewport, ambSupabase, opcions) {
+  const ctx = await nav.newContext({ viewport, ...(opcions || {}) });
   const pg = await ctx.newPage();
   pg.errors = []; pg.externes = []; pg.dialegs = [];
   pg.on('console', (m) => { if (m.type() === 'error') pg.errors.push(m.text()); });
@@ -150,6 +151,36 @@ async function pagina(viewport, ambSupabase) {
 }
 const desbordament = (pg) => pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const textos = (pg, sel) => pg.$$eval(sel, (l) => l.map((e) => e.textContent.trim()));
+const tokens = (pg) => pg.evaluate(() => Object.keys(localStorage).filter((k) => k.includes('auth-token')).length);
+
+// Botó d'ull d'un camp de contrasenya: alterna el type sense tocar el valor, amb focus, cursor, ARIA i teclat.
+async function provaUll(pg, id, etiqueta, tactil) {
+  const camp = '#' + id, boto = 'button[aria-controls="' + id + '"]';
+  const estat = () => pg.$eval(boto, (b) => { const i = document.getElementById(b.getAttribute('aria-controls'));
+    return { type: i.type, valor: i.value, label: b.getAttribute('aria-label'), pressed: b.getAttribute('aria-pressed'), focus: document.activeElement === i,
+      cursor: i.selectionStart, tipus: b.type, svg: b.querySelectorAll('svg path').length }; });
+  const peticionsAbans = peticions.length;
+  await pg.fill(camp, 'Secret és 123');
+  await pg.$eval(camp, (i) => { i.focus(); i.setSelectionRange(4, 4); });
+  let e = await estat();
+  comprova(etiqueta + ': amagat d’entrada (password, «Mostrar contrasenya», aria-pressed=false)', e.type === 'password' && e.label === 'Mostrar contrasenya' && e.pressed === 'false' && e.tipus === 'button' && e.svg === 2, JSON.stringify(e));
+  await (tactil ? pg.tap(boto) : pg.click(boto));
+  e = await estat();
+  comprova(etiqueta + ': ' + (tactil ? 'tocar' : 'clicar') + ' mostra (text, «Amagar contrasenya», aria-pressed=true, ull tatxat)', e.type === 'text' && e.label === 'Amagar contrasenya' && e.pressed === 'true' && e.svg === 3, JSON.stringify(e));
+  comprova(etiqueta + ': valor intacte, focus i cursor al camp', e.valor === 'Secret és 123' && e.focus && e.cursor === 4, JSON.stringify(e));
+  await (tactil ? pg.tap(boto) : pg.click(boto));
+  e = await estat();
+  comprova(etiqueta + ': tornar a ' + (tactil ? 'tocar' : 'clicar') + ' amaga', e.type === 'password' && e.label === 'Mostrar contrasenya' && e.pressed === 'false' && e.valor === 'Secret és 123', JSON.stringify(e));
+  await pg.focus(boto); await pg.keyboard.press('Enter');
+  const ambEnter = (await estat()).type;
+  await pg.keyboard.press('Space');
+  comprova(etiqueta + ': teclat (Enter mostra, Espai amaga)', ambEnter === 'text' && (await estat()).type === 'password');
+  const mida = await pg.$eval(boto, (b) => { const r = b.getBoundingClientRect(), c = document.getElementById(b.getAttribute('aria-controls')).getBoundingClientRect();
+    return { w: r.width, h: r.height, dins: r.left >= c.left && r.right <= c.right, centre: Math.abs((r.top + r.bottom) / 2 - (c.top + c.bottom) / 2) };
+  });
+  comprova(etiqueta + ': botó ≥ 44 px, dins del camp i centrat verticalment', mida.w >= 44 && mida.h >= 44 && mida.dins && mida.centre <= 1, JSON.stringify(mida));
+  comprova(etiqueta + ': el botó no envia el formulari', peticions.length === peticionsAbans);
+}
 
 const PAGINES = ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid',
   '/area-privada/', '/area-privada/contrasenya.html', '/area-privada/panel.html'];
@@ -279,6 +310,21 @@ console.log('\n7. Inici de sessió');
   await pg.context().close();
 }
 
+for (const [vp, nom, tactil] of [[ESCRIPTORI, '1280 px', false], [MOBIL, '390 px', true]]) {
+  const pg = await pagina(vp, true, tactil ? { hasTouch: true, isMobile: true } : null);
+  await pg.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
+  await provaUll(pg, 'contrasenya', 'Ull inici de sessió (' + nom + ')', tactil);
+  comprova('Ull inici de sessió (' + nom + '): sense desbordament', (await desbordament(pg)) <= 0);
+  await pg.fill('#email', 'col@ex.cat'); await pg.fill('#contrasenya', 'dolenta');
+  await pg.click('button[aria-controls="contrasenya"]');
+  await pg.click('#f-login button[type=submit]');
+  await pg.waitForFunction(() => document.getElementById('msg').textContent.includes('incorrectes'));
+  comprova('Ull inici de sessió (' + nom + '): en enviar torna a password', (await pg.$eval('#contrasenya', (i) => i.type)) === 'password'
+    && (await pg.getAttribute('button[aria-controls="contrasenya"]', 'aria-pressed')) === 'false');
+  comprova('Ull inici de sessió (' + nom + '): sense errors de consola (a part del 400 esperat de l’accés fallit)', pg.errors.filter((e) => !/status of 400/.test(e)).length === 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+
 console.log('\n8. Menú i botons segons el rol');
 const ESPERAT = {
   'col@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Documents'],
@@ -365,8 +411,20 @@ console.log('\n9. Fluxos del col·laborador i de l’editor');
   comprova('un cop pendent queda en només lectura', (await pg.textContent('#vista .msg')).includes('no la pots modificar') && !(await textos(pg, '#vista .accions button')).includes('Desa'));
   comprova('editor de text desactivat en només lectura', (await pg.getAttribute('#f-contingut', 'contenteditable')) === 'false');
   comprova('sense errors de consola (col·laborador)', pg.errors.length === 0, JSON.stringify(pg.errors));
-  await pg.click('#sortir'); await pg.waitForFunction(() => location.pathname === '/area-privada/').catch(() => {}); await pg.waitForLoadState();
-  comprova('«Tanca la sessió» torna a l’inici de sessió i esborra el token', (await pg.evaluate(() => Object.keys(localStorage).filter((k) => k.includes('auth-token')).length)) === 0);
+  fallaLogout = true;
+  await pg.click('#sortir');
+  await pg.waitForSelector('#avisos [role=alert]');
+  comprova('si signOut falla: avís amb role="alert" i es queda al tauler amb la sessió', pg.url().includes('/area-privada/panel.html')
+    && (await pg.textContent('#avisos [role=alert]')).includes('No s’ha pogut tancar la sessió') && (await tokens(pg)) > 0 && !(await pg.$eval('#sortir', (b) => b.disabled)));
+  await pg.reload(); await pg.waitForSelector('#usuari:not([hidden])');
+  comprova('si signOut falla: la sessió continua vàlida (recarregar manté el tauler)', pg.url().includes('/area-privada/panel.html'));
+  fallaLogout = false; peticions = [];
+  await pg.click('#sortir'); await pg.waitForURL(ORIGEN + '/');
+  comprova('«Tanca la sessió» porta a la web pública (/) i esborra el token', new URL(pg.url()).pathname === '/' && (await tokens(pg)) === 0);
+  comprova('«Tanca la sessió» crida /auth/v1/logout', peticions.some((x) => x.url.startsWith('/auth/v1/logout')));
+  await pg.goBack().catch(() => {});
+  await pg.waitForFunction(() => location.pathname !== '/area-privada/panel.html').catch(() => {}); await pg.waitForLoadState();
+  comprova('el botó «enrere» no torna a mostrar el tauler', !pg.url().includes('panel.html') && !(await pg.$('#usuari:not([hidden])')), pg.url());
   await pg.goto(ORIGEN + '/area-privada/panel.html').catch(() => {}); await pg.waitForFunction(() => location.pathname === '/area-privada/').catch(() => {}); await pg.waitForLoadState();
   comprova('sense sessió, el tauler redirigeix a l’inici de sessió', pg.url().endsWith('/area-privada/'));
   await pg.context().close();
@@ -421,11 +479,17 @@ console.log('\n10. Pàgina de contrasenya (invitació / recuperació)');
   await pg.goto(ORIGEN + '/area-privada/contrasenya.html#access_token=' + s.access_token + '&refresh_token=' + s.refresh_token + '&expires_in=3600&expires_at=' + s.expires_at + '&token_type=bearer&type=recovery');
   await pg.waitForSelector('#f-pw:not([hidden])', { timeout: 8000 });
   comprova('amb l’enllaç vàlid apareix el formulari i s’esborra el token de l’URL', !pg.url().includes('access_token'));
-  await pg.fill('#pw1', 'curta'); await pg.fill('#pw2', 'curta'); await pg.click('#f-pw button');
+  await provaUll(pg, 'pw1', 'Ull contrasenya nova');
+  await provaUll(pg, 'pw2', 'Ull repetició');
+  comprova('Ull contrasenya: sense desbordament (390 px)', (await desbordament(pg)) <= 0);
+  await pg.fill('#pw1', 'curta'); await pg.fill('#pw2', 'curta');
+  await pg.click('button[aria-controls="pw1"]'); await pg.click('button[aria-controls="pw2"]');
+  await pg.click('#f-pw button[type=submit]');
   comprova('contrasenya curta → error', (await pg.textContent('#msg')).includes('mínim 10'));
-  await pg.fill('#pw1', 'una-frase-prou-llarga'); await pg.fill('#pw2', 'una-altra-frase-llarga'); await pg.click('#f-pw button');
+  comprova('Ull contrasenya: en enviar els dos camps tornen a password', (await pg.$$eval('#f-pw input', (l) => l.map((i) => i.type))).join() === 'password,password');
+  await pg.fill('#pw1', 'una-frase-prou-llarga'); await pg.fill('#pw2', 'una-altra-frase-llarga'); await pg.click('#f-pw button[type=submit]');
   comprova('no coincideixen → error', (await pg.textContent('#msg')).includes('no coincideixen'));
-  await pg.fill('#pw2', 'una-frase-prou-llarga'); await pg.click('#f-pw button');
+  await pg.fill('#pw2', 'una-frase-prou-llarga'); await pg.click('#f-pw button[type=submit]');
   await pg.waitForURL('**/area-privada/panel.html*');
   comprova('contrasenya desada → tauler', pg.url().includes('/area-privada/panel.html') && peticions.some((x) => x.m === 'PUT' && x.url === '/auth/v1/user'));
   await pg.context().close();

@@ -26,11 +26,11 @@
   function pot(rols) { return !!jo && rols.indexOf(jo.rol) !== -1; }
 
   // ---------- utilitats ----------
-  function avis(text, tipus) {
+  function avis(text, tipus, alerta) {
     clearTimeout(avis.t);
     avisos.textContent = '';
     if (!text) return;
-    avisos.appendChild(el('p', { class: 'msg' + (tipus === 'error' ? ' error' : '') }, [text]));
+    avisos.appendChild(el('p', { class: 'msg' + (tipus === 'error' ? ' error' : ''), role: alerta ? 'alert' : null }, [text]));
     avis.t = setTimeout(function () { avisos.textContent = ''; }, tipus === 'error' ? 12000 : 6000);
   }
   function falla(e) { avis(P.errorText(e), 'error'); }
@@ -562,34 +562,71 @@
     });
   }
 
-  function surt() {
+  // Claus de la sessió de Supabase al navegador (sb-<projecte>-auth-token…).
+  function clausSessio() {
+    try { return Object.keys(localStorage).filter(function (k) { return k.indexOf('sb-') === 0 && k.indexOf('auth-token') !== -1; }); } catch (e) { return []; }
+  }
+  function netejaSessio() {
+    clausSessio().forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* emmagatzematge no disponible */ } });
+  }
+  function copiaSessio() {
+    var c = {};
+    clausSessio().forEach(function (k) { try { c[k] = localStorage.getItem(k); } catch (e) { /* idem */ } });
+    return c;
+  }
+  function restauraSessio(c) {
+    Object.keys(c).forEach(function (k) { try { localStorage.setItem(k, c[k]); } catch (e) { /* idem */ } });
+  }
+  // Una sola redirecció: per defecte a la web pública; a l'inici de sessió si la sessió no és vàlida en obrir el tauler.
+  function surt(desti) {
     if (surt.fet) return;
     surt.fet = true;
-    location.replace('/area-privada/');
+    location.replace(desti || '/');
   }
 
   async function inicia() {
     if (!sb) { pinta(torn, [el('h1', null, ['Àrea privada']), el('p', { class: 'msg error' }, [P.NO_CONFIG])]); return; }
     var s;
     try { s = (await sb.auth.getSession()).data.session; } catch (e) { s = null; }
-    if (!s) { location.replace('/area-privada/'); return; }
+    if (!s) { surt('/area-privada/'); return; }
     var r = await sb.from('profiles').select('id,email,nom,rol,actiu').eq('id', s.user.id).maybeSingle();
+    if (r.error && (r.status === 401 || /JWT/i.test(r.error.message || ''))) { netejaSessio(); surt('/area-privada/'); return; }
     if (r.error) { pinta(torn, [el('h1', null, ['Àrea privada']), el('p', { class: 'msg error' }, [P.errorText(r.error)])]); return; }
     if (!r.data || r.data.actiu !== true) { await sb.auth.signOut(); location.replace('/area-privada/?m=desactivat'); return; }
     jo = r.data;
     document.getElementById('u-nom').textContent = jo.nom || jo.email;
     document.getElementById('u-rol').textContent = P.ROLS[jo.rol] || jo.rol;
     document.getElementById('usuari').hidden = false;
+    // supabase-js esborra la sessió local encara que el servidor falli. Si falla, la restaurem perquè
+    // l'usuari vegi l'error i ho pugui tornar a provar: no fem veure que s'ha tancat.
+    var tancant = false;
     document.getElementById('sortir').addEventListener('click', async function () {
-      try { await sb.auth.signOut(); } catch (e) { /* es tanca igualment en local */ }
-      surt();
+      var boto = this, r, copia = copiaSessio();
+      boto.disabled = true;
+      tancant = true;
+      try { r = await sb.auth.signOut(); } catch (e) { r = { error: e }; }
+      tancant = false;
+      if (r && r.error) {
+        restauraSessio(copia);
+        boto.disabled = false;
+        avis('No s’ha pogut tancar la sessió. Comprova la connexió i torna-ho a provar.', 'error', true);
+        return;
+      }
+      netejaSessio();
+      surt('/');
     });
     mbp.addEventListener('click', function () {
       var o = !nav.classList.contains('open');
       nav.classList.toggle('open', o); mbp.setAttribute('aria-expanded', String(o));
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { nav.classList.remove('open'); mbp.setAttribute('aria-expanded', 'false'); } });
-    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') surt(); });
+    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT' && !tancant) { netejaSessio(); surt('/'); } });
+    // Si el navegador torna al tauler des de la memòria cau (botó «enrere»), cal tornar a comprovar la sessió.
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      surt.fet = false;
+      sb.auth.getSession().then(function (x) { if (!(x.data && x.data.session)) surt('/area-privada/'); }, function () { surt('/area-privada/'); });
+    });
     construeixMenu();
     window.addEventListener('hashchange', encamina);
     encamina();

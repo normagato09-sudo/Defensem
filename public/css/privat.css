@@ -27,6 +27,13 @@
 .privat input[type=checkbox]{width:22px;height:22px;accent-color:var(--color-verd-fosc);flex:none}
 .privat input:focus-visible,.privat select:focus-visible,.privat textarea:focus-visible,.editor:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:2px}
 fieldset{border:0;padding:0;margin:0}
+/* Camp de contrasenya amb botó d'ull (js/privat/ull.js) */
+.pw{position:relative;display:block}
+.privat .pw input{padding-right:52px}
+.pw-ull{position:absolute;top:50%;right:2px;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;background:none;color:var(--color-text-suau);cursor:pointer;touch-action:manipulation}
+.pw-ull:hover{color:var(--color-text)}
+.pw-ull:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:-3px}
+.pw-ull svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* Missatges */
 .msg{border-left:5px solid var(--color-defensem-verd);background:var(--color-fons-fosc);padding:12px 14px;margin:0 0 16px;overflow-wrap:anywhere}

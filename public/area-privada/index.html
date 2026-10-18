@@ -20,7 +20,7 @@
 <div id="msg" class="msg" role="status" aria-live="polite"></div>
 <form id="f-login" novalidate>
 <div class="camp"><label for="email">Correu electrònic</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"></div>
-<div class="camp"><label for="contrasenya">Contrasenya</label><input id="contrasenya" name="contrasenya" type="password" autocomplete="current-password" required></div>
+<div class="camp"><label for="contrasenya">Contrasenya</label><input id="contrasenya" name="contrasenya" type="password" data-ull autocomplete="current-password" required></div>
 <button class="btn" type="submit">Inicia la sessió</button>
 </form>
 <p><button type="button" class="enllac-btn" id="obre-rec" aria-expanded="false" aria-controls="f-recupera">Has oblidat la contrasenya?</button></p>
@@ -38,6 +38,7 @@
 <script src="/js/segur.js"></script>
 <script src="/js/vendor-supabase.js"></script>
 <script src="/js/privat/comu.js"></script>
+<script src="/js/privat/ull.js"></script>
 <script src="/js/privat/acces.js"></script>
 </body>
 </html>

@@ -18,8 +18,8 @@
 <h1>Tria la contrasenya</h1>
 <div id="msg" class="msg" role="status" aria-live="polite">Comprovant l’enllaç…</div>
 <form id="f-pw" hidden novalidate>
-<div class="camp"><label for="pw1">Contrasenya nova</label><input id="pw1" name="pw1" type="password" autocomplete="new-password" minlength="10" required aria-describedby="pw-ajuda"><span class="ajuda" id="pw-ajuda">Com a mínim 10 caràcters. Millor una frase llarga que no facis servir enlloc més.</span></div>
-<div class="camp"><label for="pw2">Repeteix la contrasenya</label><input id="pw2" name="pw2" type="password" autocomplete="new-password" minlength="10" required></div>
+<div class="camp"><label for="pw1">Contrasenya nova</label><input id="pw1" name="pw1" type="password" data-ull autocomplete="new-password" minlength="10" required aria-describedby="pw-ajuda"><span class="ajuda" id="pw-ajuda">Com a mínim 10 caràcters. Millor una frase llarga que no facis servir enlloc més.</span></div>
+<div class="camp"><label for="pw2">Repeteix la contrasenya</label><input id="pw2" name="pw2" type="password" data-ull autocomplete="new-password" minlength="10" required></div>
 <button class="btn" type="submit">Desa la contrasenya</button>
 </form>
 </div>
@@ -29,6 +29,7 @@
 <script src="/js/segur.js"></script>
 <script src="/js/vendor-supabase.js"></script>
 <script src="/js/privat/comu.js"></script>
+<script src="/js/privat/ull.js"></script>
 <script src="/js/privat/contrasenya.js"></script>
 </body>
 </html>
