@@ -81,3 +81,14 @@ footer p{margin:.3em 0}
 .taula{width:100%;border-collapse:collapse;margin:14px 0}
 .taula th,.taula td{border:2px solid var(--ink);padding:10px 12px;text-align:left}
 .taula th{background:var(--beige);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.btn:disabled{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px 12px;background:var(--beige);border:3px dashed var(--earth);color:var(--earth);cursor:not-allowed}
+.btn:disabled:hover{background:var(--beige);border-color:var(--earth);color:var(--earth)}
+.soon{font:700 .72rem/1 Oswald,sans-serif;letter-spacing:.12em;text-transform:uppercase;background:var(--green);color:#fff;padding:4px 8px}
+.ig{display:inline-flex;align-items:center;gap:12px;min-height:48px;text-decoration:none;font:600 1.05rem Inter,sans-serif}
+.contacte a.ig{font-size:1.05rem}
+.ig svg{width:44px;height:44px;padding:10px;border-radius:50%;background:var(--terra);color:var(--cream);stroke:currentColor;stroke-width:1.8;fill:none;flex:none}
+.ig:hover svg{background:var(--green)}
+.ig:hover span{text-decoration:underline}
+footer .ig svg{background:var(--cream);color:var(--terra)}
+footer .ig:hover svg{background:var(--beige)}
+#ig-peu{margin-top:12px}

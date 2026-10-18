@@ -26,7 +26,7 @@
 <p class="kicker">Iniciativa ciutadana · L’Empordanet</p>
 <h1>No al parc eòlic!<small>Defensem l’Empordanet</small></h1>
 <p class="lead">Diguem no als 4 molins de 200 metres. Un parc eòlic avui, un paisatge perdut per sempre.</p>
-<div class="cta"><a class="btn" href="https://www.peticions.cat" target="_blank" rel="noopener">Signa la petició</a><a class="btn o" href="#qui-som">Qui som</a></div>
+<div class="cta"><button class="btn" type="button" disabled aria-disabled="true">Signa la petició <span class="soon">Properament</span></button><a class="btn o" href="#qui-som">Qui som</a></div>
 </div>
 <svg class="paisatge" viewBox="0 0 1200 460" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Il·lustració del paisatge de l’Empordanet: turons, camps, una masia i aerogeneradors">
 <defs><path id="bl" d="M-2.5 -3C-4.5 -14-3 -50-.5 -78L.4 -80L.9 -77C2 -50 3 -14 2.5 -3Z"/></defs>
@@ -88,8 +88,8 @@
 <h2>Contacte</h2>
 <ul class="contacte">
 <li><span class="cond">Correu electrònic</span><a href="mailto:defensemlempordanet@gmail.com">defensemlempordanet@gmail.com</a></li>
-<!-- INSTAGRAM: quan es confirmi el compte, treu l'atribut hidden i posa l'adreça real a href i al text. -->
-<li id="ig" hidden><span class="cond">Instagram</span><a href="#" target="_blank" rel="noopener">@usuari</a></li>
+<!-- INSTAGRAM: l’adreça es configura a /js/config.js. Mentre estigui buida, la icona no es mostra. -->
+<li id="ig-contacte" hidden><span class="cond">Instagram</span></li>
 </ul>
 </div>
 </section>
@@ -98,6 +98,7 @@
 <footer><div class="w">
 <div class="cond">Defensem l’Empordanet</div>
 <p>Pensem en el que tenim, en el que som i en el que deixarem.</p>
+<div id="ig-peu"></div>
 <ul class="legal">
 <li><a href="/avis-legal.html">Avís legal</a></li>
 <li><a href="/privacitat.html">Política de privacitat</a></li>
@@ -106,6 +107,8 @@
 </ul>
 <p class="small">Web informativa d’una iniciativa ciutadana.</p>
 </div></footer>
+<script src="/js/config.js"></script>
+<script src="/js/social.js" defer></script>
 <script src="/js/menu.js" defer></script>
 </body>
 </html>
