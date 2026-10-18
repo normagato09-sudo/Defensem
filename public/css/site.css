@@ -118,3 +118,19 @@ footer .ig:hover svg{background:var(--color-fons-fosc)}
 .f-fons{fill:var(--color-fons)}
 .s-fons{stroke:var(--color-fons)}
 .s-text{stroke:var(--color-text)}
+/* Notícies des de l'àrea privada */
+.card .etiq{align-self:flex-start;font:700 .72rem/1 var(--font-defensem);letter-spacing:.12em;text-transform:uppercase;background:var(--color-verd-fosc);color:#fff;padding:5px 8px}
+.noticia h1{overflow-wrap:anywhere}
+.noticia .data{display:block;font:700 .85rem var(--font-defensem);letter-spacing:.1em;text-transform:uppercase;color:var(--color-vermell-fosc);margin:-10px 0 18px}
+.noticia .resum{font-size:1.2rem;font-weight:600;max-width:68ch}
+.noticia .portada{margin:24px 0;border:3px solid var(--color-defensem-vermell);padding:6px;background:var(--color-fons)}
+.noticia .portada img{display:block;width:100%;height:auto}
+.contingut{overflow-wrap:anywhere}
+.contingut p,.contingut li{max-width:68ch}
+.contingut ul,.contingut ol{padding-left:1.4em}
+.contingut h2{font-size:1.5rem;color:var(--color-defensem-verd);margin:32px 0 8px}
+.contingut h3{font-size:1.2rem;margin:24px 0 6px}
+.contingut blockquote{margin:20px 0;padding:6px 0 6px 18px;border-left:5px solid var(--color-defensem-verd);font-style:italic}
+.contingut a{color:var(--color-verd-text);font-weight:600}
+.noticia .tornar{margin-top:40px}
+.noticia .tornar a{color:var(--color-verd-text);font-weight:700}
