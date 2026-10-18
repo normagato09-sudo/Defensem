@@ -1,0 +1,118 @@
+/* Àrea privada. Fa servir només les variables d'identitat de site.css. */
+.privat main{outline:none}
+.privat .logo small{display:block;font:700 .72rem/1.2 var(--font-defensem);letter-spacing:.14em;text-transform:uppercase;color:var(--color-verd-text)}
+.privat h1{font-size:clamp(1.7rem,5vw,2.4rem);color:var(--color-defensem-vermell);text-transform:none;margin-bottom:18px;overflow-wrap:anywhere}
+.privat h2{font-size:clamp(1.3rem,3.6vw,1.6rem);margin:30px 0 12px}
+.privat h3{font-size:1.15rem;overflow-wrap:anywhere}
+.privat p{margin:0 0 1em}
+
+/* Botons */
+.btn.v{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc)}
+.btn.v:hover{background:var(--color-text);border-color:var(--color-text)}
+.btn.petit{min-height:44px;padding:8px 14px;font-size:.82rem}
+.btn.o.fosc{border-color:var(--color-text);color:var(--color-text)}
+.btn.o.fosc:hover{background:var(--color-text);color:var(--color-fons)}
+.btn[disabled]{opacity:1}
+.accions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.enllac-btn{background:none;border:0;padding:0;min-height:44px;font:700 .95rem var(--font-defensem);color:var(--color-verd-text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* Formularis */
+.camp{margin:0 0 18px}
+.camp label,.camp legend,.etiqueta-camp{display:block;font-weight:700;margin-bottom:6px}
+.camp .ajuda{display:block;font-size:.9rem;color:var(--color-text-suau);margin-top:4px}
+.privat input[type=text],.privat input[type=email],.privat input[type=password],.privat input[type=url],.privat select,.privat textarea{
+  width:100%;min-height:48px;padding:10px 12px;border:2px solid var(--color-text);border-radius:0;background:#fff;color:var(--color-text);font:400 1rem/1.5 var(--font-defensem)}
+.privat textarea{min-height:110px;resize:vertical}
+.privat input[type=file]{max-width:100%;font:400 .95rem var(--font-defensem);min-height:44px}
+.privat input[type=checkbox]{width:22px;height:22px;accent-color:var(--color-verd-fosc);flex:none}
+.privat input:focus-visible,.privat select:focus-visible,.privat textarea:focus-visible,.editor:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:2px}
+fieldset{border:0;padding:0;margin:0}
+
+/* Missatges */
+.msg{border-left:5px solid var(--color-defensem-verd);background:var(--color-fons-fosc);padding:12px 14px;margin:0 0 16px;overflow-wrap:anywhere}
+.msg.error{border-left-color:var(--color-defensem-vermell)}
+.msg:empty{display:none}
+.avisos{position:fixed;left:16px;right:16px;bottom:16px;z-index:30;max-width:560px;margin:0 auto;pointer-events:none}
+.avisos .msg{box-shadow:4px 4px 0 var(--color-text);border:2px solid var(--color-text);border-left-width:6px;margin:0;pointer-events:auto}
+.avisos .msg.error{border-left-color:var(--color-defensem-vermell)}
+
+/* Pàgina d'accés */
+.acces{max-width:460px;margin:clamp(32px,8vw,72px) auto;padding:0 16px}
+.acces .caixa{border:2px solid var(--color-text);background:var(--color-fons);padding:clamp(20px,5vw,32px);box-shadow:8px 8px 0 var(--color-defensem-verd)}
+.acces .btn{width:100%;margin-top:6px}
+.acces .tornar{margin-top:22px;font-size:.95rem}
+.acces .tornar a{color:var(--color-verd-text);font-weight:600}
+
+/* Capçalera del tauler */
+.usuari{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+.usuari .qui{display:flex;flex-direction:column;line-height:1.25;text-align:right;min-width:0}
+.usuari .qui strong{overflow-wrap:anywhere}
+.usuari .qui span{font-size:.82rem;color:var(--color-text-suau)}
+#mbp{display:none;min-height:44px;background:none;border:2px solid var(--color-text);color:var(--color-text);font:700 .9rem var(--font-defensem);text-transform:uppercase;padding:8px 14px;cursor:pointer}
+.tauler{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(20px,4vw,40px);padding-top:28px;padding-bottom:110px}
+/* #menu-privat és un <nav>: anul·la les regles del menú públic de site.css */
+#menu-privat{position:static;display:block;padding:0;border:0;background:none}
+#menu-privat ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;position:sticky;top:92px}
+#menu-privat a,#menu-privat li a:not(.btn){display:flex;font-size:1rem;align-items:center;min-height:44px;padding:8px 12px;text-decoration:none;font-weight:600;border-left:4px solid transparent}
+#menu-privat li a:hover{border-left-color:var(--color-defensem-verd)}
+#menu-privat li a[aria-current=page]{border-left-color:var(--color-defensem-vermell);background:var(--color-fons-fosc);font-weight:800}
+@media(max-width:820px){
+  .tauler{grid-template-columns:minmax(0,1fr);padding-top:16px}
+  #mbp{display:block}
+  #menu-privat{display:none;border:2px solid var(--color-text);background:var(--color-fons);padding:6px}
+  .usuari{flex-wrap:nowrap;gap:8px}
+  #mbp,.usuari .btn{padding:8px 10px;font-size:.75rem}
+  #menu-privat.open{display:block}
+  #menu-privat ul{position:static}
+  .usuari .qui{display:none}
+}
+@media(max-width:420px){.privat .bar .logo small{display:none}}
+
+/* Llistes i targetes */
+.comptadors{list-style:none;margin:0 0 24px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.comptadors li{border:2px solid var(--color-text);padding:12px;background:var(--color-fons)}
+.comptadors strong{display:block;font-size:1.8rem;line-height:1.1}
+.comptadors span{font-size:.9rem;color:var(--color-text-suau)}
+.llista{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.item{border:2px solid var(--color-text);background:var(--color-fons);padding:16px;min-width:0}
+.item .meta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.9rem;color:var(--color-text-suau);margin:6px 0}
+.item .nota{border-left:5px solid var(--color-defensem-vermell);background:var(--color-fons-fosc);padding:10px 12px;margin:10px 0 0}
+.item .nota strong{display:block;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--color-vermell-fosc)}
+.estat{display:inline-block;font:700 .72rem/1 var(--font-defensem);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border:2px solid var(--color-text);color:var(--color-text);background:var(--color-fons);white-space:nowrap}
+.estat.pendent{background:var(--color-fons-fosc)}
+.estat.publicat{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+.estat.retornat{background:var(--color-vermell-fosc);border-color:var(--color-vermell-fosc);color:#fff}
+.estat.arxivat{border-style:dashed;color:var(--color-text-suau);border-color:var(--color-text-suau)}
+.buit-privat{border:2px dashed var(--color-text-suau);padding:20px;color:var(--color-text-suau)}
+.destacat{margin:6px 0 26px}
+
+/* Taules amb desplaçament horitzontal en mòbil */
+.taula-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0;border:0}
+.taula-wrap .taula{margin:0;width:max-content;min-width:100%;background:var(--color-fons)}
+.taula-wrap td{vertical-align:middle;max-width:320px;overflow-wrap:break-word}
+.taula td select{min-width:190px}
+.taula .tu{font-size:.85rem;color:var(--color-text-suau)}
+
+/* Editor */
+.barra-editor{display:flex;flex-wrap:wrap;gap:6px;border:2px solid var(--color-text);border-bottom:0;background:var(--color-fons-fosc);padding:6px}
+.barra-editor button{min-width:44px;min-height:44px;padding:6px 10px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .85rem var(--font-defensem);cursor:pointer}
+.barra-editor button:hover{background:#fff}
+.editor{min-height:280px;max-height:70vh;overflow-y:auto;border:2px solid var(--color-text);background:#fff;padding:14px 16px;overflow-wrap:anywhere}
+.editor:empty::before{content:attr(data-placeholder);color:var(--color-text-suau)}
+.editor p{margin:0 0 .8em}
+.editor[contenteditable=false]{background:var(--color-fons)}
+.portada-prev{display:block;max-width:320px;width:100%;height:auto;border:2px solid var(--color-text);margin:10px 0}
+.previsualitzacio{border:3px solid var(--color-defensem-verd);padding:clamp(16px,4vw,28px);margin-top:24px;background:var(--color-fons)}
+.previsualitzacio .portada-prev{max-width:100%}
+.retorn{margin-top:12px}
+.doc-accessos{margin-top:12px;border-top:2px solid var(--color-fons-fosc);padding-top:12px}
+.doc-accessos label{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:400}
+.filtre{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filtre .camp{margin:0;min-width:220px}
+.graella-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:0 16px}
+/* Selector de fitxer propi (el nativu surt en l'idioma del navegador) */
+.fitxer{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.fitxer input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.fitxer input[type=file]:focus-visible+label{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
+.fitxer input[type=file]:disabled+label{display:none}
+.fitxer .nom-fitxer{font-size:.95rem;color:var(--color-text-suau);overflow-wrap:anywhere}

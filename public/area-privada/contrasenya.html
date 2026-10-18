@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tria la contrasenya · Defensem l’Empordanet</title>
+<link rel="preload" href="/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/privat.css">
+</head>
+<body class="privat">
+<header><div class="w bar">
+<a class="logo" href="/">Defensem <b>l’Empordanet</b><small>Àrea privada</small></a>
+</div></header>
+<main class="acces">
+<div class="caixa">
+<h1>Tria la contrasenya</h1>
+<div id="msg" class="msg" role="status" aria-live="polite">Comprovant l’enllaç…</div>
+<form id="f-pw" hidden novalidate>
+<div class="camp"><label for="pw1">Contrasenya nova</label><input id="pw1" name="pw1" type="password" autocomplete="new-password" minlength="10" required aria-describedby="pw-ajuda"><span class="ajuda" id="pw-ajuda">Com a mínim 10 caràcters. Millor una frase llarga que no facis servir enlloc més.</span></div>
+<div class="camp"><label for="pw2">Repeteix la contrasenya</label><input id="pw2" name="pw2" type="password" autocomplete="new-password" minlength="10" required></div>
+<button class="btn" type="submit">Desa la contrasenya</button>
+</form>
+</div>
+<p class="tornar"><a href="/area-privada/">← Torna a l’inici de sessió</a></p>
+</main>
+<script src="/js/config.js"></script>
+<script src="/js/segur.js"></script>
+<script src="/js/vendor-supabase.js"></script>
+<script src="/js/privat/comu.js"></script>
+<script src="/js/privat/contrasenya.js"></script>
+</body>
+</html>

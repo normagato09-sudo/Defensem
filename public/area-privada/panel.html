@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tauler · Àrea privada · Defensem l’Empordanet</title>
+<link rel="preload" href="/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/privat.css">
+</head>
+<body class="privat">
+<header><div class="w bar">
+<a class="logo" href="#/inici">Defensem <b>l’Empordanet</b><small>Àrea privada</small></a>
+<div class="usuari" id="usuari" hidden>
+<div class="qui"><strong id="u-nom"></strong><span id="u-rol"></span></div>
+<button id="mbp" type="button" aria-expanded="false" aria-controls="menu-privat">Menú</button>
+<button id="sortir" type="button" class="btn o fosc petit">Tanca la sessió</button>
+</div>
+</div></header>
+<div class="w tauler">
+<nav id="menu-privat" aria-label="Àrea privada"><ul id="menu"></ul></nav>
+<main id="vista" tabindex="-1"><p>Carregant…</p></main>
+</div>
+<div id="avisos" class="avisos" role="status" aria-live="polite"></div>
+<script src="/js/config.js"></script>
+<script src="/js/segur.js"></script>
+<script src="/js/vendor-supabase.js"></script>
+<script src="/js/privat/comu.js"></script>
+<script src="/js/privat/panel.js"></script>
+</body>
+</html>

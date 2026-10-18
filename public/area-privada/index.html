@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Àrea privada · Defensem l’Empordanet</title>
+<link rel="preload" href="/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/privat.css">
+</head>
+<body class="privat">
+<header><div class="w bar">
+<a class="logo" href="/">Defensem <b>l’Empordanet</b><small>Àrea privada</small></a>
+</div></header>
+<main class="acces">
+<div class="caixa">
+<h1>Inicia la sessió</h1>
+<p>Accés per a les persones que col·laboren amb la iniciativa. Els comptes els crea un administrador; no hi ha registre obert.</p>
+<div id="msg" class="msg" role="status" aria-live="polite"></div>
+<form id="f-login" novalidate>
+<div class="camp"><label for="email">Correu electrònic</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"></div>
+<div class="camp"><label for="contrasenya">Contrasenya</label><input id="contrasenya" name="contrasenya" type="password" autocomplete="current-password" required></div>
+<button class="btn" type="submit">Inicia la sessió</button>
+</form>
+<p><button type="button" class="enllac-btn" id="obre-rec" aria-expanded="false" aria-controls="f-recupera">Has oblidat la contrasenya?</button></p>
+<form id="f-recupera" hidden novalidate>
+<h2>Restableix la contrasenya</h2>
+<p>Escriu el teu correu i t’enviarem un enllaç per triar-ne una de nova.</p>
+<div id="msg-rec" class="msg" role="status" aria-live="polite"></div>
+<div class="camp"><label for="email-rec">Correu electrònic</label><input id="email-rec" name="email" type="email" autocomplete="email" required maxlength="254"></div>
+<button class="btn o" type="submit">Envia l’enllaç</button>
+</form>
+</div>
+<p class="tornar"><a href="/">← Torna a la web</a></p>
+</main>
+<script src="/js/config.js"></script>
+<script src="/js/segur.js"></script>
+<script src="/js/vendor-supabase.js"></script>
+<script src="/js/privat/comu.js"></script>
+<script src="/js/privat/acces.js"></script>
+</body>
+</html>
