@@ -323,6 +323,67 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   await pg.context().close();
 }
 
+console.log('\n3c. Enllaços legals discrets al final del peu (390 px i 1280 px)');
+{
+  const LEGALS = [['/avis-legal.html', 'Avís legal'], ['/privacitat.html', 'Política de privacitat'], ['/cookies.html', 'Política de cookies'],
+    ['/preferencies-cookies.html', 'Preferències de cookies'], ['/area-privada/', 'Àrea privada']];
+  const lum = (rgb) => { const c = rgb.match(/\d+/g).slice(0, 3).map((v) => v / 255).map((v) => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    for (const ruta of ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid']) {
+      const pg = await pagina(vp, false);
+      await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' });
+      const nom = `${ruta} @${vp.width}px`;
+      const d = await pg.evaluate(() => {
+        const peu = document.querySelector('footer'), franja = peu.querySelector('.peu-legal'), ul = franja && franja.querySelector('ul.legal');
+        if (!ul) return null;
+        const enllacos = [...ul.querySelectorAll('a')].map((a) => { const cs = getComputedStyle(a), r = a.getBoundingClientRect();
+          return { href: a.getAttribute('href'), text: a.textContent.trim(), color: cs.color, deco: cs.textDecorationLine, mida: parseFloat(cs.fontSize), font: cs.fontFamily, h: r.height, top: Math.round(r.top), visible: r.width > 0 && r.height > 0 }; });
+        const punts = [...ul.querySelectorAll('li')].map((li) => getComputedStyle(li, '::before').content);
+        // Retall de la llista: els punts que comencen una fila queden fora; el primer enllaç s'alinea amb la resta del peu.
+        const esq = getComputedStyle(ul).clipPath.match(/inset\(([^)]*)\)/)[1].trim().split(/\s+/)[3], em = parseFloat(getComputedStyle(ul).fontSize);
+        const visibleDesDe = ul.getBoundingClientRect().left + parseFloat(esq) * (esq.endsWith('em') ? em : 1);
+        const capsDeFila = [...ul.querySelectorAll('li')].filter((li, i, l) => i === 0 || li.getBoundingClientRect().top !== l[i - 1].getBoundingClientRect().top);
+        // El punt és centrat en una caixa d'1,6em: acaba a ~0,95em de l'inici de l'element.
+        const puntsAmagats = capsDeFila.every((li) => li.getBoundingClientRect().left + 0.95 * em <= visibleDesDe);
+        const w = peu.querySelector('.w'), wEsq = w.getBoundingClientRect().left + parseFloat(getComputedStyle(w).paddingLeft);
+        const primer = ul.querySelector('a').getBoundingClientRect().left;
+        const contornVisible = primer - 6 >= visibleDesDe;
+        return { ultim: peu.lastElementChild === franja, fons: getComputedStyle(franja).backgroundColor, enllacos, punts, files: new Set(enllacos.map((e) => e.top)).size,
+          puntsAmagats, alineat: Math.abs(primer - wEsq) <= 1, contornVisible };
+      });
+      if (!d) { comprova(`${nom}: hi ha la franja d’enllaços legals al peu`, false); await pg.context().close(); continue; }
+      comprova(`${nom}: els 5 enllaços legals, visibles i en ordre, en una franja al final del peu`, d.ultim
+        && JSON.stringify(d.enllacos.map((e) => [e.href, e.text])) === JSON.stringify(LEGALS) && d.enllacos.every((e) => e.visible), JSON.stringify(d.enllacos.map((e) => e.text)));
+      comprova(`${nom}: separats per punts volats decoratius, cap al començament de fila`, d.punts.every((c) => c.startsWith('"·"')) && d.puntsAmagats, JSON.stringify(d.punts));
+      comprova(`${nom}: el primer enllaç s’alinea amb el peu i el seu contorn de focus no es retalla`, d.alineat && d.contornVisible);
+      comprova(`${nom}: lletra petita (~.85rem), Open Sans, text-suau, sense subratllat`, d.enllacos.every((e) => Math.abs(e.mida - 13.6) < 0.2 && /^"?Open Sans/.test(e.font)
+        && e.color === 'rgb(74, 74, 70)' && e.deco === 'none'), JSON.stringify(d.enllacos[0]));
+      comprova(`${nom}: fons oficial i contrast AA (${contrast(d.enllacos[0].color, d.fons).toFixed(2)}:1)`, d.fons === 'rgb(241, 240, 238)' && contrast(d.enllacos[0].color, d.fons) >= 4.5);
+      comprova(`${nom}: àrea tàctil ≥ 44 px d’alt`, d.enllacos.every((e) => e.h >= 44), JSON.stringify(d.enllacos.map((e) => e.h)));
+      comprova(`${nom}: ${vp === ESCRIPTORI ? 'una sola línia' : 'com a molt dues línies'} (${d.files}), sense desbordament`, d.files <= (vp === ESCRIPTORI ? 1 : 2) && (await desbordament(pg)) <= 0);
+      if (ruta === '/') {
+        const a = pg.locator('.peu-legal a', { hasText: 'Política de privacitat' });
+        await a.hover();
+        const hover = await a.evaluate((e) => ({ c: getComputedStyle(e).color, d: getComputedStyle(e).textDecorationLine }));
+        comprova(`${nom}: en passar-hi el ratolí, color de text i subratllat`, hover.c === 'rgb(30, 30, 28)' && hover.d === 'underline', JSON.stringify(hover));
+        await pg.mouse.move(0, 0);
+        await pg.focus('.peu-legal a[href="/cookies.html"]'); await pg.keyboard.press('Shift+Tab'); await pg.keyboard.press('Tab');
+        const focus = await pg.evaluate(() => { const e = document.activeElement, cs = getComputedStyle(e);
+          return { text: e.textContent, c: cs.color, d: cs.textDecorationLine, o: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor }; });
+        comprova(`${nom}: amb el teclat, focus visible (contorn vermell de 3 px), color de text i subratllat`, focus.text === 'Política de cookies' && focus.o === 'solid 3px rgb(218, 20, 21)'
+          && focus.c === 'rgb(30, 30, 28)' && focus.d === 'underline', JSON.stringify(focus));
+        await pg.evaluate(() => document.activeElement.blur());
+        if (CAPTURES) {
+          await pg.evaluate(() => document.querySelector('footer').scrollIntoView({ block: 'end' }));
+          await (await pg.$('footer')).screenshot({ path: `${CAPTURES}/peu-legal-${vp.width}.png` });
+        }
+      }
+      await pg.context().close();
+    }
+  }
+}
+
 console.log('\n5. Àrea privada sense configurar');
 for (const ruta of ['/area-privada/', '/area-privada/contrasenya.html', '/area-privada/panel.html']) {
   const pg = await pagina(MOBIL, false);

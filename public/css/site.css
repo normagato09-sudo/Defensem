@@ -97,12 +97,21 @@ h2 span{color:var(--color-defensem-vermell)}
 .contacte .cond{color:var(--color-defensem-vermell);font-size:.95rem;letter-spacing:.1em}
 .contacte a{font-size:1.2rem;font-weight:600;overflow-wrap:anywhere}
 .contacte [hidden]{display:none}
-footer{background:var(--color-defensem-vermell);color:var(--color-fons);padding:48px 0 30px}
+footer{background:var(--color-defensem-vermell);color:var(--color-fons);padding:48px 0 0}
+footer>.w{padding-bottom:30px}
 footer a{color:var(--color-fons);text-decoration:underline;text-underline-offset:3px}
 footer .cond{font-size:1.35rem;margin-bottom:8px}
 footer p{margin:.3em 0}
-.legal{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 22px}
-.legal a{display:inline-block;padding:6px 0}
+/* Enllaços legals: una línia discreta sobre el fons oficial (text-suau 7,8:1, AA). Cada enllaç té 44 px d'alt tàctil
+   sense que el text es vegi més gran; els punts volats són decoratius (text alternatiu buit per als lectors de pantalla). */
+.peu-legal{background:var(--color-fons);color:var(--color-text-suau)}
+/* Cada element porta un punt davant; la llista es desplaça 1,6em a l'esquerra i es retalla (sense tallar el contorn
+   de focus), de manera que el punt del començament de cada fila no es veu, també quan la línia es parteix en mòbil. */
+.legal{list-style:none;margin:0 0 0 -1.6em;padding:2px 0;display:flex;flex-wrap:wrap;align-items:center;font-size:.85rem;line-height:1.4;clip-path:inset(-8px -8px -8px 1em)}
+.legal li{display:flex;align-items:center}
+.legal li::before{content:"·";content:"·"/"";display:inline-block;width:1.6em;text-align:center}
+.peu-legal .legal a{display:inline-flex;align-items:center;min-height:44px;color:var(--color-text-suau);text-decoration:none}
+.peu-legal .legal a:hover,.peu-legal .legal a:focus-visible{color:var(--color-text);text-decoration:underline;text-underline-offset:3px}
 .kicker{font-weight:700}
 .small{font-size:.85rem;margin-top:22px!important;padding-top:14px;border-top:1px solid rgba(241,240,238,.55)}
 .doc{padding-top:clamp(36px,6vw,64px);padding-bottom:clamp(48px,8vw,96px);max-width:800px}
