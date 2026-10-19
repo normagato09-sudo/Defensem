@@ -293,6 +293,21 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
     && f.sub.mida >= 24 && f.h2.mida >= 24 && f.h3.mida >= 18.66 && f.h2span.color === VERMELL, JSON.stringify([f.sub, f.h2, f.h3]));
   comprova(`tipografia ${nom}: accents manuscrits verds (Caveat Brush, substituta d’Adlery) ≥ 24 px`, f.caveat && f.kicker.font === 'Caveat Brush' && f.kicker.color === VERD && f.kicker.mida >= 24, JSON.stringify(f.kicker));
   comprova(`tipografia ${nom}: text corrent en Open Sans`, f.cos.font === 'Open Sans', JSON.stringify(f.cos));
+  const e = await pg.evaluate(() => {
+    const r = (s) => document.querySelector(s).getBoundingClientRect();
+    const sub = r('.hero h1 small'), h1 = r('.hero h1'), lead = r('.hero .lead'), cta = r('.hero .cta'), logo = r('.hero-logo'), mol = r('.molins');
+    return { subParagraf: lead.top - sub.bottom, paragrafBotons: cta.top - lead.bottom, botonsMolins: mol.top - cta.bottom, logoParagraf: lead.top - logo.bottom,
+      h1Alt: h1.height, logoAlt: logo.height, h1Top: h1.top, logoTop: logo.top, ordreMobil: h1.bottom <= logo.top && logo.bottom <= lead.top && lead.bottom <= cta.top,
+      molinsSencers: mol.bottom <= innerHeight };
+  });
+  if (vp === ESCRIPTORI) {
+    comprova(`hero ${nom}: el paràgraf va just sota el subtítol (${e.subParagraf.toFixed(0)} px ≤ 24)`, e.subParagraf >= 8 && e.subParagraf <= 24, JSON.stringify(e));
+    comprova(`hero ${nom}: el títol no s’estira a l’alçada del logo i tots dos comencen a dalt`, e.h1Alt < e.logoAlt && Math.abs(e.h1Top - e.logoTop) <= 2, JSON.stringify(e));
+    comprova(`hero ${nom}: els molins es veuen sencers sense desplaçar`, e.molinsSencers, JSON.stringify(e));
+  } else {
+    comprova(`hero ${nom}: ordre títol → logo → paràgraf → botons, amb 16-24 px del logo al paràgraf`, e.ordreMobil && e.logoParagraf >= 16 && e.logoParagraf <= 24, JSON.stringify(e));
+  }
+  comprova(`hero ${nom}: botons a 16-26 px del paràgraf i molins a ≤ 24 px dels botons`, e.paragrafBotons >= 16 && e.paragrafBotons <= 26 && e.botonsMolins >= 0 && e.botonsMolins <= 24, JSON.stringify(e));
   if (CAPTURES) {
     await pg.screenshot({ path: `${CAPTURES}/portada-${vp.width}.png` });
     // Fotograma a mitja volta: es pausen les animacions en un instant concret.
