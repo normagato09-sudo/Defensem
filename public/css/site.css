@@ -168,3 +168,47 @@ body:not(.privat) .kicker{font:400 1.6rem/1.1 var(--font-accent);letter-spacing:
 /* Punt volat de la ela geminada (l·l) als titulars: en Open Sans 800 queda enganxat i sembla una «H». */
 .punt-volat{margin:0 .07em}
 body:not(.privat) h2 .punt-volat{color:inherit}
+/* Consentiment de cookies (/js/consentiment.js). Els tres botons del bàner tenen exactament el mateix estil:
+   cap no destaca per empènyer a acceptar. El bàner reserva la seva alçada al final de la pàgina (--cc-alt)
+   perquè no tapi el peu ni cap botó, i el desplaçament pel focus el té en compte (scroll-padding-bottom). */
+html.cc-actiu{scroll-padding-bottom:calc(var(--cc-alt,0px) + 12px)}
+html.cc-actiu body{padding-bottom:var(--cc-alt,0px)}
+.cc-banner{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--color-fons);color:var(--color-text);border-top:4px solid var(--color-defensem-verd);box-shadow:0 -6px 24px rgba(30,30,28,.18);max-height:60vh;overflow-y:auto;animation:cc-puja .25s ease-out}
+.cc-dins{display:flex;align-items:center;gap:12px 32px;padding-top:14px;padding-bottom:14px}
+.cc-msg{flex:1;min-width:0}
+.cc-titol,body:not(.privat) .cc-titol{font:400 1.5rem/1.1 var(--font-titular);color:var(--color-defensem-vermell);text-transform:uppercase;letter-spacing:.01em;margin:0}
+.cc-banner p{margin:4px 0 0;font-size:.95rem;line-height:1.5}
+.cc-banner a{color:var(--color-verd-text);font-weight:700;text-underline-offset:3px}
+.cc-botons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex:none;width:min(100%,420px)}
+.cc-btn{min-height:48px;min-width:0;padding:8px 10px;font:700 .9rem/1.2 var(--font-defensem);letter-spacing:.03em;text-transform:uppercase;border:2px solid var(--color-text);background:#fff;color:var(--color-text);cursor:pointer;border-radius:0}
+.cc-btn:hover{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+@media(max-width:760px){.cc-dins{flex-direction:column;align-items:stretch;gap:8px;padding-top:10px;padding-bottom:10px}.cc-botons{width:100%;gap:8px}body:not(.privat) .cc-titol{font-size:1.25rem}.cc-banner p{font-size:.875rem;line-height:1.45;margin-top:2px}.cc-btn{min-height:44px;padding:6px 4px;font-size:.85rem;letter-spacing:.02em}}
+@media(max-width:340px){.cc-botons{grid-template-columns:1fr}}
+@keyframes cc-puja{from{transform:translateY(100%)}}
+.cc-panell{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;padding:20px clamp(16px,4vw,28px) 24px;border:0;border-top:6px solid var(--color-defensem-verd);background:var(--color-fons);color:var(--color-text);box-shadow:0 12px 40px rgba(30,30,28,.35)}
+.cc-panell::backdrop{background:rgba(30,30,28,.6)}
+.cc-panell[open]{animation:cc-apareix .2s ease-out}
+@keyframes cc-apareix{from{opacity:0;transform:translateY(12px)}}
+.cc-p-cap{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cc-p-cap .cc-titol{padding-top:8px}
+.cc-tanca{flex:none;width:44px;height:44px;border:2px solid var(--color-text);background:#fff;color:var(--color-text);font:400 1.6rem/1 var(--font-defensem);cursor:pointer}
+.cc-tanca:hover{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+.cc-panell>p{margin:10px 0 16px;font-size:.95rem;line-height:1.55}
+.cc-cat{border-top:2px solid var(--color-text);padding:12px 0 6px}
+.cc-cat p{margin:4px 0 8px;font-size:.9rem;line-height:1.55;color:var(--color-text-suau)}
+.cc-fila{display:flex;align-items:center;gap:12px;min-height:44px}
+.cc-fila h3{flex:1;font-size:1.05rem;color:var(--color-verd-text)}
+.cc-sempre{font-size:.85rem;font-weight:700;color:var(--color-text-suau)}
+.cc-switch{flex:none;position:relative;width:64px;height:44px;padding:0;border:0;background:none;cursor:pointer}
+.cc-switch span{position:absolute;left:4px;right:4px;top:7px;height:30px;border:2px solid var(--color-text);border-radius:15px;background:#fff}
+.cc-switch span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--color-text);transition:transform .15s}
+.cc-switch[aria-checked=true] span{background:var(--color-defensem-verd);border-color:var(--color-verd-fosc)}
+.cc-switch[aria-checked=true] span::after{background:#fff;transform:translateX(22px)}
+.cc-switch[aria-disabled=true]{cursor:not-allowed}
+.cc-switch[aria-disabled=true] span{background:var(--color-verd-text);border-color:var(--color-verd-fosc)}
+.cc-p-peu{margin-top:16px}
+.cc-p-peu .cc-btn{width:100%}
+.cc-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cc-estat{background:var(--color-fons-fosc);border-left:5px solid var(--color-defensem-verd);padding:14px 16px}
+@media(prefers-reduced-motion:reduce){.cc-banner,.cc-panell[open]{animation:none}.cc-switch span::after{transition:none}}
+.taula code{overflow-wrap:anywhere}

@@ -136,10 +136,16 @@ const CONFIG_IG = `window.DEFENSEM = { instagram: "${IG}", supabaseUrl: "", supa
 const CAPTURES = process.env.CAPTURES || '';  // carpeta on desar captures (opcional)
 
 // ---------------- navegador ----------------
+const CC_JS = await readFile(join(ARREL, 'js/consentiment.js'), 'utf8');
+const CC_CLAU = CC_JS.match(/var CLAU = '([^']+)'/)[1], CC_VERSIO = CC_JS.match(/var VERSIO = '([^']+)'/)[1];
 const nav = await chromium.launch();
 const MOBIL = { width: 390, height: 844 }, ESCRIPTORI = { width: 1280, height: 900 };
 async function pagina(viewport, ambSupabase, opcions) {
   const ctx = await nav.newContext({ viewport, ...(opcions || {}) });
+  // El bàner de cookies es prova a prova-cookies.mjs; aquí es parteix d'una decisió ja presa perquè no tapi res.
+  await ctx.addInitScript(([clau, versio]) => {
+    try { localStorage.setItem(clau, JSON.stringify({ versio, data: new Date().toISOString(), categories: { analitiques: false } })); } catch { /* about:blank */ }
+  }, [CC_CLAU, CC_VERSIO]);
   const pg = await ctx.newPage();
   pg.errors = []; pg.externes = []; pg.dialegs = [];
   pg.on('console', (m) => { if (m.type() === 'error') pg.errors.push(m.text()); });
@@ -221,7 +227,8 @@ console.log('\n3. La web pública continua igual');
   comprova('botó «Signa la petició» desactivat', await pg.$eval('.cta button', (b) => b.disabled && /Signa la petició/.test(b.textContent)));
   comprova('notícies buides amb el missatge', /Encara no hi ha notícies publicades/.test(await pg.$eval('#news', (e) => e.textContent)));
   comprova('enllaç «Àrea privada» al peu', (await textos(pg, 'footer .legal a')).includes('Àrea privada'));
-  comprova('cap cookie ni localStorage', (await pg.context().cookies()).length === 0 && (await pg.evaluate(() => localStorage.length)) === 0);
+  comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&
+    (await pg.evaluate(() => Object.keys(localStorage).join())) === CC_CLAU);
   for (const f of ['/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html']) {
     await pg.goto(ORIGEN + f);
     comprova('enllaç «Àrea privada» al peu de ' + f, (await textos(pg, 'footer .legal a')).includes('Àrea privada'));

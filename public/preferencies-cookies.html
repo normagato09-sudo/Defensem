@@ -10,6 +10,7 @@
 <meta property="og:locale" content="ca_ES">
 <link rel="preload" href="/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/site.css">
+<script src="/js/consentiment.js" defer></script>
 </head>
 <body>
 <header><div class="w bar">
@@ -21,14 +22,13 @@
 <li><a class="btn" href="/#contacte">Contacte</a></li>
 </ul></nav></div></header>
 <main class="w doc"><p class="kicker">Informació legal</p><h1>Preferències de cookies</h1>
-<p>Estat actual d’aquest web:</p>
+<p class="cc-estat" id="cc-estat" aria-live="polite">Per veure i canviar la teva elecció cal tenir JavaScript activat. Sense JavaScript, aquest web no desa cap preferència ni carrega cap tecnologia opcional.</p>
+<p><button type="button" class="btn" data-cc="obre" aria-haspopup="dialog">Canviar les preferències</button></p>
 <table class="taula"><thead><tr><th>Categoria</th><th>Estat</th></tr></thead><tbody>
-<tr><td>Necessàries</td><td>No s’utilitza cap cookie. Només a l’àrea privada, i mentre tinguis la sessió iniciada, es desa el testimoni de sessió a l’emmagatzematge local del navegador (s’esborra en tancar la sessió).</td></tr>
-<tr><td>Preferències</td><td>No s’utilitza cap cookie</td></tr>
-<tr><td>Analítica</td><td>No s’utilitza cap cookie</td></tr>
-<tr><td>Publicitat i seguiment</td><td>No s’utilitza cap cookie</td></tr>
+<tr><td>Necessàries</td><td>Sempre actives. Cap cookie: només l’emmagatzematge local del navegador per recordar aquesta elecció (<code>defensem.consentiment</code>) i, a l’àrea privada i mentre tinguis la sessió iniciada, el testimoni de sessió (s’esborra en tancar-la).</td></tr>
+<tr><td>Analítiques / contingut extern</td><td>Desactivades per defecte. Ara mateix el web no en fa servir cap: si mai n’hi afegim, només es carregaran si les acceptes.</td></tr>
 </tbody></table>
-<p>Com que no fem servir cookies ni tecnologies que requereixin el teu consentiment (el testimoni de sessió de l’àrea privada és estrictament necessari), no hi ha res a acceptar, rebutjar ni configurar. Si en el futur n’afegim, aquí podràs acceptar-les, rebutjar-les o configurar-les amb la mateixa facilitat, i no s’activaran abans del teu consentiment.</p>
+<p>Pots rebutjar, acceptar o configurar amb la mateixa facilitat, i canviar-ho quan vulguis des d’aquí o des de l’enllaç «Preferències de cookies» del peu.</p>
 <p>Més informació a la <a href="/cookies.html">política de cookies</a>.</p></main>
 <footer><div class="w">
 <div class="cond">Defensem l’Empordanet</div>
