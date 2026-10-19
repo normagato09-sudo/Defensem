@@ -213,8 +213,7 @@ console.log('\n3. La web pública continua igual');
   const pg = await pagina(ESCRIPTORI, false);
   await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
   comprova('seccions Qui som, Notícies i Contacte', (await pg.$$('#qui-som, #noticies, #contacte')).length === 3);
-  comprova('5 molins animats', (await pg.$$eval('.rot', (l) => l.filter((e) => getComputedStyle(e).animationName === 'spin').length)) === 5);
-  comprova('paisatge SVG', !!(await pg.$('svg.paisatge')));
+  comprova('il·lustració de molins i plaques (sense el SVG antic)', !!(await pg.$('.hero .molins')) && !(await pg.$('svg.paisatge, .rot')));
   await pg.$eval('.foto img', (i) => i.scrollIntoView()); await pg.waitForTimeout(400);
   comprova('la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
   comprova('correu de contacte', !!(await pg.$('a[href="mailto:defensemlempordanet@gmail.com"]')));
@@ -250,6 +249,77 @@ console.log('\n3. La web pública continua igual');
   comprova('conserva el text dels elements no permesos', r.out.includes('dins'));
   comprova('enllaços bons amb rel i target', r.out.includes('<a href="https://exemple.cat/" rel="noopener noreferrer" target="_blank">bo</a>') && r.out.includes('href="mailto:a@b.cat"'));
   comprova('conserva h2, ul/li, blockquote', /<h2>Títol<\/h2>/.test(r.out) && r.out.includes('<ul><li>u</li></ul>') && r.out.includes('<blockquote>c</blockquote>'));
+  await pg.context().close();
+}
+
+console.log('\n3b. Molins que giren i tipografia de la Bíblia d’estils (390 px i 1280 px)');
+for (const vp of [MOBIL, ESCRIPTORI]) {
+  const pg = await pagina(vp, false);
+  const imatges = [];
+  pg.on('response', (r) => { if (/\/img\/molins-/.test(r.url())) imatges.push(r.url().split('/').pop()); });
+  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
+  await pg.evaluate(() => document.fonts.ready);
+  const m = await pg.evaluate(() => {
+    const caixa = document.querySelector('.molins'), base = caixa.querySelector(':scope > picture img'), cb = caixa.getBoundingClientRect();
+    const rotors = [...caixa.querySelectorAll('.rotor img')].map((i) => {
+      const cs = getComputedStyle(i), r = { width: i.offsetWidth, height: i.offsetHeight }; // sense el gir aplicat
+      return { anim: cs.animationName, dur: cs.animationDuration, delay: cs.animationDelay, iter: cs.animationIterationCount, fn: cs.animationTimingFunction,
+        origen: cs.transformOrigin, w: r.width, h: r.height, carregada: i.complete && i.naturalWidth > 0, alt: i.getAttribute('alt'), ocult: i.closest('[aria-hidden=true]') !== null };
+    });
+    return { w: cb.width, natural: base.naturalWidth, alt: base.alt, wAttr: base.getAttribute('width'), hAttr: base.getAttribute('height'), carregada: base.complete && base.naturalWidth > 0,
+      esquerra: cb.left, dreta: innerWidth - cb.right, rotors };
+  });
+  const nom = `@${vp.width}px`;
+  comprova(`molins ${nom}: imatge base carregada, amb alt, width/height i WebP`, m.carregada && m.alt === 'Molins de vent sobre plaques solars' && m.wAttr === '822' && m.hAttr === '367'
+    && imatges.includes('molins-solars.webp'), JSON.stringify({ ...m, rotors: undefined, imatges }));
+  comprova(`molins ${nom}: mai més ample que la mida real (${m.w.toFixed(0)} ≤ ${m.natural} px)`, m.w <= m.natural + 0.5);
+  if (vp === MOBIL) comprova(`molins ${nom}: ocupa l’amplada amb marges de 16 px`, Math.abs(m.esquerra - 16) <= 1 && Math.abs(m.dreta - 16) <= 1, JSON.stringify(m));
+  else comprova(`molins ${nom}: centrada`, Math.abs(m.esquerra - m.dreta) <= 1);
+  comprova(`molins ${nom}: 5 rotors carregats, decoratius (alt="" i aria-hidden)`, m.rotors.length === 5 && m.rotors.every((r) => r.carregada && r.alt === '' && r.ocult));
+  comprova(`molins ${nom}: tots giren (rotate lineal i infinit)`, m.rotors.every((r) => r.anim === 'gira' && r.iter === 'infinite' && r.fn === 'linear'), JSON.stringify(m.rotors));
+  comprova(`molins ${nom}: velocitats i fases diferents`, new Set(m.rotors.map((r) => r.dur)).size === 5 && new Set(m.rotors.map((r) => r.delay)).size === 5);
+  comprova(`molins ${nom}: el gir és al centre de cada rotor (la boixa)`, m.rotors.every((r) => { const [x, y] = r.origen.split(' ').map(parseFloat); return Math.abs(x - r.w / 2) < 0.5 && Math.abs(y - r.h / 2) < 0.5 && Math.abs(r.w - r.h) < 0.5; }));
+  // Només s'anima transform: els fotogrames clau no toquen cap altra propietat.
+  const props = await pg.evaluate(() => [...new Set(document.getAnimations().flatMap((a) => a.effect.getKeyframes().flatMap((k) => Object.keys(k).filter((p) => !['offset', 'easing', 'composite', 'computedOffset'].includes(p)))))]);
+  comprova(`molins ${nom}: només s’anima transform`, JSON.stringify(props) === '["transform"]', JSON.stringify(props));
+  const f = await pg.evaluate(() => {
+    const est = (sel) => { const e = document.querySelector(sel), cs = getComputedStyle(e); return { font: cs.fontFamily.split(',')[0].replace(/["']/g, ''), color: cs.color, pes: cs.fontWeight, mida: parseFloat(cs.fontSize) }; };
+    return { h1: est('.hero h1'), sub: est('.hero h1 small'), h2: est('#qui-som h2'), h2span: est('#qui-som h2 span'), kicker: est('.kicker'), cos: est('.txt p'), h3: est('.valors h3'),
+      anton: document.fonts.check('1em Anton'), caveat: document.fonts.check('1em "Caveat Brush"') };
+  });
+  const VERMELL = 'rgb(218, 20, 21)', VERD = 'rgb(41, 141, 59)';
+  comprova(`tipografia ${nom}: titular principal en Anton vermell`, f.anton && f.h1.font === 'Anton' && f.h1.color === VERMELL && f.h1.pes === '400', JSON.stringify(f.h1));
+  comprova(`tipografia ${nom}: titulars verds gruixuts (subtítol, h2, h3) en verd oficial i prou grans per a AA`, [f.sub, f.h2, f.h3].every((x) => x.color === VERD && +x.pes >= 800)
+    && f.sub.mida >= 24 && f.h2.mida >= 24 && f.h3.mida >= 18.66 && f.h2span.color === VERMELL, JSON.stringify([f.sub, f.h2, f.h3]));
+  comprova(`tipografia ${nom}: accents manuscrits verds (Caveat Brush, substituta d’Adlery) ≥ 24 px`, f.caveat && f.kicker.font === 'Caveat Brush' && f.kicker.color === VERD && f.kicker.mida >= 24, JSON.stringify(f.kicker));
+  comprova(`tipografia ${nom}: text corrent en Open Sans`, f.cos.font === 'Open Sans', JSON.stringify(f.cos));
+  if (CAPTURES) {
+    await pg.screenshot({ path: `${CAPTURES}/portada-${vp.width}.png` });
+    // Fotograma a mitja volta: es pausen les animacions en un instant concret.
+    await pg.evaluate(() => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 2600; }));
+    await (await pg.$('.molins')).screenshot({ path: `${CAPTURES}/molins-gir-${vp.width}.png` });
+  }
+  await pg.context().close();
+}
+{
+  const pg = await pagina(ESCRIPTORI, false, { reducedMotion: 'reduce' });
+  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
+  comprova('molins: amb prefers-reduced-motion no giren', await pg.$$eval('.rotor img', (l) => l.length === 5 && l.every((i) => getComputedStyle(i).animationName === 'none')));
+  await pg.context().close();
+}
+{
+  const pg = await pagina(MOBIL, false);
+  await pg.goto(ORIGEN + '/avis-legal.html', { waitUntil: 'networkidle' });
+  await pg.evaluate(() => document.fonts.ready);
+  const t = await pg.evaluate(() => ({ h1: getComputedStyle(document.querySelector('.doc h1')).fontFamily, h2: getComputedStyle(document.querySelector('.doc h2')).color }));
+  comprova('pàgines legals: h1 en Anton i h2 en verd oficial', /^"?Anton/.test(t.h1) && t.h2 === 'rgb(41, 141, 59)', JSON.stringify(t));
+  await pg.context().close();
+}
+{
+  const pg = await pagina(ESCRIPTORI, true);
+  await pg.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
+  const h1 = await pg.evaluate(() => getComputedStyle(document.querySelector('h1')).fontFamily);
+  comprova('l’àrea privada no canvia de tipografia (Open Sans)', /^"?Open Sans/.test(h1), h1);
   await pg.context().close();
 }
 

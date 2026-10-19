@@ -1,10 +1,18 @@
 @font-face{font-family:'Open Sans';font-weight:300 800;font-style:normal;font-display:swap;src:url(/fonts/open-sans-latin-wght-normal.woff2) format("woff2-variations"),url(/fonts/open-sans-latin-wght-normal.woff2) format("woff2")}
+/* Tipografies de la Bíblia d'estils allotjades en local (WOFF2, subconjunt llatí, llicència OFL a /fonts/OFL-*.txt).
+   Adlery Blockletter i Galguin no tenen versió lliure redistribuïble: fins que se'n tingui la llicència web,
+   Caveat Brush fa de substituta d'Adlery i Open Sans 800 de Galguin (vegeu --font-accent i --font-titular-verd). */
+@font-face{font-family:'Anton';font-weight:400;font-style:normal;font-display:swap;src:url(/fonts/anton-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:'Caveat Brush';font-weight:400;font-style:normal;font-display:swap;src:url(/fonts/caveat-brush-latin-400-normal.woff2) format("woff2")}
 /* IDENTITAT OFICIAL DEFENSEM — única font de veritat. Els derivats es calculen només a partir d'aquests tres colors. */
 :root{
 --color-fons:#f1f0ee;
 --color-defensem-verd:#298d3b;
 --color-defensem-vermell:#da1415;
 --font-defensem:'Open Sans',sans-serif;
+--font-titular:'Anton','Open Sans',sans-serif;           /* titulars forts, vermells */
+--font-titular-verd:'Open Sans',sans-serif;              /* Galguin (pendent de llicència): titulars verds, gruixuts */
+--font-accent:'Caveat Brush','Open Sans',cursive;        /* Adlery Blockletter (pendent de llicència): accents verds */
 /* derivats (accessibilitat i matisos) */
 --color-fons-fosc:#d9e4d9;
 --color-verd-fosc:#195523;
@@ -47,10 +55,19 @@ nav .btn{padding:9px 18px;min-height:44px;font-size:.85rem;color:#fff}
 @media(min-width:821px){.hero-tit{flex-direction:row;justify-content:space-between;gap:clamp(24px,4vw,48px)}.hero-tit h1{flex:1;min-width:0}.hero-logo{flex:none;width:clamp(260px,27vw,300px)}}
 .hero p.lead{font-size:clamp(1.05rem,2.4vw,1.25rem);max-width:56ch;margin:20px 0 26px}
 .cta{display:flex;flex-wrap:wrap;gap:12px}
-.paisatge{display:block;width:100%;height:clamp(260px,38vw,460px);margin-top:clamp(24px,4vw,44px)}
-.rot{animation:spin 14s linear infinite;will-change:transform}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.rot{animation:none}html{scroll-behavior:auto}}
+/* Molins i plaques solars (il·lustració del cartell). Mida màxima = mida real de la imatge (822 px): no s'amplia.
+   Cada rotor és una capa a sobre, situada en % de la imatge; el centre de la capa és la boixa. */
+.molins{position:relative;width:min(100%,822px);margin:clamp(24px,4vw,44px) auto 0}
+.molins img{display:block;width:100%;height:auto}
+.rotor{position:absolute;display:block}
+.rotor img{animation:gira 9s linear infinite;will-change:transform}
+.r1{left:35.645%;top:22.888%;width:13.504%}.r1 img{animation-duration:8.5s;animation-delay:-2.1s}
+.r2{left:50.73%;top:8.174%;width:17.153%}.r2 img{animation-duration:10.5s;animation-delay:-6.3s}
+.r3{left:71.776%;top:26.158%;width:11.557%}.r3 img{animation-duration:7s;animation-delay:-4.4s}
+.r4{left:76.399%;top:.817%;width:20.316%}.r4 img{animation-duration:12s;animation-delay:-.8s}
+.r5{left:86.861%;top:27.793%;width:13.26%}.r5 img{animation-duration:7.8s;animation-delay:-5.2s}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.rotor img{animation:none}html{scroll-behavior:auto}}
 section.s{padding:clamp(52px,9vw,96px) 0}
 h2{font-size:clamp(1.9rem,5.5vw,3rem);font-weight:800}
 h2 span{color:var(--color-defensem-vermell)}
@@ -108,18 +125,6 @@ footer p{margin:.3em 0}
 .ig svg{width:44px;height:44px;padding:10px;border-radius:50%;background:var(--color-defensem-vermell);color:var(--color-fons);stroke:currentColor;stroke-width:1.8;fill:none;flex:none}
 .ig:hover svg{background:var(--color-defensem-verd)}
 .ig:hover span{text-decoration:underline}
-/* Il·lustració del paisatge (colors de marca) */
-.f-lluny{fill:var(--color-fons-fosc)}
-.f-verd{fill:var(--color-defensem-verd)}
-.f-text{fill:var(--color-text)}
-.f-terra{fill:var(--color-verd-fosc)}
-.f-verm{fill:var(--color-defensem-vermell)}
-.f-verm2{fill:var(--color-vermell-fosc)}
-.f-cipres{fill:var(--color-verd-fosc)}
-.f-mur{fill:var(--color-fons-fosc)}
-.f-fons{fill:var(--color-fons)}
-.s-fons{stroke:var(--color-fons)}
-.s-text{stroke:var(--color-text)}
 /* Notícies des de l'àrea privada */
 .card .etiq{align-self:flex-start;font:700 .72rem/1 var(--font-defensem);letter-spacing:.12em;text-transform:uppercase;background:var(--color-verd-fosc);color:#fff;padding:5px 8px}
 .noticia h1{overflow-wrap:anywhere}
@@ -136,3 +141,11 @@ footer p{margin:.3em 0}
 .contingut a{color:var(--color-verd-text);font-weight:600}
 .noticia .tornar{margin-top:40px}
 .noticia .tornar a{color:var(--color-verd-text);font-weight:700}
+/* Tipografia de la web pública segons la Bíblia d'estils (l'àrea privada no canvia).
+   El verd oficial (3,7:1 sobre el fons) només s'usa a 24 px o més, o 18,7 px en negreta: contrast AA de text gran. */
+body:not(.privat) .hero h1,body:not(.privat) .doc h1{font-family:var(--font-titular);font-weight:400;letter-spacing:.01em;line-height:1.02;color:var(--color-defensem-vermell)}
+body:not(.privat) .hero h1 small{font-family:var(--font-titular-verd);font-weight:800;text-transform:uppercase;letter-spacing:0;font-size:max(1.5rem,.42em);line-height:1.1;color:var(--color-defensem-verd)}
+body:not(.privat) h2{font-family:var(--font-titular-verd);font-weight:800;color:var(--color-defensem-verd)}
+body:not(.privat) h2 span{color:var(--color-defensem-vermell)}
+body:not(.privat) .valors h3{color:var(--color-defensem-verd)}
+body:not(.privat) .kicker{font:400 1.6rem/1.1 var(--font-accent);letter-spacing:.01em;text-transform:none;color:var(--color-defensem-verd);margin-bottom:6px}
