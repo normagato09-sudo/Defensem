@@ -158,3 +158,6 @@ body:not(.privat) h2{font-family:var(--font-titular-verd);font-weight:800;color:
 body:not(.privat) h2 span{color:var(--color-defensem-vermell)}
 body:not(.privat) .valors h3{color:var(--color-defensem-verd)}
 body:not(.privat) .kicker{font:400 1.6rem/1.1 var(--font-accent);letter-spacing:.01em;text-transform:none;color:var(--color-defensem-verd);margin-bottom:6px}
+/* Punt volat de la ela geminada (l·l) als titulars: en Open Sans 800 queda enganxat i sembla una «H». */
+.punt-volat{margin:0 .07em}
+body:not(.privat) h2 .punt-volat{color:inherit}

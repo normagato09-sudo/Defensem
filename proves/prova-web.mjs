@@ -313,6 +313,11 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   await pg.evaluate(() => document.fonts.ready);
   const t = await pg.evaluate(() => ({ h1: getComputedStyle(document.querySelector('.doc h1')).fontFamily, h2: getComputedStyle(document.querySelector('.doc h2')).color }));
   comprova('pàgines legals: h1 en Anton i h2 en verd oficial', /^"?Anton/.test(t.h1) && t.h2 === 'rgb(41, 141, 59)', JSON.stringify(t));
+  const lg = await pg.evaluate(() => { const h = [...document.querySelectorAll('.doc h2')].find((x) => x.textContent.includes('intel·lectual')), p = h && h.querySelector('.punt-volat');
+    return h && { text: h.textContent, marge: p ? parseFloat(getComputedStyle(p).marginLeft) : 0, color: p && getComputedStyle(p).color, colorH2: getComputedStyle(h).color }; });
+  comprova('«intel·lectual» es llegeix sencer i el punt volat té aire (no sembla una «H») i el color del titular', !!lg && lg.text === '6. Propietat intel·lectual' && lg.marge >= 1
+    && lg.color === lg.colorH2, JSON.stringify(lg));
+  if (CAPTURES) await (await pg.$('.doc h2:has(.punt-volat)')).screenshot({ path: `${CAPTURES}/intel-lectual-390.png` });
   await pg.context().close();
 }
 {
