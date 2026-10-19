@@ -375,13 +375,16 @@
     var files = (r.data || []).map(function (p) {
       return el('tr', null, [
         el('td', null, [enllacRuta(p.titol, 'editar/' + p.id)]),
+        el('td', null, [el('div', { class: 'accions-fila' }, [
+          el('a', { href: '#/editar/' + p.id, class: 'btn o fosc petit', 'aria-label': 'Edita «' + p.titol + '»' }, ['Edita']),
+          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
+            if (!window.confirm('Segur que vols eliminar «' + p.titol + '»? Aquesta acció no es pot desfer.')) return;
+            var d = await escriu(sb.from('publicacions').delete().eq('id', p.id));
+            if (d) { esborraImatge(p.imatge); avis('Publicació eliminada.'); refresca(); }
+          }, { 'aria-label': 'Elimina «' + p.titol + '»' }) : null
+        ])]),
         el('td', null, [TIPUS[p.tipus]]), el('td', null, [estat(p.estat)]),
-        el('td', null, [noms[p.autor_id] || '—']), el('td', null, [data(p.updated_at)]),
-        el('td', null, [jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
-          if (!window.confirm('Segur que vols eliminar «' + p.titol + '»? Aquesta acció no es pot desfer.')) return;
-          var d = await escriu(sb.from('publicacions').delete().eq('id', p.id));
-          if (d) { esborraImatge(p.imatge); avis('Publicació eliminada.'); refresca(); }
-        }, { 'aria-label': 'Elimina «' + p.titol + '»' }) : enllacRuta('Edita', 'editar/' + p.id)])
+        el('td', null, [noms[p.autor_id] || '—']), el('td', null, [data(p.updated_at)])
       ]);
     });
     pinta(t, [
@@ -389,7 +392,7 @@
       el('div', { class: 'filtre' }, [el('div', { class: 'camp' }, [el('label', { for: 'filtre-estat' }, ['Filtra per estat']), sel])]),
       files.length ? el('div', { class: 'taula-wrap', tabindex: '0', role: 'region', 'aria-label': 'Llista de publicacions' }, [
         el('table', { class: 'taula' }, [
-          el('thead', null, [el('tr', null, ['Títol', 'Tipus', 'Estat', 'Autor', 'Actualitzada', 'Accions'].map(function (x) { return el('th', { scope: 'col' }, [x]); }))]),
+          el('thead', null, [el('tr', null, ['Títol', 'Accions', 'Tipus', 'Estat', 'Autor', 'Actualitzada'].map(function (x) { return el('th', { scope: 'col' }, [x]); }))]),
           el('tbody', null, files)
         ])]) : buit('No hi ha cap publicació amb aquest filtre.')
     ]);

@@ -13,5 +13,4 @@ s.appendChild(node('circle',{cx:'17.4',cy:'6.6',r:'1.1',fill:'currentColor',stro
 var t=document.createElement('span');t.textContent='Segueix-nos a Instagram';
 a.appendChild(s);a.appendChild(t);return a}
 var c=document.getElementById('ig-contacte');if(c){c.hidden=false;c.appendChild(enllac())}
-var f=document.getElementById('ig-peu');if(f)f.appendChild(enllac());
 })();

@@ -187,6 +187,35 @@ comprova('l\'editor arxiva', await afecta(E, "update publicacions set estat = 'a
 comprova('l\'arxivada ja no és pública', !(await files(null, 'select id from publicacions_publiques')).some((p) => p.id === PE));
 comprova('l\'admin esborra publicacions', await afecta(A, 'delete from publicacions where id = $1', [PE]) === 1);
 
+console.log('\nAdmin i editor editen publicacions d\'altres (en qualsevol estat)');
+for (const editor of [['admin', A], ['editor', E]]) {
+  for (const est of ['esborrany', 'pendent', 'publicat', 'retornat', 'arxivat']) {
+    const id = await novaPub(C, { titol: 'De Carles (' + est + ')', contingut: '<p>original</p>' });
+    await su('update publicacions set estat = $2 where id = $1', [id, est]);
+    const abans = await pub(id);
+    const n = await afecta(editor[1], "update publicacions set titol = $2, contingut = '<p>editat</p>', estat = $3 where id = $1", [id, 'Editat per ' + editor[0], est]);
+    const despres = await pub(id);
+    comprova(`${editor[0]} edita una ${est} d'un col·laborador: es desa, autor i estat intactes`,
+      n === 1 && despres.titol === 'Editat per ' + editor[0] && despres.autor_id === C && despres.estat === est);
+    if (est === 'publicat') {
+      comprova(`${editor[0]}: la publicada editada continua pública amb el text nou i la mateixa data de publicació`,
+        (await files(null, 'select titol from publicacions_publiques where id = $1', [id]))[0]?.titol === 'Editat per ' + editor[0]
+        && +despres.published_at === +abans.published_at);
+    }
+    await afecta(editor[1], 'update publicacions set autor_id = $2 where id = $1', [id, editor[1]]);
+    comprova(`${editor[0]} NO pot canviar l'autor d'una ${est}`, (await pub(id)).autor_id === C);
+    comprova(`col·laboradora dos NO edita la ${est} d'un altre`, await bloquejat(C2, "update publicacions set titol = 'hack' where id = $1", [id]) && (await pub(id)).titol === 'Editat per ' + editor[0]);
+    comprova(`consulta NO edita la ${est} d'un altre`, await bloquejat(Q, "update publicacions set titol = 'hack' where id = $1", [id]) && (await pub(id)).titol === 'Editat per ' + editor[0]);
+  }
+}
+{
+  const id = await novaPub(C, { titol: 'Per canviar d\'estat' });
+  comprova('l\'editor canvia l\'estat d\'una publicació d\'altri amb els botons (publica)', await afecta(E, "update publicacions set estat = 'publicat' where id = $1", [id]) === 1
+    && (await pub(id)).estat === 'publicat' && (await pub(id)).autor_id === C);
+  await su("update publicacions set estat = 'esborrany' where id = $1", [id]);
+  comprova('el col·laborador continua sense poder arxivar la seva', await falla(C, "update publicacions set estat = 'arxivat' where id = $1", [id]) && (await pub(id)).estat === 'esborrany');
+}
+
 console.log('\nDocuments i rol de consulta');
 const doc1 = (await files(A, "insert into documents (titol, enllac, created_by) values ('Acta', 'https://ex.cat/acta.pdf', $1) returning id", [A]))[0].id;
 const doc2 = (await files(A, "insert into documents (titol, enllac, created_by) values ('Pressupost', 'https://ex.cat/p.pdf', $1) returning id", [A]))[0].id;

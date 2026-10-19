@@ -70,7 +70,7 @@ Una cuenta desactivada no puede ver ni hacer nada, pero sus publicaciones se con
 ## Pruebas automáticas
 
 ```bash
-# Base de datos (Postgres real en memoria, sin Supabase): 103 comprobaciones
+# Base de datos (Postgres real en memoria, sin Supabase): 147 comprobaciones
 npm i --no-save @electric-sql/pglite
 node supabase/prova-permisos.mjs
 

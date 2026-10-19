@@ -130,6 +130,10 @@ async function supabaseFals(route) {
   return json(404, {});
 }
 const CONFIG = `window.DEFENSEM = { instagram: "", supabaseUrl: "${SB}", supabaseAnonKey: "anon-de-prova" };`;
+const CONFIG_BUIT = 'window.DEFENSEM = { instagram: "", supabaseUrl: "", supabaseAnonKey: "" };';
+const IG = 'https://www.instagram.com/defensem_prova/';
+const CONFIG_IG = `window.DEFENSEM = { instagram: "${IG}", supabaseUrl: "", supabaseAnonKey: "" };`;
+const CAPTURES = process.env.CAPTURES || '';  // carpeta on desar captures (opcional)
 
 // ---------------- navegador ----------------
 const nav = await chromium.launch();
@@ -143,8 +147,9 @@ async function pagina(viewport, ambSupabase, opcions) {
   pg.on('dialog', (d) => { pg.dialegs.push(d.message()); d.dismiss(); });
   pg.on('request', (r) => { if (!r.url().startsWith(ORIGEN) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) pg.externes.push(r.url()); });
   pg.on('response', (r) => { if (r.status() >= 400 && r.url().startsWith(ORIGEN)) pg.errors.push(r.status() + ' ' + r.url()); });
+  // Mai el config.js real: les proves no han de tocar el Supabase de producció.
+  await pg.route('**/js/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: ambSupabase ? CONFIG : CONFIG_BUIT }));
   if (ambSupabase) {
-    await pg.route('**/js/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: CONFIG }));
     await pg.route(SB + '/**', supabaseFals);
   }
   return pg;
@@ -213,7 +218,7 @@ console.log('\n3. La web pública continua igual');
   await pg.$eval('.foto img', (i) => i.scrollIntoView()); await pg.waitForTimeout(400);
   comprova('la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
   comprova('correu de contacte', !!(await pg.$('a[href="mailto:defensemlempordanet@gmail.com"]')));
-  comprova('Instagram ocult sense URL', await pg.$eval('#ig-contacte', (e) => e.hidden) && (await pg.$eval('#ig-peu', (e) => e.children.length)) === 0);
+  comprova('Instagram ocult sense URL', await pg.$eval('#ig-contacte', (e) => e.hidden) && !(await pg.$('.ig')));
   comprova('botó «Signa la petició» desactivat', await pg.$eval('.cta button', (b) => b.disabled && /Signa la petició/.test(b.textContent)));
   comprova('notícies buides amb el missatge', /Encara no hi ha notícies publicades/.test(await pg.$eval('#news', (e) => e.textContent)));
   comprova('enllaç «Àrea privada» al peu', (await textos(pg, 'footer .legal a')).includes('Àrea privada'));
@@ -277,6 +282,91 @@ console.log('\n6. Amb Supabase simulat: notícies públiques');
   comprova('cap codi injectat s’executa a la pàgina pública', (await pg.evaluate(() => window.__xss)) === undefined);
   comprova('sense desbordament ni errors (notícia, mòbil)', (await desbordament(pg)) <= 0 && pg.errors.filter((e) => !/storage\/v1/.test(e)).length === 0, JSON.stringify(pg.errors));
   await pg.context().close();
+}
+
+console.log('\n6b. Instagram només a Contacte, no al peu (390 px i 1280 px)');
+for (const vp of [MOBIL, ESCRIPTORI]) {
+  for (const ruta of ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid']) {
+    const pg = await pagina(vp, false);
+    await pg.route('**/js/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: CONFIG_IG }));
+    await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' });
+    const peu = await pg.$eval('footer', (f) => ({ ig: f.querySelectorAll('.ig, #ig-peu, a[href*="instagram"]').length, text: /Instagram/i.test(f.textContent),
+      buits: [...f.querySelectorAll('.w > *')].filter((e) => !e.textContent.trim() && !e.children.length).length }));
+    comprova(`${ruta} @${vp.width}px: el peu no té Instagram ni elements buits`, peu.ig === 0 && !peu.text && peu.buits === 0, JSON.stringify(peu));
+    comprova(`${ruta} @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
+    if (ruta === '/') {
+      const c = await pg.$eval('#ig-contacte', (li) => ({ visible: !li.hidden, n: li.querySelectorAll('a.ig').length, href: li.querySelector('a.ig')?.href, text: li.textContent }));
+      comprova(`/ @${vp.width}px: Instagram es manté a Contacte`, c.visible && c.n === 1 && c.href === IG && /Segueix-nos a Instagram/.test(c.text), JSON.stringify(c));
+      comprova(`/ @${vp.width}px: un sol enllaç d’Instagram a tota la pàgina`, (await pg.$$('a[href*="instagram"]')).length === 1);
+      if (CAPTURES) {
+        const clip = await pg.evaluate(() => {
+          const a = document.getElementById('contacte').getBoundingClientRect(), b = document.querySelector('footer').getBoundingClientRect();
+          return { x: 0, y: a.top + scrollY, width: document.documentElement.clientWidth, height: b.bottom - a.top };
+        });
+        await pg.screenshot({ path: `${CAPTURES}/peu-${vp.width}.png`, fullPage: true, clip });
+      }
+    }
+    await pg.context().close();
+  }
+}
+
+const editaVisible = (pg) => pg.$$eval('#vista tbody tr a.btn', (l) => l.every((a) => { const r = a.getBoundingClientRect(), w = a.closest('.taula-wrap').getBoundingClientRect();
+  return r.left >= w.left && r.right <= w.right + 1 && r.right <= document.documentElement.clientWidth; }));
+// Des de «Totes les publicacions» (amb filtre opcional), obre «Edita» d'una publicació d'un altre autor en l'estat donat,
+// la modifica amb HTML maliciós i comprova: editable, autor_id intacte, estat intacte i contingut net (Segur.neteja).
+async function editaAliena(pg, qui, titol, estatInicial, filtre) {
+  const p = BD.publicacions.find((x) => x.titol.startsWith(titol));
+  p.estat = estatInicial;
+  // Contingut desat amb codi maliciós: en obrir-lo, l'editor l'ha de passar per Segur.neteja.
+  p.contingut = '<p>Original</p><img src=x onerror="window.__xss=5"><script>window.__xss=6</script>';
+  const autor = BD.profiles.find((u) => u.id === p.autor_id);
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/totes' + (filtre ? '/' + filtre : '')); await pg.waitForSelector('#vista table');
+  const fila = pg.locator('#vista tbody tr', { has: pg.locator('td:first-child', { hasText: p.titol }) });
+  comprova(`${qui}: Totes${filtre ? '/' + filtre : ''} mostra l’autor «${autor.nom}» (nom, no correu) de «${titol}»`,
+    (await fila.locator('td').nth(4).textContent()) === autor.nom && !(await fila.textContent()).includes('@'));
+  const edita = fila.locator('a.btn:text-is("Edita")');
+  comprova(`${qui}: botó «Edita» a la fila de «${titol}»`, (await edita.count()) === 1 && (await edita.getAttribute('href')) === '#/editar/' + p.id);
+  peticions = [];
+  await edita.click(); await pg.waitForSelector('#f-titol');
+  comprova(`${qui}: l’editor s’obre editable en estat ${estatInicial}`, !(await pg.$eval('#f-titol', (i) => i.disabled))
+    && (await pg.getAttribute('#f-contingut', 'contenteditable')) === 'true' && !/no la pots modificar/.test(await pg.textContent('#vista'))
+    && (await textos(pg, '#vista .accions button')).includes('Desa'));
+  comprova(`${qui}: el contingut desat arriba net a l’editor`, !/<img|<script|onerror/i.test(await pg.$eval('#f-contingut', (e) => e.innerHTML)));
+  await pg.fill('#f-titol', titol + ' (editat per ' + qui + ')');
+  // Marques que el navegador no executa per si soles; en desar, Segur.serialitza/neteja les ha de treure.
+  await pg.$eval('#f-contingut', (e) => { e.innerHTML += '<p>Text revisat</p><script>window.__xss=1</script><a href="javascript:window.__xss=3">x</a><p style="color:red" onclick="window.__xss=4">estil</p><iframe srcdoc="x"></iframe>'; });
+  await pg.click('#vista button:text-is("Desa")');
+  await pg.waitForFunction(() => /Desat|Publicada|Enviada|Arxivada/.test(document.getElementById('avisos').textContent));
+  const pat = peticions.filter((x) => x.m === 'PATCH' && x.url.startsWith('/rest/v1/publicacions')).pop();
+  const cos = pat ? JSON.parse(pat.cos) : {};
+  comprova(`${qui}: en desar «${titol}» no s’envia autor_id i l’autor continua sent ${autor.nom}`, !!pat && !('autor_id' in cos) && BD.publicacions.find((x) => x.id === p.id).autor_id === autor.id, pat && pat.cos);
+  comprova(`${qui}: l’estat es manté (${estatInicial})`, cos.estat === estatInicial && BD.publicacions.find((x) => x.id === p.id).estat === estatInicial);
+  comprova(`${qui}: el contingut editat es desa net (Segur.neteja)`, /Text revisat/.test(cos.contingut || '') && !/script|onerror|javascript:|style=|onclick|<img|<iframe/i.test(cos.contingut || ''), cos.contingut);
+  comprova(`${qui}: no s’executa cap codi injectat`, (await pg.evaluate(() => window.__xss)) === undefined);
+  if (estatInicial === 'publicat') {
+    const pub = await pagina(MOBIL, true);
+    await pub.goto(ORIGEN + '/noticia.html?id=' + p.id, { waitUntil: 'networkidle' });
+    comprova(`${qui}: la publicada editada es veu actualitzada a la web pública`, (await pub.textContent('main h1')) === titol + ' (editat per ' + qui + ')'
+      && /Text revisat/.test(await pub.textContent('.contingut')));
+    await pub.context().close();
+  }
+  comprova(`${qui}: sense errors de consola en editar «${titol}»`, pg.errors.filter((e) => !/storage\/v1/.test(e)).length === 0, JSON.stringify(pg.errors));
+}
+// Col·laborador i consulta: no tenen «Totes» ni cap «Edita» de publicacions d'altres.
+async function senseEditaAliena(pg, qui) {
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/totes'); await pg.waitForSelector('#vista h1');
+  comprova(`${qui}: #/totes → «No tens accés a aquesta secció.» i cap botó «Edita»`, (await pg.textContent('#vista h1')) === 'No tens accés a aquesta secció.'
+    && !(await pg.$('#vista table')));
+  const aliena = BD.publicacions.find((x) => x.autor_id === U.E);
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/editar/' + aliena.id); await pg.waitForSelector('#vista h1');
+  await pg.waitForFunction(() => !document.getElementById('vista').textContent.includes('Carregant'));
+  comprova(`${qui}: #/editar/<id d’un altre> no obre l’editor`, !(await pg.$('#f-titol')) && /No hem trobat|No tens accés/.test(await pg.textContent('#vista h1')));
+  const altres = BD.publicacions.filter((x) => x.autor_id !== U.C).map((x) => '#/editar/' + x.id);
+  for (const r of ['inici', 'meves']) {
+    await pg.goto(ORIGEN + '/area-privada/panel.html#/' + r); await pg.waitForSelector('#vista h1');
+    const hrefs = await pg.$$eval('#vista a', (l) => l.map((a) => a.getAttribute('href')));
+    comprova(`${qui}: #/${r} sense «Edita» de publicacions d’altres`, !hrefs.some((h) => altres.includes(h)));
+  }
 }
 
 async function entra(vp, email, pw = PW) {
@@ -411,6 +501,7 @@ console.log('\n9. Fluxos del col·laborador i de l’editor');
   comprova('un cop pendent queda en només lectura', (await pg.textContent('#vista .msg')).includes('no la pots modificar') && !(await textos(pg, '#vista .accions button')).includes('Desa'));
   comprova('editor de text desactivat en només lectura', (await pg.getAttribute('#f-contingut', 'contenteditable')) === 'false');
   comprova('sense errors de consola (col·laborador)', pg.errors.length === 0, JSON.stringify(pg.errors));
+  await senseEditaAliena(pg, 'col·laborador');
   fallaLogout = true;
   await pg.click('#sortir');
   await pg.waitForSelector('#avisos [role=alert]');
@@ -447,6 +538,11 @@ console.log('\n9. Fluxos del col·laborador i de l’editor');
   await pg.goto(ORIGEN + '/area-privada/panel.html#/totes'); await pg.waitForSelector('#vista table');
   comprova('Totes: l’editor no veu «Elimina»', !(await textos(pg, '#vista table button')).includes('Elimina'));
   comprova('Totes: sense desbordament de pàgina en mòbil', (await desbordament(pg)) <= 0);
+  comprova('Totes: l’editor veu «Edita» a cada fila', await pg.$$eval('#vista tbody tr', (l) => l.every((tr) => tr.querySelector('a.btn')?.textContent === 'Edita')));
+  comprova('Totes (390 px): «Edita» visible sense desplaçar la taula', await editaVisible(pg));
+  if (CAPTURES) await pg.screenshot({ path: CAPTURES + '/totes-editor-390.png', fullPage: true });
+  await editaAliena(pg, 'editor', 'Pendent del Carles', 'pendent');
+  await editaAliena(pg, 'editor', 'Retornada del Carles', 'retornat', 'retornat');
   comprova('sense errors de consola (editor)', pg.errors.length === 0, JSON.stringify(pg.errors));
   await pg.context().close();
 }
@@ -455,6 +551,14 @@ console.log('\n9. Fluxos del col·laborador i de l’editor');
   await pg.waitForURL('**/panel.html*');
   await pg.goto(ORIGEN + '/area-privada/panel.html#/totes'); await pg.waitForSelector('#vista table');
   comprova('Totes: l’admin sí veu «Elimina»', (await textos(pg, '#vista table button')).includes('Elimina'));
+  comprova('Totes: l’admin veu «Edita» i «Elimina» a cada fila', await pg.$$eval('#vista tbody tr', (l) => l.every((tr) =>
+    tr.querySelector('a.btn')?.textContent === 'Edita' && tr.querySelector('button')?.textContent === 'Elimina')));
+  comprova('Totes: escriptori sense desbordament', (await desbordament(pg)) <= 0);
+  comprova('Totes (1280 px): «Edita» visible sense desplaçar la taula', await editaVisible(pg));
+  if (CAPTURES) await pg.screenshot({ path: CAPTURES + '/totes-admin-1280.png', fullPage: true });
+  await editaAliena(pg, 'admin', 'Comunicat publicat', 'publicat');
+  await editaAliena(pg, 'admin', 'Esborrany del Carles', 'arxivat', 'arxivat');
+  await editaAliena(pg, 'admin', 'Notícia nova de prova', 'esborrany', 'esborrany');
   await pg.goto(ORIGEN + '/area-privada/panel.html#/documents'); await pg.waitForSelector('#vista .item');
   comprova('Documents: l’admin gestiona accessos', !!(await pg.$('#vista details.doc-accessos')) && (await textos(pg, '#vista h2')).includes('Afegeix un document'));
   const a = await pg.$('#vista .item a[target=_blank]');
@@ -468,6 +572,7 @@ console.log('\n9. Fluxos del col·laborador i de l’editor');
   await pg.waitForFunction(() => !document.getElementById('vista').textContent.includes('Carregant'));
   comprova('consulta sense permisos: «No tens cap document disponible.»', (await pg.textContent('#vista')).includes('No tens cap document disponible.'));
   comprova('consulta no veu el formulari de documents', !(await textos(pg, '#vista h2')).includes('Afegeix un document'));
+  await senseEditaAliena(pg, 'consulta');
   await pg.context().close();
 }
 
