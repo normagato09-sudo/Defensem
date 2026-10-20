@@ -233,6 +233,18 @@ console.log('\n3. La web pública continua igual');
     comprova('«Signa la petició»: text accessible i sense «Properament»', s.label === 'Signa la petició (s’obre en una pestanya nova, formulari de Google)' && !s.aviat, JSON.stringify(s));
     comprova('el formulari de Google no està incrustat', !(await pg.$('iframe[src*="docs.google.com"]')));
   }
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    const p2 = await pagina(vp, false);
+    await p2.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
+    const q = await p2.$eval('.qr-peticio', (e) => { const i = e.querySelector('img');
+      return { visible: getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0, src: i.getAttribute('src'), alt: i.alt,
+        carrega: i.complete && i.naturalWidth > 0, t: (e.querySelector('.qr-t') || {}).textContent, ample: Math.round(i.getBoundingClientRect().width) }; });
+    comprova(`QR @${vp.width}px: SVG local amb text alternatiu i «Signa des del mòbil»`,
+      q.src === '/img/qr-peticio.svg' && /formulari/.test(q.alt) && q.t === 'Signa des del mòbil', JSON.stringify(q));
+    if (vp === MOBIL) comprova('QR ocult en mòbil', !q.visible, JSON.stringify(q));
+    else comprova('QR visible en escriptori, sota el logo i carregat (≥ 96 px)', q.visible && q.carrega && q.ample >= 96, JSON.stringify(q));
+    await p2.context().close();
+  }
   comprova('notícies buides amb el missatge', /Encara no hi ha notícies publicades/.test(await pg.$eval('#news', (e) => e.textContent)));
   comprova('enllaç «Àrea privada» al peu', (await textos(pg, 'footer .legal a')).includes('Àrea privada'));
   comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&
