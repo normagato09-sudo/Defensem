@@ -62,16 +62,6 @@ nav .btn{padding:9px 18px;min-height:44px;font-size:.85rem;color:#fff}
   .hero-text{display:block;flex:1;min-width:0}.hero-logo{flex:none;width:clamp(260px,27vw,300px)}
   .hero p.lead{margin:18px 0 22px}}
 .cta{display:flex;flex-wrap:wrap;gap:12px}
-/* Recuadre amb el QR del formulari de la petició, sota el logo: només en escriptori (en mòbil ja hi ha el botó a tocar).
-   El logo s'hi redueix perquè la columna no passi de l'alçada del text i els molins es continuïn veient sencers. */
-.hero-lat{display:contents}
-.qr-peticio{display:none}
-@media(min-width:821px){.hero-lat{display:flex;flex-direction:column;align-items:center;gap:12px;flex:none;width:clamp(260px,27vw,300px)}
-  .hero-lat .hero-logo{width:196px}
-  .qr-peticio{order:2;display:flex;align-items:center;gap:12px;align-self:stretch;padding:8px 12px 8px 8px;border:2px solid var(--color-defensem-verd);background:#fff}
-  .qr-peticio img{flex:none;display:block;width:96px;height:96px}
-  .qr-peticio p{margin:0;font-size:.85rem;line-height:1.4;color:var(--color-text-suau)}
-  .qr-peticio .qr-t{margin-bottom:4px;font:800 .9rem/1.2 var(--font-titular-verd);letter-spacing:.03em;text-transform:uppercase;color:var(--color-verd-text)}}
 /* Molins i plaques solars (il·lustració del cartell). Mida màxima = mida real de la imatge (822 px): no s'amplia.
    Cada rotor és una capa a sobre, situada en % de la imatge; el centre de la capa és la boixa. */
 .molins{position:relative;width:min(100%,822px);margin:clamp(8px,1.5vw,16px) auto 0}
