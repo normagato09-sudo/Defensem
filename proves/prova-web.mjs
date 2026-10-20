@@ -224,7 +224,15 @@ console.log('\n3. La web pública continua igual');
   comprova('la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
   comprova('correu de contacte', !!(await pg.$('a[href="mailto:defensemlempordanet@gmail.com"]')));
   comprova('Instagram ocult sense URL', await pg.$eval('#ig-contacte', (e) => e.hidden) && !(await pg.$('.ig')));
-  comprova('botó «Signa la petició» desactivat', await pg.$eval('.cta button', (b) => b.disabled && /Signa la petició/.test(b.textContent)));
+  {
+    const s = await pg.$eval('.cta a.btn:not(.o)', (a) => ({ href: a.getAttribute('href'), target: a.target, rel: a.rel, text: a.textContent,
+      label: a.getAttribute('aria-label'), boto: !!document.querySelector('.cta button'), aviat: /Properament/.test(document.body.textContent) }));
+    comprova('«Signa la petició» és un enllaç al formulari de Google',
+      s.href === 'https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform' && /Signa la petició/.test(s.text) && !s.boto, JSON.stringify(s));
+    comprova('«Signa la petició» s’obre en una pestanya nova (target _blank, rel noopener noreferrer)', s.target === '_blank' && s.rel === 'noopener noreferrer', JSON.stringify(s));
+    comprova('«Signa la petició»: text accessible i sense «Properament»', s.label === 'Signa la petició (s’obre en una pestanya nova, formulari de Google)' && !s.aviat, JSON.stringify(s));
+    comprova('el formulari de Google no està incrustat', !(await pg.$('iframe[src*="docs.google.com"]')));
+  }
   comprova('notícies buides amb el missatge', /Encara no hi ha notícies publicades/.test(await pg.$eval('#news', (e) => e.textContent)));
   comprova('enllaç «Àrea privada» al peu', (await textos(pg, 'footer .legal a')).includes('Àrea privada'));
   comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&

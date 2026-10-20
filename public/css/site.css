@@ -135,7 +135,6 @@ footer p{margin:.3em 0}
 .taula th{background:var(--color-fons-fosc);font-family:var(--font-defensem);text-transform:uppercase;letter-spacing:.06em}
 .btn:disabled{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px 12px;background:var(--color-fons-fosc);border:3px dashed var(--color-text-suau);color:var(--color-text-suau);cursor:not-allowed}
 .btn:disabled:hover{background:var(--color-fons-fosc);border-color:var(--color-text-suau);color:var(--color-text-suau)}
-.soon{font:700 .72rem/1 var(--font-defensem);letter-spacing:.12em;text-transform:uppercase;background:var(--color-verd-fosc);color:#fff;padding:4px 8px}
 .ig{display:inline-flex;align-items:center;gap:12px;min-height:48px;text-decoration:none;font:600 1.05rem var(--font-defensem)}
 .contacte a.ig{font-size:1.05rem}
 .ig svg{width:44px;height:44px;padding:10px;border-radius:50%;background:var(--color-defensem-vermell);color:var(--color-fons);stroke:currentColor;stroke-width:1.8;fill:none;flex:none}
