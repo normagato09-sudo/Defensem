@@ -771,6 +771,58 @@ console.log('\n10. Pàgina de contrasenya (invitació / recuperació)');
   await pg2.context().close();
 }
 
+console.log('\n11. Navegador en mode fosc: la web es manté clara (390 px i 1280 px)');
+{
+  // Contrast WCAG del text visible i dels botons sobre el fons real (ascendents amb color sòlid).
+  const contrastos = (pg) => pg.evaluate(() => {
+    const rgb = (c) => { const m = c.match(/[\d.]+/g) || []; return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] }; };
+    const lum = ({ r, g, b }) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const fons = (el) => { for (let e = el; e; e = e.parentElement) { const s = getComputedStyle(e);
+      if (s.backgroundImage !== 'none') return null; const c = rgb(s.backgroundColor); if (c.a >= 0.99) return c; } return rgb('rgb(255,255,255)'); };
+    const dolents = []; let revisats = 0;
+    const sel = 'h1,h2,h3,h4,p,li,a,button,.btn,label,small,span,td,th,dt,dd,summary,figcaption';
+    for (const el of document.querySelectorAll(sel)) {
+      const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+      if (!r.width || !r.height || s.visibility === 'hidden' || +s.opacity === 0) continue;
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+      if (el.closest('[hidden],[aria-hidden="true"],.sr-only,.visually-hidden')) continue;
+      const bg = fons(el); if (!bg) continue;
+      const fg = rgb(s.color); if (fg.a < 0.99) continue;
+      const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x), ratio = (a + 0.05) / (b + 0.05);
+      const mida = parseFloat(s.fontSize), gran = mida >= 24 || (mida >= 18.66 && +s.fontWeight >= 700);
+      revisats++;
+      if (ratio < (gran ? 3 : 4.5)) dolents.push(el.tagName + '.' + el.className + ' «' + el.textContent.trim().slice(0, 30) + '» ' + ratio.toFixed(2));
+    }
+    return { revisats, dolents };
+  });
+  const FOSC = { colorScheme: 'dark' };
+  const nom = (ruta) => (ruta === '/' ? 'index' : ruta.replace(/^\/|\.html.*$|\/$/g, '').replace(/\//g, '-'));
+  const rutes = PAGINES.map((r) => [r, false]).concat([['/area-privada/panel.html (amb sessió)', true]]);
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    for (const [ruta, ambSessio] of rutes) {
+      const pg = await pagina(vp, ambSessio, FOSC);
+      if (ambSessio) {
+        await pg.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
+        await pg.fill('#email', 'admin@ex.cat'); await pg.fill('#contrasenya', PW);
+        await pg.click('#f-login button[type=submit]');
+        await pg.waitForURL('**/area-privada/panel.html*'); await pg.waitForSelector('#menu a', { state: 'attached' });
+        await pg.waitForLoadState('networkidle');
+      } else {
+        await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' });
+      }
+      const e = await pg.evaluate(() => ({ fosc: matchMedia('(prefers-color-scheme: dark)').matches,
+        esquema: getComputedStyle(document.documentElement).colorScheme, fons: getComputedStyle(document.body).backgroundColor,
+        meta: document.querySelector('meta[name="color-scheme"]')?.content, meta2: document.querySelector('meta[name="supported-color-schemes"]')?.content }));
+      comprova(`${ruta} @${vp.width}px: amb el navegador fosc el fons segueix rgb(241, 240, 238)`,
+        e.fosc && e.fons === 'rgb(241, 240, 238)' && /only/.test(e.esquema) && /light/.test(e.esquema) && !/dark/.test(e.esquema) && e.meta === 'only light' && e.meta2 === 'light', JSON.stringify(e));
+      const c = await contrastos(pg);
+      comprova(`${ruta} @${vp.width}px: text i botons amb contrast AA (${c.revisats} elements)`, c.revisats > 0 && c.dolents.length === 0, c.dolents.slice(0, 5).join(' | '));
+      if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/fosc-${nom(ruta.split(' ')[0])}${ambSessio ? '-sessio' : ''}-${vp.width}.png`, fullPage: true });
+      await pg.context().close();
+    }
+  }
+}
+
 await nav.close();
 servidor.close();
 console.log(`\n${ok} correctes, ${ko} fallades.`);

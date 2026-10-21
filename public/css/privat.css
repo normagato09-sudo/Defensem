@@ -1,4 +1,5 @@
 /* Àrea privada. Fa servir només les variables d'identitat de site.css. */
+:root{color-scheme:only light}
 .privat main{outline:none}
 .privat .logo small{display:block;font:700 .72rem/1.2 var(--font-defensem);letter-spacing:.14em;text-transform:uppercase;color:var(--color-verd-text)}
 .privat h1{font-size:clamp(1.7rem,5vw,2.4rem);color:var(--color-defensem-vermell);text-transform:none;margin-bottom:18px;overflow-wrap:anywhere}

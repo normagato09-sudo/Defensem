@@ -6,6 +6,7 @@
 @font-face{font-family:'Caveat Brush';font-weight:400;font-style:normal;font-display:swap;src:url(/fonts/caveat-brush-latin-400-normal.woff2) format("woff2")}
 /* IDENTITAT OFICIAL DEFENSEM — única font de veritat. Els derivats es calculen només a partir d'aquests tres colors. */
 :root{
+color-scheme:only light;
 --color-fons:#f1f0ee;
 --color-defensem-verd:#298d3b;
 --color-defensem-vermell:#da1415;
