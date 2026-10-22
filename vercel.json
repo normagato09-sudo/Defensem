@@ -34,5 +34,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/equip",
+      "destination": "/area-privada/",
+      "statusCode": 302
+    },
+    {
+      "source": "/equip/",
+      "destination": "/area-privada/",
+      "statusCode": 302
+    }
   ]
 }

@@ -24,6 +24,8 @@ const servidor = http.createServer(async (req, res) => {
   const ruta = new URL(req.url, 'http://x').pathname;
   let cami = normalize(decodeURIComponent(ruta)).replace(/^([/\\])+/, '');
   if (cami.includes('..')) { res.writeHead(400); return res.end(); }
+  const red = (VERCEL.redirects || []).find((r) => r.source === ruta);   // com Vercel: redireccions de vercel.json (camins exactes)
+  if (red) { res.writeHead(red.statusCode || (red.permanent === false ? 307 : 308), { Location: red.destination, ...capcaleres(ruta) }); return res.end(); }
   let f = join(ARREL, cami);
   try { if ((await stat(f)).isDirectory()) f = join(f, 'index.html'); const c = await readFile(f);
     res.writeHead(200, { 'Content-Type': MIME[extname(f)] || 'application/octet-stream', ...capcaleres(ruta) }); res.end(c);
@@ -947,6 +949,29 @@ console.log('\n12. Fitxers nous, icones i capçaleres de seguretat');
   const real = (await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
   comprova('a vercel.json la CSP apunta al Supabase del projecte', real.includes('connect-src \'self\' https://uzkwfudbrozjzjtcjfry.supabase.co wss://uzkwfudbrozjzjtcjfry.supabase.co')
     && (await readFile(join(ARREL, 'js/config.js'), 'utf8')).includes('https://uzkwfudbrozjzjtcjfry.supabase.co'));
+}
+
+console.log('\n12b. Drecera /equip cap a l’accés de l’àrea privada');
+{
+  for (const ruta of ['/equip', '/equip/']) {
+    const r = await fetch(ORIGEN + ruta, { redirect: 'manual' });
+    comprova(`${ruta}: redirecció temporal (302) a /area-privada/`, r.status === 302 && r.headers.get('location') === '/area-privada/', r.status + ' ' + r.headers.get('location'));
+    const pg = await pagina(MOBIL, false);
+    await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' });
+    comprova(`${ruta}: al navegador acaba a la pantalla d’accés de l’àrea privada`, new URL(pg.url()).pathname === '/area-privada/' && !!(await pg.$('#f-login #email')), pg.url());
+    await pg.context().close();
+  }
+  const red = VERCEL.redirects.filter((r) => r.source.startsWith('/equip'));
+  comprova('vercel.json: les dues redireccions /equip són temporals (302, no permanents)', red.length === 2 && red.every((r) => r.statusCode === 302 && r.permanent === undefined && r.destination === '/area-privada/'));
+  comprova('/equip no surt al sitemap.xml', !(await readFile(join(ARREL, 'sitemap.xml'), 'utf8')).includes('equip'));
+  const robots = await readFile(join(ARREL, 'robots.txt'), 'utf8');
+  comprova('robots.txt manté «Disallow: /area-privada» i no esmenta /equip', /^Disallow: \/area-privada\/?$/m.test(robots) && !robots.includes('equip'), robots);
+  // Cap enllaç ni menció de /equip a cap fitxer de text de la web (HTML, JS, CSS, JSON, XML, TXT).
+  const { readdir } = await import('node:fs/promises');
+  const fitxers = (await readdir(ARREL, { recursive: true })).filter((f) => /\.(html|js|css|json|xml|txt|webmanifest)$/.test(f));
+  const amb = [];
+  for (const f of fitxers) if (/\/equip\b/.test(await readFile(join(ARREL, f), 'utf8'))) amb.push(f);
+  comprova(`cap dels ${fitxers.length} fitxers de la web enllaça /equip`, fitxers.length > 20 && amb.length === 0, amb.join());
 }
 
 console.log('\n13. Pàgina 404');
