@@ -405,6 +405,97 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   await pg.context().close();
 }
 
+console.log('\n3d. «El projecte» compacte: dades clau a la vista i la resta a «Més detalls»');
+{
+  const ESC720 = { width: 1280, height: 720 };
+  const mesura = (pg) => pg.evaluate(() => {
+    const sec = document.getElementById('el-projecte'), cards = [...sec.querySelectorAll('.projecte')], r = (e) => e.getBoundingClientRect();
+    const visible = (e) => !!(e.offsetParent || e.getClientRects().length) && r(e).height > 0;
+    return {
+      seccio: Math.round(r(sec).height), finsTargetes: Math.round(r(sec.querySelector('.projectes')).bottom - r(sec).top),
+      cards: cards.map((c) => ({ h: Math.round(r(c).height), x: Math.round(r(c).left), top: Math.round(r(c).top), det: c.querySelectorAll(':scope > details.mes-detalls').length,
+        obert: c.querySelector('details').open, resum: c.querySelector('summary').textContent, titol: c.querySelector('h3').textContent,
+        // text a la vista: tot el que no és dins del <details>
+        vista: [...c.children].filter((e) => e.tagName !== 'DETAILS').map((e) => e.textContent).join(' ').replace(/\s+/g, ' ') })),
+      mides: [...sec.querySelectorAll('.projecte p:not(.fonts), .projecte dd, .projecte summary, .projecte h3')].filter(visible).map((e) => { const cs = getComputedStyle(e); return { fs: parseFloat(cs.fontSize), lh: parseFloat(cs.lineHeight) / parseFloat(cs.fontSize), t: e.tagName }; }),
+      // Les lletres petites que ja hi havia (etiquetes, fonts, peu del dibuix) es mantenen com eren: no s'ha reduït res.
+      petites: ['.projecte dt', '.projecte .fonts', '.alcada figcaption'].map((q) => parseFloat(getComputedStyle(sec.querySelector(q)).fontSize)).join(),
+      desb: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  {
+    const pg = await pagina(ESC720, false);
+    await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' }); await pg.evaluate(() => document.fonts.ready);
+    const m = await mesura(pg);
+    comprova('1280: tres targetes, cadascuna amb un sol «Més detalls», tots tancats', m.cards.length === 3 && m.cards.every((c) => c.det === 1 && !c.obert && c.resum === 'Més detalls'), JSON.stringify(m.cards.map((c) => [c.det, c.obert, c.resum])));
+    comprova('a la vista: títol i dades clau (4 molins de 200 m a la Tallada; 5 MW i 200 m a Albons; què és el PLATER)',
+      /Quatre aerogeneradors de 200 metres d’alçada al pla de la Tallada/.test(m.cards[0].vista) && /5 MW/.test(m.cards[1].vista) && /200 metres fins a la punta/.test(m.cards[1].vista)
+      && /Pla territorial sectorial/.test(m.cards[2].vista), JSON.stringify(m.cards.map((c) => c.vista)));
+    comprova('fora de la vista: distàncies, promotor, il·lustració, fulletó i fonts', !m.cards.some((c) => /Can Virosquet|Estabanell|Fonts:|Descarrega el fulletó|segon període/.test(c.vista)));
+    const alc = new Set(m.cards.map((c) => c.h));
+    comprova(`1280: tancades, les tres targetes fan la mateixa alçada (${[...alc].join(', ')} px)`, alc.size === 1, JSON.stringify(m.cards.map((c) => c.h)));
+    comprova(`1280×720: el títol de la secció i les targetes caben en una pantalla (${m.finsTargetes} px) i la secció sencera fa ${m.seccio} px (abans 2.399)`, m.finsTargetes <= 720 && m.seccio <= 1150, JSON.stringify(m));
+    comprova('les etiquetes, les fonts i el peu del dibuix mantenen la mida d’abans (no s’ha reduït cap lletra)', m.petites === '12.8,14.4,14.4', m.petites);
+    comprova('text de les targetes ≥ 16 px i interlineat ~1,5', m.mides.every((x) => x.fs >= 16) && m.mides.filter((x) => x.t !== 'H3' && x.t !== 'SUMMARY').every((x) => x.lh >= 1.45 && x.lh <= 1.55), JSON.stringify(m.mides));
+    // Teclat: el «Més detalls» es troba amb Tab, s'obre amb Intro i es tanca amb Espai.
+    await pg.focus('.projecte:nth-child(1) summary');
+    await pg.keyboard.press('Tab');
+    comprova('Tab salta el contingut tancat i va al «Més detalls» de la targeta següent', await pg.evaluate(() => document.activeElement === document.querySelector('.projecte:nth-child(2) summary')));
+    const focus = await pg.evaluate(() => { const cs = getComputedStyle(document.activeElement); return cs.outlineStyle + ' ' + cs.outlineWidth; });
+    comprova('el «Més detalls» enfocat té contorn visible', focus === 'solid 3px', focus);
+    await pg.keyboard.press('Enter');
+    const obert = await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(2) details'), im = d.querySelector('.il-lustracio img');
+      return { open: d.open, dist: d.querySelector('dl').offsetParent !== null && /Can Virosquet/.test(d.innerText), pdf: !!d.querySelector('a.doc-link').offsetParent, img: !!im.offsetParent };
+    });
+    comprova('Intro obre «Més detalls» i el contingut es veu (distàncies, il·lustració, fulletó)', obert.open && obert.dist && obert.pdf && obert.img, JSON.stringify(obert));
+    const m2 = await mesura(pg);
+    comprova('amb una oberta, les altres no s’estiren (cadascuna torna a la seva alçada)', m2.cards[1].h > m.cards[1].h && m2.cards[0].h <= m.cards[0].h && m2.cards[2].h < m.cards[2].h, JSON.stringify(m2.cards.map((c) => c.h)));
+    await pg.keyboard.press('Space');
+    comprova('Espai el torna a tancar i el focus es queda al «Més detalls»', await pg.evaluate(() => !document.querySelector('.projecte:nth-child(2) details').open
+      && document.activeElement === document.querySelector('.projecte:nth-child(2) summary')));
+    await pg.click('.projecte:nth-child(3) summary');
+    comprova('amb el ratolí també s’obre, i les fonts (3Cat · Nació Digital) són dins del desplegable', await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(3) details');
+      return d.open && [...d.querySelectorAll('.fonts a')].map((a) => a.textContent).join() === '3Cat,Nació Digital' && !!d.querySelector('.fonts').offsetParent; }));
+    await pg.click('.projecte:nth-child(1) summary');
+    const fig = await pg.evaluate(() => { const f = document.querySelector('.projecte:nth-child(1) details figure.alcada'), svg = f.querySelector('svg'), c = f.closest('.projecte'), cs = getComputedStyle(c);
+      const util = c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      return { prop: svg.getBoundingClientRect().width / util, rol: svg.getAttribute('role'), titol: document.getElementById(svg.getAttribute('aria-labelledby'))?.textContent,
+        peu: f.querySelector('figcaption').textContent, etiquetes: [...svg.querySelectorAll('text')].map((t) => { const b = t.getBBox(); return b.x >= 0 && b.x + b.width <= 330 && b.y >= 0; }) }; });
+    comprova(`el dibuix del molí fa ~60% de l’amplada d’abans (${(fig.prop * 100).toFixed(0)}%), amb text alternatiu i peu`, fig.prop > 0.55 && fig.prop < 0.65 && fig.rol === 'img'
+      && fig.titol === 'Un aerogenerador de 200 metres comparat amb el Puig Segalar, de 175 metres' && fig.peu === 'Un molí de 200 m és més alt que el Puig Segalar (175 m).', JSON.stringify(fig));
+    comprova('les etiquetes del dibuix hi caben senceres', fig.etiquetes.length === 2 && fig.etiquetes.every(Boolean), JSON.stringify(fig.etiquetes));
+    comprova('1280: sense errors', pg.errors.length === 0, JSON.stringify(pg.errors));
+    if (CAPTURES) await (await pg.$('#el-projecte .projectes')).screenshot({ path: `${CAPTURES}/projecte-obert-1280.png` });
+    await pg.context().close();
+  }
+  {
+    const pg = await pagina(MOBIL, false);
+    await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' }); await pg.evaluate(() => document.fonts.ready);
+    const m = await mesura(pg);
+    comprova('390: les targetes s’apilen, compactes (≤ 260 px tancades) i sense scroll horitzontal', new Set(m.cards.map((c) => c.x)).size === 1 && m.cards[0].top < m.cards[1].top && m.cards[1].top < m.cards[2].top
+      && m.cards.every((c) => c.h <= 260) && m.desb <= 0, JSON.stringify(m.cards.map((c) => [c.x, c.top, c.h])));
+    for (const n of [1, 2, 3]) await pg.click(`.projecte:nth-child(${n}) summary`);
+    comprova('390: amb tot obert continua sense scroll horitzontal', (await desbordament(pg)) <= 0);
+    if (CAPTURES) await (await pg.$('#el-projecte .projectes')).screenshot({ path: `${CAPTURES}/projecte-390.png` });
+    await pg.context().close();
+  }
+  {
+    // El contingut de «Més detalls» és a l'HTML (no el posa cap script) i, sense JavaScript, el desplegable funciona igual.
+    const html = await (await fetch(ORIGEN + '/')).text();
+    const det = await (async () => { const pg = await pagina(MOBIL, false); await pg.goto(ORIGEN + '/404.html');
+      const r = await pg.evaluate((h) => [...new DOMParser().parseFromString(h, 'text/html').querySelectorAll('#el-projecte .projecte > details.mes-detalls')].map((d) => d.textContent.replace(/\s+/g, ' ')), html);
+      await pg.context().close(); return r; })();
+    comprova('l’HTML porta dins de cada <details> el text amagat', det.length === 3 && /Puig Segalar/.test(det[0]) && /Can Virosquet a uns 510 m/.test(det[1]) && /Estabanell Generació/.test(det[1])
+      && /FUE-2025-04857993/.test(det[1]) && /Els gegants d’Albons també hi diuen la seva/.test(det[1]) && /fulletó del molí d’Albons/.test(det[1])
+      && /segon període d’informació pública/.test(det[2]) && /Fonts: 3Cat · Nació Digital/.test(det[2]), JSON.stringify(det.map((d) => d.slice(0, 60))));
+    const ctx = await nav.newContext({ viewport: MOBIL, javaScriptEnabled: false });
+    const pg = await ctx.newPage();
+    await pg.goto(ORIGEN + '/');
+    await pg.click('.projecte:nth-child(2) summary');
+    comprova('sense JavaScript, «Més detalls» s’obre i ensenya el contingut', await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(2) details'); return d.open && !!d.querySelector('a.doc-link').offsetParent; }));
+    await ctx.close();
+  }
+}
+
 console.log('\n3c. Enllaços legals discrets al final del peu (390 px i 1280 px)');
 {
   const LEGALS = [['/avis-legal.html', 'Avís legal'], ['/privacitat.html', 'Política de privacitat'], ['/cookies.html', 'Política de cookies'],

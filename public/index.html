@@ -96,9 +96,11 @@
 <h2>El <span>projecte</span></h2>
 <p class="intro">A l’Empordanet hi ha dos projectes eòlics en marxa i un pla de la Generalitat que en pot portar més. Això és el que en sabem.</p>
 <div class="projectes">
+<!-- Cada targeta: a la vista, el títol i les dades clau; la resta, dins de «Més detalls» (<details>: funciona amb teclat i sense JavaScript). -->
 <article class="projecte">
 <h3>Macroparc eòlic de la Tallada</h3>
 <p>Quatre aerogeneradors de 200 metres d’alçada al pla de la Tallada d’Empordà (projectes «Pla de la Tallada I, II, III i IV»), davant del Montgrí, entre la Tallada, Tor, Bellcaire, Albons, Ullà i Verges.</p>
+<details class="mes-detalls"><summary>Més detalls</summary>
 <figure class="alcada">
 <svg viewBox="0 0 330 250" role="img" aria-labelledby="alcada-t">
 <title id="alcada-t">Un aerogenerador de 200 metres comparat amb el Puig Segalar, de 175 metres</title>
@@ -110,15 +112,19 @@
 <circle class="boixa" cx="80" cy="110" r="5"/>
 <line class="terra" x1="0" y1="230" x2="330" y2="230"/>
 <text x="100" y="24">Molí: 200 m</text>
-<text x="192" y="49">Puig Segalar: 175 m</text>
+<text x="326" y="49" text-anchor="end">Puig Segalar: 175 m</text>
 </svg>
 <figcaption>Un molí de 200 m és més alt que el Puig Segalar (175 m).</figcaption>
 </figure>
+</details>
 </article>
 <article class="projecte">
 <h3>El Molí de Salancs, a Albons</h3>
 <dl>
 <dt>Què</dt><dd>Un aerogenerador de 5 MW: torre de 121 metres i rotor de 158 metres de diàmetre. Fa uns 200 metres fins a la punta de la pala.</dd>
+</dl>
+<details class="mes-detalls"><summary>Més detalls</summary>
+<dl>
 <dt>On</dt><dd>Al paratge dels Salancs, una antiga zona d’estanyols i aiguamolls de la plana, entre el Montgrí i el Fluvià.</dd>
 <dt>A quina distància</dt><dd>Granges a uns 180 i 300 m, Can Virosquet a uns 510 m, Can Blanc (Can Bosc) a uns 710 m i el nucli d’Albons a 1,2 km. L’Escala queda a 1,8 km i Viladamat a 1,9 km.</dd>
 <dt>Qui el promou</dt><dd>Estabanell Generació, SLU, del grup Estabanell de Granollers.</dd>
@@ -127,13 +133,16 @@
 </dl>
 <figure class="il-lustracio"><img src="/img/projecte/gegants-albons.webp" alt="Els gegants d’Albons amb un davantal on hi diu: «No. Visca els gegants culturals, fora els molins descomunals»." width="900" height="1200" loading="lazy" decoding="async"><figcaption>Els gegants d’Albons també hi diuen la seva.</figcaption></figure>
 <p><a class="doc-link" href="/docs/fulleto-moli-salancs-albons.pdf">Descarrega el fulletó del molí d’Albons (PDF, 0,8 MB)</a></p>
+</details>
 </article>
 <article class="projecte">
 <h3>El PLATER</h3>
 <p>És el Pla territorial sectorial per a la implantació de les energies renovables a Catalunya: decidirà on es poden fer parcs eòlics i solars.</p>
+<details class="mes-detalls"><summary>Més detalls</summary>
 <p>El primer període d’al·legacions es va tancar a final de juliol del 2026. L’associació va fer dues sessions pràctiques perquè els veïns hi poguessin presentar les seves.</p>
 <p>El Govern ha anunciat un segon període d’informació pública i preveu aprovar el pla no abans de l’estiu del 2027.</p>
 <p class="fonts">Fonts: <a href="https://www.3cat.cat/3catinfo/es-retarda-laprovacio-del-plater-el-pla-denergies-renovables-que-rebutgen-uns-300-ajuntaments/noticia/3422621/" target="_blank" rel="noopener">3Cat</a> · <a href="https://naciodigital.cat/impacte/energia/el-govern-ajorna-el-pla-de-renovables-per-no-incendiar-les-municipals.html" target="_blank" rel="noopener">Nació Digital</a></p>
+</details>
 </article>
 </div>
 <h3 class="subtitol">Per què ens hi oposem</h3>

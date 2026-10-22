@@ -23,32 +23,44 @@ main:focus{outline:none}
 #el-projecte,#actua{background:var(--color-fons-fosc);border-block:2px solid var(--color-text)}
 #preguntes{border-top:2px solid var(--color-text)}
 
-/* ---------- El projecte ---------- */
-.intro{font-size:clamp(1.05rem,2.2vw,1.2rem);max-width:60ch;margin:18px 0 0}
-.projectes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px;margin-top:30px;align-items:start}
-.projecte{background:var(--color-fons);border:2px solid var(--color-text);padding:clamp(16px,3vw,24px);display:flex;flex-direction:column;gap:12px;min-width:0}
-.projecte h3{font-size:1.35rem;color:var(--color-defensem-vermell)}
+/* ---------- El projecte ----------
+   Compacte: a cada targeta, el títol i les dades clau a la vista i la resta dins de «Més detalls» (<details>).
+   Tancades, les tres targetes fan la mateixa alçada (stretch); si se n'obre una, cadascuna torna a la seva. */
+#el-projecte{padding-block:clamp(40px,6vw,64px)}
+.intro{font-size:clamp(1.05rem,2.2vw,1.2rem);line-height:1.5;max-width:60ch;margin:12px 0 0}
+.projectes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;margin-top:20px;align-items:stretch}
+.projectes:has(.mes-detalls[open]){align-items:start}
+.projecte{background:var(--color-fons);border:2px solid var(--color-text);padding:clamp(14px,2vw,18px);display:flex;flex-direction:column;gap:8px;min-width:0;line-height:1.5}
+.projecte h3{font-size:1.35rem;line-height:1.2;color:var(--color-defensem-vermell)}
 .projecte p{margin:0}
-.projecte dl{margin:0;display:grid;gap:10px}
+.projecte dl{margin:0;display:grid;gap:6px}
 .projecte dt{font:800 .8rem/1.2 var(--font-defensem);letter-spacing:.1em;text-transform:uppercase;color:var(--color-verd-text)}
 .projecte dd{margin:2px 0 0}
 .projecte figure{margin:0}
+.mes-detalls{margin-top:auto}
+.mes-detalls summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-height:44px;font:800 1rem/1.2 var(--font-defensem);color:var(--color-verd-text)}
+.mes-detalls summary::-webkit-details-marker{display:none}
+.mes-detalls summary::before{content:"+";flex:none;width:.7em;text-align:center;font:800 1.4rem/1 var(--font-defensem);color:var(--color-defensem-vermell)}
+.mes-detalls[open] summary::before{content:"–"}
+.mes-detalls summary:hover{text-decoration:underline;text-underline-offset:3px}
+.mes-detalls > :not(summary){margin-top:8px}
 .il-lustracio img{display:block;width:100%;height:auto;border:2px solid var(--color-text);background:#fff}
 .doc-link{font-weight:700;color:var(--color-verd-text);text-underline-offset:3px;display:inline-flex;align-items:center;min-height:44px}
 .fonts{font-size:.9rem;color:var(--color-text-suau)}
 .fonts a{color:var(--color-verd-text);font-weight:600}
-.alcada svg{display:block;width:100%;height:auto}
+/* El dibuix fa el 60% de l'amplada de la targeta; les etiquetes van a 20 unitats perquè es llegeixin igual que abans. */
+.alcada svg{display:block;width:60%;height:auto}
 .alcada .terra{stroke:var(--color-text);stroke-width:2}
 .alcada .nivell{stroke:var(--color-text-suau);stroke-width:1;stroke-dasharray:4 4}
 .alcada .turo{fill:var(--color-defensem-verd);opacity:.55}
 .alcada .torre,.alcada .pales,.alcada .boixa{fill:#8f8f8a}
-.alcada text{font:700 13px var(--font-defensem);fill:var(--color-text)}
+.alcada text{font:700 20px var(--font-defensem);fill:var(--color-text)}
 .alcada figcaption{font-size:.9rem;color:var(--color-text-suau);margin-top:6px}
-.subtitol{font-size:clamp(1.4rem,3.5vw,1.9rem);margin:48px 0 0;color:var(--color-defensem-verd)}
-.impactes{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:22px}
-.impactes li{border-top:5px solid var(--color-defensem-vermell);padding-top:12px}
-.impactes h4{margin:0 0 6px;font:800 1.15rem/1.2 var(--font-defensem);color:var(--color-text)}
-.impactes p{margin:0;font-size:1rem;color:var(--color-text-suau)}
+.subtitol{font-size:clamp(1.4rem,3.5vw,1.9rem);margin:32px 0 0;color:var(--color-defensem-verd)}
+.impactes{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px 22px}
+.impactes li{border-top:5px solid var(--color-defensem-vermell);padding-top:8px}
+.impactes h4{margin:0 0 4px;font:800 1.15rem/1.2 var(--font-defensem);color:var(--color-text)}
+.impactes p{margin:0;font-size:1rem;line-height:1.5;color:var(--color-text-suau)}
 
 /* ---------- Què pots fer ---------- */
 .accions{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:20px}
