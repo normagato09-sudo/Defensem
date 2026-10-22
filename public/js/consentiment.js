@@ -42,6 +42,7 @@
   var CLAU = 'defensem.consentiment';
   var VERSIO = '1';                 // puja-la quan canviïn les categories o el text del bàner
   var CATEGORIES = ['analitiques']; // opcionals; 'necessaries' sempre és true
+  var HI_HA_OPCIONALS = false;      // posa-ho a true el dia que s'afegeixi algun script opcional: llavors el bàner torna a sortir
   var PREFERENCIES = '/preferencies-cookies.html';
   var privada = /^\/area-privada(\/|$)/.test(location.pathname);
   var memoria = null;               // per si el localStorage no està disponible (navegació privada estricta, etc.)
@@ -208,7 +209,7 @@
       obre(a);
     });
     pintaEstat();
-    if (!llegeix()) mostraBanner();
+    if (!llegeix() && HI_HA_OPCIONALS) mostraBanner();
   }
 
   window.consentiment = Object.freeze({

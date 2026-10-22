@@ -1,0 +1,100 @@
+/* Afegits a la web de Defensem l'Empordanet (octubre 2026).
+   Va DESPRÉS de /css/site.css i només fa servir les variables de la Bíblia d'estils que defineix site.css.
+   Seccions noves: El projecte (#el-projecte), Què pots fer (#actua), Agenda (#agenda), Preguntes (#preguntes)
+   i la crida de Contacte. També: enllaç «Salta al contingut», targetes de valors en 5 columnes i zona tàctil
+   més gran per a «Llegeix-ne més». */
+
+/* Elements amagats amb l'atribut hidden (algunes regles de display el podrien anul·lar) */
+.actes[hidden],.agenda-buit[hidden],.actes-fets[hidden]{display:none!important}
+
+/* Enllaç per saltar el menú (només es veu amb el teclat) */
+.salta{position:absolute;left:12px;top:-80px;z-index:100;background:var(--color-defensem-vermell);color:#fff;padding:12px 18px;font:700 1rem var(--font-defensem);text-decoration:none}
+.salta:focus{top:12px}
+main:focus{outline:none}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Valors: les 5 targetes en una sola fila en pantalles grans (abans «Participació» quedava sola) */
+@media(min-width:1000px){.valors{grid-template-columns:repeat(5,1fr)}}
+
+/* «Llegeix-ne més»: zona tàctil d'almenys 44 px d'alt sense canviar com es veu */
+.card a.mes{padding-top:12px;padding-bottom:4px;min-height:44px;display:inline-flex;align-items:flex-end}
+
+/* Fons alterns de les seccions noves */
+#el-projecte,#actua{background:var(--color-fons-fosc);border-block:2px solid var(--color-text)}
+#preguntes{border-top:2px solid var(--color-text)}
+
+/* ---------- El projecte ---------- */
+.intro{font-size:clamp(1.05rem,2.2vw,1.2rem);max-width:60ch;margin:18px 0 0}
+.projectes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px;margin-top:30px;align-items:start}
+.projecte{background:var(--color-fons);border:2px solid var(--color-text);padding:clamp(16px,3vw,24px);display:flex;flex-direction:column;gap:12px;min-width:0}
+.projecte h3{font-size:1.35rem;color:var(--color-defensem-vermell)}
+.projecte p{margin:0}
+.projecte dl{margin:0;display:grid;gap:10px}
+.projecte dt{font:800 .8rem/1.2 var(--font-defensem);letter-spacing:.1em;text-transform:uppercase;color:var(--color-verd-text)}
+.projecte dd{margin:2px 0 0}
+.projecte figure{margin:0}
+.il-lustracio img{display:block;width:100%;height:auto;border:2px solid var(--color-text);background:#fff}
+.doc-link{font-weight:700;color:var(--color-verd-text);text-underline-offset:3px;display:inline-flex;align-items:center;min-height:44px}
+.fonts{font-size:.9rem;color:var(--color-text-suau)}
+.fonts a{color:var(--color-verd-text);font-weight:600}
+.alcada svg{display:block;width:100%;height:auto}
+.alcada .terra{stroke:var(--color-text);stroke-width:2}
+.alcada .nivell{stroke:var(--color-text-suau);stroke-width:1;stroke-dasharray:4 4}
+.alcada .turo{fill:var(--color-defensem-verd);opacity:.55}
+.alcada .torre,.alcada .pales,.alcada .boixa{fill:#8f8f8a}
+.alcada text{font:700 13px var(--font-defensem);fill:var(--color-text)}
+.alcada figcaption{font-size:.9rem;color:var(--color-text-suau);margin-top:6px}
+.subtitol{font-size:clamp(1.4rem,3.5vw,1.9rem);margin:48px 0 0;color:var(--color-defensem-verd)}
+.impactes{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:22px}
+.impactes li{border-top:5px solid var(--color-defensem-vermell);padding-top:12px}
+.impactes h4{margin:0 0 6px;font:800 1.15rem/1.2 var(--font-defensem);color:var(--color-text)}
+.impactes p{margin:0;font-size:1rem;color:var(--color-text-suau)}
+
+/* ---------- Què pots fer ---------- */
+.accions{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:20px}
+.accions li{border:2px solid var(--color-text);background:var(--color-fons);padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:6px 6px 0 var(--color-defensem-verd)}
+.accions h3{font-size:1.25rem}
+.accions p{margin:0;flex:1;color:var(--color-text-suau);font-size:1rem}
+.accions .btn{align-self:flex-start;text-align:center}
+
+/* ---------- Agenda ---------- */
+.actes{list-style:none;margin:30px 0 0;padding:0;display:grid;gap:22px}
+.acte{display:grid;grid-template-columns:150px 1fr;gap:20px;background:var(--color-fons);border:2px solid var(--color-text);padding:16px;min-width:0}
+.acte-cartell{display:block;align-self:start}
+.acte-cartell img{display:block;width:100%;height:auto;border:1px solid var(--color-text)}
+.acte-tx{min-width:0}
+.acte time{font:700 .85rem var(--font-defensem);letter-spacing:.1em;text-transform:uppercase;color:var(--color-defensem-vermell)}
+.acte h3{font-size:1.25rem;margin:6px 0 8px;overflow-wrap:anywhere}
+.acte p{margin:0 0 8px;font-size:.98rem}
+.acte .lloc{font-weight:700}
+.acte .org{color:var(--color-text-suau);font-size:.9rem;margin:0}
+.acte .org a{color:var(--color-verd-text);font-weight:600}
+@media(max-width:560px){.acte{grid-template-columns:92px 1fr;gap:14px;padding:12px}.acte h3{font-size:1.1rem}}
+.actes-fets{margin-top:30px}
+.actes-fets summary{cursor:pointer;display:flex;align-items:center;min-height:48px;font:800 1.15rem var(--font-defensem);color:var(--color-verd-text)}
+.actes-fets .actes{margin-top:12px}
+.actes-fets .acte{opacity:.85}
+.agenda-buit{margin:30px 0 0;border:2px dashed var(--color-text-suau);padding:22px;color:var(--color-text-suau);font-size:1.05rem}
+.agenda-buit a{color:var(--color-verd-text);font-weight:700}
+
+/* ---------- Preguntes freqüents ---------- */
+.preguntes{margin-top:26px;border-top:2px solid var(--color-text);max-width:860px}
+.preguntes details{border-bottom:2px solid var(--color-text)}
+.preguntes summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:56px;padding:12px 0;font:800 1.1rem/1.3 var(--font-defensem)}
+.preguntes summary::-webkit-details-marker{display:none}
+.preguntes summary::after{content:"+";flex:none;font:400 2rem/1 var(--font-titular);color:var(--color-defensem-vermell)}
+.preguntes details[open] summary::after{content:"–"}
+.preguntes .resp{padding:0 0 18px}
+.preguntes .resp p{margin:0;max-width:68ch}
+.preguntes .resp a{color:var(--color-verd-text);font-weight:700}
+
+/* ---------- Contacte amb crida ---------- */
+.contacte-cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,5vw,56px);align-items:start;margin-top:26px}
+.contacte-cols .contacte{margin-top:0}
+@media(max-width:820px){.contacte-cols{grid-template-columns:1fr}}
+.crida{border:3px solid var(--color-defensem-vermell);background:var(--color-fons);padding:22px;box-shadow:8px 8px 0 var(--color-defensem-verd);margin:0 8px 8px 0;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.crida h3{font-size:1.4rem;color:var(--color-defensem-vermell)}
+.crida p{margin:0}
+
+/* Peu: correu i Instagram */
+footer .small a{color:var(--color-fons)}

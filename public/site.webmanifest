@@ -1,0 +1,13 @@
+{
+  "name": "Defensem l’Empordanet",
+  "short_name": "Defensem",
+  "lang": "ca",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#f1f0ee",
+  "theme_color": "#da1415",
+  "icons": [
+    { "src": "/img/icona-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icona-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

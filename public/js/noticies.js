@@ -18,7 +18,7 @@ if(n.etiqueta)t.appendChild(el('span','etiq',n.etiqueta));
 if(n.data){var tm=el('time','',n.dataText);tm.setAttribute('datetime',n.data);t.appendChild(tm)}
 t.appendChild(el('h3','',n.titol||''));
 t.appendChild(el('p','',n.descripcio||''));
-if(n.enllac){var a=el('a','mes','Llegeix-ne més');a.href=n.enllac;if(/^https?:/.test(n.enllac)){a.target='_blank';a.rel='noopener'}t.appendChild(a)}
+if(n.enllac){var a=el('a','mes','Llegeix-ne més');a.href=n.enllac;a.setAttribute('aria-label','Llegeix-ne més: '+(n.titol||''));if(/^https?:/.test(n.enllac)){a.target='_blank';a.rel='noopener'}t.appendChild(a)}
 c.appendChild(t);return c}
 function pinta(l){
 if(!l.length){buit(MSG);return}

@@ -1,7 +1,7 @@
 /* Pàgina d'una notícia o comunicat: /noticia.html?id=<uuid>
    Només es llegeix de la vista pública (contingut publicat). El cos es neteja amb Segur.neteja. */
 (function(){
-var main=document.getElementById('noticia');
+var main=document.querySelector('main.noticia');
 if(!main)return;
 var S=window.Segur;
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e}

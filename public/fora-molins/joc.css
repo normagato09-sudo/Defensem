@@ -1,0 +1,110 @@
+/* Fora molins! — estils del minijoc. Tot va amb el prefix .fm per no tocar res de la resta de la web.
+   Fa servir els colors i les fonts de la web de Defensem si hi són (variables --color-defensem-*, --font-*). */
+.fm {
+  --fm-vermell: var(--color-defensem-vermell, #da1415);
+  --fm-vermell-fosc: var(--color-vermell-fosc, #ae1011);
+  --fm-verd: var(--color-defensem-verd, #298d3b);
+  --fm-verd-fosc: var(--color-verd-fosc, #195523);
+  --fm-verd-text: var(--color-verd-text, #1f6a2c);
+  --fm-fons: var(--color-fons, #f1f0ee);
+  --fm-paper: #f3eee1;
+  --fm-text: var(--color-text, #1e1e1c);
+  --fm-text-suau: var(--color-text-suau, #4a4a46);
+  --fm-titular: var(--font-titular, 'Anton', 'Open Sans', Impact, sans-serif);
+  --fm-cos: var(--font-defensem, 'Open Sans', system-ui, sans-serif);
+  --fm-accent: var(--font-accent, 'Caveat Brush', 'Open Sans', cursive);
+  font-family: var(--fm-cos);
+  color: var(--fm-text);
+}
+.fm *, .fm *::before, .fm *::after { box-sizing: border-box; }
+.fm [hidden] { display: none !important; }
+.fm-cap { display: grid; gap: 4px; margin: 0 0 16px; }
+.fm-eyebrow { font-family: var(--fm-accent); color: var(--fm-verd-text); font-size: 1.5rem; line-height: 1; }
+.fm h2.fm-titol { font-family: var(--fm-titular); font-weight: 400; color: var(--fm-vermell); font-size: clamp(2.2rem, 7vw, 3.4rem);
+  line-height: 1; margin: 0; text-transform: uppercase; text-wrap: balance; }
+.fm-intro { margin: 6px 0 0; max-width: 60ch; color: var(--fm-text-suau); }
+
+/* ---------- escenari ---------- */
+.fm-escenari { position: relative; width: 100%; aspect-ratio: 6 / 5; border: 3px solid var(--fm-text); border-radius: 8px;
+  overflow: hidden; background: var(--fm-paper); user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.fm-tela { display: block; width: 100%; height: 100%; touch-action: manipulation; outline: none; }
+.fm-jugant .fm-tela { touch-action: none; cursor: pointer; }
+.fm-tela:focus-visible { box-shadow: inset 0 0 0 4px var(--fm-verd); }
+
+/* marcador: dues etiquetes de paper com retallades */
+.fm-hud { position: absolute; inset: 0 0 auto 0; display: flex; justify-content: space-between; gap: 8px; pointer-events: none;
+  padding: max(10px, 1.6%) max(10px, 1.6%) 0; }
+.fm-caixa { background: var(--fm-paper); border: 2px solid var(--fm-text); border-radius: 6px; padding: 4px 12px 6px;
+  display: grid; gap: 2px; box-shadow: 3px 3px 0 rgba(30, 30, 28, 0.85); transform: rotate(-1deg); }
+.fm-caixa-temps { transform: rotate(1deg); min-width: 38%; }
+.fm-etiq { font-size: clamp(0.72rem, 2.4vw, 0.9rem); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fm-text-suau); }
+.fm-etiq b { color: var(--fm-text); font-variant-numeric: tabular-nums; }
+.fm-num { font-family: var(--fm-titular); font-size: clamp(1.8rem, 7vw, 2.8rem); line-height: 1; color: var(--fm-vermell);
+  font-variant-numeric: tabular-nums; }
+.fm-barra { display: block; height: 12px; background: #d9e4d9; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.fm-barra i { display: block; height: 100%; width: 100%; background: var(--fm-verd); border-radius: 6px; transition: width 0.25s linear; }
+.fm-urgent i { background: var(--fm-vermell); }
+.fm-urgent .fm-etiq b { color: var(--fm-vermell); }
+
+/* capes d'inici i de final */
+.fm-capa { position: absolute; inset: 0; display: flex; padding: 16px; text-align: center;
+  background: rgba(243, 238, 225, 0.86); overflow: auto; }
+.fm-capa > .fm-capa-in { margin: auto; }  /* centrat, però si no hi cap es pot desplaçar des de dalt */
+.fm-capa[hidden] { display: none; }
+.fm-capa-in { display: grid; gap: 12px; justify-items: center; max-width: 30rem; }
+.fm-capa-titol { font-family: var(--fm-titular); color: var(--fm-vermell); font-size: clamp(2.8rem, 12vw, 5rem); line-height: 0.95;
+  margin: 0; text-transform: uppercase; }
+.fm-capa-text { margin: 0; font-size: clamp(1rem, 3.6vw, 1.2rem); line-height: 1.45; }
+.fm-rec { font-weight: 700; color: var(--fm-verd-fosc); min-height: 1.2em; }
+.fm-boto { font-family: var(--fm-titular); font-size: clamp(1.4rem, 5.5vw, 1.9rem); text-transform: uppercase; letter-spacing: 0.02em;
+  color: #fff; background: var(--fm-vermell); border: 0; border-radius: 10px; min-height: 64px; min-width: 190px; padding: 0 26px;
+  cursor: pointer; box-shadow: 0 6px 0 var(--fm-vermell-fosc); touch-action: manipulation; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; }
+.fm-boto:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--fm-vermell-fosc); }
+.fm-boto:disabled { opacity: 0.7; cursor: progress; }
+.fm-boto:focus-visible, .fm-so:focus-visible { outline: 3px solid var(--fm-verd); outline-offset: 3px; }
+.fm-botons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.fm-boto-signa { background: var(--fm-verd); box-shadow: 0 6px 0 var(--fm-verd-fosc); }
+.fm-boto-signa:active { box-shadow: 0 1px 0 var(--fm-verd-fosc); }
+.fm-boto-sec { background: var(--fm-paper); color: var(--fm-text); border: 2px solid var(--fm-text); box-shadow: 0 6px 0 var(--fm-text);
+  font-size: clamp(1.1rem, 4.4vw, 1.4rem); min-width: 0; }
+.fm-boto-sec:active { box-shadow: 0 1px 0 var(--fm-text); }
+
+/* pantalla final en forma de cartell */
+.fm-capa-final { background: rgba(243, 238, 225, 0.93); }
+.fm-cartell { gap: 8px; }
+/* logotip de la plataforma, a la cantonada de dalt a la dreta de l'escenari */
+.fm-logo { position: absolute; width: min(22%, 200px); height: auto; top: 5%; right: 5%; pointer-events: none; }
+.fm-petit { margin: 0; font-family: var(--fm-accent); font-size: clamp(1.4rem, 5vw, 1.9rem); color: var(--fm-verd-text); line-height: 1; }
+.fm-gran { margin: 0; font-family: var(--fm-titular); font-size: clamp(4rem, 20vw, 7rem); line-height: 0.9; color: var(--fm-vermell); }
+.fm-frase { margin: 0; font-weight: 700; max-width: 26rem; }
+
+.fm-so { position: absolute; right: max(10px, 1.6%); bottom: max(10px, 1.6%); width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid var(--fm-text); background: var(--fm-paper); cursor: pointer; display: grid; place-items: center; padding: 0; z-index: 3; }
+.fm-so svg { width: 26px; height: 26px; fill: none; stroke: var(--fm-text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fm-so .fm-so-altaveu { fill: var(--fm-text); }
+.fm-so .fm-so-creu { display: none; stroke: var(--fm-vermell); stroke-width: 2.4; }
+.fm-so.fm-mut .fm-so-ones { display: none; }
+.fm-so.fm-mut .fm-so-creu { display: inline; }
+
+.fm-peu { margin: 12px 0 0; color: var(--fm-text-suau); font-size: 0.92rem; }
+.fm-credits { margin: 4px 0 0; color: var(--fm-text-suau); font-size: 0.82rem; }
+.fm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* pantalles estretes (la classe la posa el joc segons l'amplada real de l'escenari) */
+.fm-estret .fm-capa { padding: 10px; }
+.fm-estret .fm-capa-in { gap: 8px; }
+.fm-estret .fm-cartell { gap: 4px; }
+.fm-estret .fm-logo { width: 22%; top: 8px; right: 8px; }
+.fm-estret .fm-gran { font-size: 3rem; }
+.fm-estret .fm-petit { font-size: 1.15rem; }
+.fm-estret .fm-frase, .fm-estret .fm-capa-final .fm-crida { display: none; }   /* en pantalles petites, només l'essencial */
+.fm-estret .fm-capa-final .fm-capa-text, .fm-estret .fm-frase { font-size: 0.95rem; line-height: 1.35; }
+.fm-estret .fm-rec { font-size: 0.95rem; }
+.fm-estret .fm-botons { gap: 8px; }
+.fm-estret .fm-capa-final .fm-boto { min-height: 48px; font-size: 1.05rem; padding: 0 14px; box-shadow: 0 4px 0 var(--fm-vermell-fosc); }
+.fm-estret .fm-capa-final .fm-boto-signa { box-shadow: 0 4px 0 var(--fm-verd-fosc); }
+.fm-estret .fm-capa-final .fm-boto-sec { box-shadow: 0 4px 0 var(--fm-text); }
+.fm-en-final .fm-so { display: none; }
+@media (hover: none) { .fm-peu { display: none; } }
+@media (prefers-reduced-motion: reduce) { .fm-barra i { transition: none; } .fm-boto:active { transform: none; } }

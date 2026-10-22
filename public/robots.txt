@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /area-privada/
+
+Sitemap: https://defensem.vercel.app/sitemap.xml

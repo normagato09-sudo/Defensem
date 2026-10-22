@@ -1,4 +1,6 @@
 // Prova del bàner i el panell de consentiment de cookies (public/js/consentiment.js) amb un navegador real.
+// Ara la web només fa servir tecnologies necessàries: HI_HA_OPCIONALS = false i el bàner no surt sol.
+// Les proves del bàner es fan amb HI_HA_OPCIONALS = true (servint el fitxer amb aquest canvi), com el dia que s'afegeixi un script opcional.
 // Ús: npm i --no-save playwright && npx playwright install chromium && node proves/prova-cookies.mjs
 //     CAPTURES=carpeta node proves/prova-cookies.mjs   → desa també captures a 390 i 1280 px.
 import http from 'node:http';
@@ -9,7 +11,8 @@ import { chromium } from 'playwright';
 
 const ARREL = fileURLToPath(new URL('../public/', import.meta.url));
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
-  '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+  '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg' };
 const servidor = http.createServer(async (req, res) => {
   let cami = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^([/\\])+/, '');
   if (cami.includes('..')) { res.writeHead(400); return res.end(); }
@@ -28,6 +31,8 @@ function comprova(nom, cond, detall) {
 
 const JS = await readFile(join(ARREL, 'js/consentiment.js'), 'utf8');
 const CLAU = JS.match(/var CLAU = '([^']+)'/)[1], VERSIO = JS.match(/var VERSIO = '([^']+)'/)[1];
+const AMB_OPCIONALS = JS.replace('var HI_HA_OPCIONALS = false;', 'var HI_HA_OPCIONALS = true;');
+if (AMB_OPCIONALS === JS) throw new Error('No trobo «var HI_HA_OPCIONALS = false;» a consentiment.js');
 const CONFIG_BUIT = 'window.DEFENSEM = { instagram: "", supabaseUrl: "", supabaseAnonKey: "" };';
 const CAPTURES = process.env.CAPTURES || '';
 const PAGINES = ['/', '/noticia.html', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html'];
@@ -35,13 +40,15 @@ const MOBIL = { width: 390, height: 844 }, ESCRIPTORI = { width: 1280, height: 9
 
 const nav = await chromium.launch();
 async function pagina(viewport, opcions) {
-  const ctx = await nav.newContext({ viewport, ...(opcions || {}) });
+  const { opcionals, ...resta } = opcions || {};
+  const ctx = await nav.newContext({ viewport, ...resta });
   const pg = await ctx.newPage();
   pg.errors = []; pg.externes = [];
   pg.on('console', (m) => { if (m.type() === 'error') pg.errors.push(m.text()); });
   pg.on('pageerror', (e) => pg.errors.push(e.message));
   pg.on('request', (r) => { if (!r.url().startsWith(ORIGEN) && !r.url().startsWith('data:')) pg.externes.push(r.url()); });
   await pg.route('**/js/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: CONFIG_BUIT }));
+  if (opcionals) await pg.route('**/js/consentiment.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: AMB_OPCIONALS }));
   return pg;
 }
 const desbordament = (pg) => pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -60,11 +67,35 @@ function contrast(a, b) {
   const [x, y] = [L(a), L(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05);
 }
 
-// ---------- 1. El bàner surt la primera vegada a totes les pàgines públiques ----------
-console.log('\nBàner: primera visita');
+// ---------- 0. Per defecte (només tecnologies necessàries) no surt cap bàner ----------
+console.log('\nSense opcionals: cap bàner automàtic');
+comprova('consentiment.js porta HI_HA_OPCIONALS = false', /var HI_HA_OPCIONALS = false;/.test(JS) && /if \(!llegeix\(\) && HI_HA_OPCIONALS\) mostraBanner\(\);/.test(JS));
 for (const vp of [MOBIL, ESCRIPTORI]) {
   for (const ruta of PAGINES) {
     const pg = await pagina(vp);
+    await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' }); await pg.waitForTimeout(200);
+    const t = `${ruta} ${vp.width}px`;
+    comprova(`${t}: primera visita (pestanya privada nova) sense bàner ni espai reservat`, !(await hiHaBanner(pg)) && (await pg.evaluate(() => getComputedStyle(document.body).paddingBottom)) === '0px');
+    comprova(`${t}: no es desa res, cap cookie ni petició externa, sense errors`, (await desat(pg)) === null && (await pg.context().cookies()).length === 0
+      && pg.externes.length === 0 && pg.errors.length === 0, JSON.stringify({ e: pg.errors, x: pg.externes }));
+    comprova(`${t}: l'API respon igual (no decidit, analítiques desactivades)`, (await pg.evaluate(() => [consentiment.decidit(), consentiment.te('analitiques'), consentiment.te('necessaries')].join())) === 'false,false,true');
+    await pg.context().close();
+  }
+}
+{
+  const pg = await pagina(MOBIL);
+  await pg.goto(ORIGEN + '/'); await pg.waitForLoadState('networkidle');
+  await pg.keyboard.press('Tab');
+  comprova('sense bàner, el primer Tab va a «Salta al contingut»', (await pg.evaluate(() => document.activeElement.textContent)) === 'Salta al contingut');
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/sense-banner-390.png` });
+  await pg.context().close();
+}
+
+// ---------- 1. Amb opcionals, el bàner surt la primera vegada a totes les pàgines públiques ----------
+console.log('\nBàner (amb HI_HA_OPCIONALS = true): primera visita');
+for (const vp of [MOBIL, ESCRIPTORI]) {
+  for (const ruta of PAGINES) {
+    const pg = await pagina(vp, { opcionals: true });
     await pg.goto(ORIGEN + ruta);
     await pg.waitForSelector('.cc-banner');
     const b = await pg.$eval('.cc-banner', (e) => ({ rol: e.getAttribute('role'), modal: e.getAttribute('aria-modal'),
@@ -96,6 +127,8 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
         const dalt = document.querySelector('.cc-banner').getBoundingClientRect().top, res = [];
         document.querySelectorAll('main a[href], main button, footer a[href]').forEach((el) => {
           if (!el.offsetParent) return;
+          // Dins d'un <details> tancat (preguntes, actes anteriors) no és visible ni rep el focus fins que s'obre.
+          const det = el.closest('details'); if (det && !det.open && !el.closest('summary')) return;
           // Com el desplaçament real en rebre el focus (respecta scroll-padding), però sense l'animació smooth.
           el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', behavior: 'instant' }); const r = el.getBoundingClientRect();
           if (r.bottom > dalt + 1) res.push((el.textContent || '').trim().slice(0, 30) + ' ' + Math.round(r.bottom) + '>' + Math.round(dalt));
@@ -121,7 +154,7 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
 // ---------- 2. Rebutjar ----------
 console.log('\nRebutjar');
 {
-  const pg = await pagina(MOBIL);
+  const pg = await pagina(MOBIL, { opcionals: true });
   await pg.goto(ORIGEN + '/'); await pg.waitForSelector('.cc-banner'); await escolta(pg);
   await pg.click('.cc-banner [data-cc=rebutjar]');
   const d = await desat(pg), ev = await esdeveniments(pg);
@@ -141,7 +174,7 @@ console.log('\nRebutjar');
 // ---------- 3. Acceptar ----------
 console.log('\nAcceptar');
 {
-  const pg = await pagina(ESCRIPTORI);
+  const pg = await pagina(ESCRIPTORI, { opcionals: true });
   await pg.goto(ORIGEN + '/privacitat.html'); await pg.waitForSelector('.cc-banner'); await escolta(pg);
   await pg.click('.cc-banner [data-cc=acceptar]');
   const d = await desat(pg), ev = await esdeveniments(pg);
@@ -157,7 +190,7 @@ console.log('\nAcceptar');
 // ---------- 4. Configurar (amb teclat) ----------
 console.log('\nConfigurar amb teclat');
 for (const vp of [MOBIL, ESCRIPTORI]) {
-  const pg = await pagina(vp);
+  const pg = await pagina(vp, { opcionals: true });
   await pg.goto(ORIGEN + '/'); await pg.waitForSelector('.cc-banner'); await escolta(pg);
   // El bàner és el primer del recorregut amb tabulador: «Més informació», Rebutjar, Configurar.
   const recorregut = [];
@@ -208,14 +241,13 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
 
 // ---------- 5. Enllaç del peu i pàgina de preferències ----------
 console.log('\nEnllaç «Preferències de cookies»');
-for (const ruta of ['/', '/avis-legal.html', '/noticia.html']) {
+for (const ruta of ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/noticia.html']) {
   const pg = await pagina(MOBIL);
-  await pg.goto(ORIGEN + ruta); await pg.waitForSelector('.cc-banner');
-  await pg.click('.cc-banner [data-cc=rebutjar]');
+  await pg.goto(ORIGEN + ruta); await pg.waitForLoadState('load');
   await escolta(pg);
   await pg.click('footer a[href="/preferencies-cookies.html"]');
-  comprova(`${ruta}: l'enllaç del peu reobre el panell sense canviar de pàgina`, (await panellObert(pg)) && new URL(pg.url()).pathname === ruta);
-  comprova(`${ruta}: el panell mostra la tria desada (rebutjada)`, (await pg.getAttribute('#cc-analitiques', 'aria-checked')) === 'false');
+  comprova(`${ruta}: sense bàner, l'enllaç del peu obre el panell sense canviar de pàgina`, !(await hiHaBanner(pg)) && (await panellObert(pg)) && new URL(pg.url()).pathname === ruta);
+  comprova(`${ruta}: el panell parteix d'analítiques desactivades`, (await pg.getAttribute('#cc-analitiques', 'aria-checked')) === 'false');
   await pg.click('#cc-analitiques'); await pg.click('[data-cc=desar]');
   const d = await desat(pg);
   comprova(`${ruta}: canviar la decisió des del peu actualitza la clau`, d.categories.analitiques === true && (await esdeveniments(pg)).length === 1);
@@ -224,7 +256,8 @@ for (const ruta of ['/', '/avis-legal.html', '/noticia.html']) {
 }
 {
   const pg = await pagina(MOBIL);
-  await pg.goto(ORIGEN + '/preferencies-cookies.html'); await pg.waitForSelector('.cc-banner');
+  await pg.goto(ORIGEN + '/preferencies-cookies.html'); await pg.waitForLoadState('load');
+  comprova('pàgina de preferències: sense bàner', !(await hiHaBanner(pg)));
   comprova('pàgina de preferències: estat «encara no has triat»', (await pg.textContent('#cc-estat')).includes('Encara no has triat'));
   await pg.click('main [data-cc=obre]');
   comprova('pàgina de preferències: el botó obre el mateix panell', await panellObert(pg));
@@ -241,7 +274,7 @@ for (const ruta of ['/', '/avis-legal.html', '/noticia.html']) {
 // ---------- 6. Canvi de versió ----------
 console.log('\nVersió');
 {
-  const pg = await pagina(MOBIL);
+  const pg = await pagina(MOBIL, { opcionals: true });
   await pg.addInitScript((k) => { if (!sessionStorage.getItem('fet')) { sessionStorage.setItem('fet', 1);
     localStorage.setItem(k, JSON.stringify({ versio: '0-antiga', data: '2020-01-01T00:00:00.000Z', categories: { analitiques: true } })); } }, CLAU);
   await pg.goto(ORIGEN + '/');
@@ -252,7 +285,7 @@ console.log('\nVersió');
 
 // ---------- 7. Moviment reduït ----------
 {
-  const pg = await pagina(MOBIL, { reducedMotion: 'reduce' });
+  const pg = await pagina(MOBIL, { reducedMotion: 'reduce', opcionals: true });
   await pg.goto(ORIGEN + '/'); await pg.waitForSelector('.cc-banner');
   comprova('prefers-reduced-motion: el bàner apareix sense animació', (await pg.$eval('.cc-banner', (e) => getComputedStyle(e).animationName)) === 'none');
   await pg.context().close();
