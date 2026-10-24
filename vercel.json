@@ -71,5 +71,15 @@
       "destination": "/recursos.html#eines",
       "statusCode": 301
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/joc",
+      "destination": "/joc.html"
+    },
+    {
+      "source": "/joc/",
+      "destination": "/joc.html"
+    }
   ]
 }

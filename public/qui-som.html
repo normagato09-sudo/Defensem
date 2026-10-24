@@ -29,7 +29,6 @@
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/afegits.css">
 <link rel="stylesheet" href="/css/pagines.css">
-<link rel="stylesheet" href="/fora-molins/joc.css">
 <script src="/js/consentiment.js" defer></script>
 </head>
 <body data-pagina="qui-som">
@@ -144,68 +143,9 @@
 </div>
 </div>
 </section>
-
-<section id="joc" class="s fm" data-fora-molins data-assets="/fora-molins/assets/" aria-labelledby="fm-titol">
-<div class="w">
-  <div class="fm-cap">
-    <span class="fm-eyebrow">Minijoc · L’Empordanet</span>
-    <h2 id="fm-titol" class="fm-titol">Fora molins!</h2>
-    <p class="fm-intro">Els molins comencen a brotar per tota la plana. Toca’ls abans que comencin a girar les pales i salva els camps.</p>
-  </div>
-
-  <div class="fm-escenari">
-    <canvas class="fm-tela" tabindex="0" role="img"
-      aria-label="Joc Fora molins: la plana de l’Empordanet amb el Montgrí al fons. Hi brollen aerogeneradors que cal tocar abans que acabin de créixer. Amb el teclat, la tecla espai atura el molí més crescut."></canvas>
-
-    <div class="fm-hud" data-hud hidden>
-      <div class="fm-caixa">
-        <span class="fm-etiq">Punts</span>
-        <span class="fm-num" data-punts>0</span>
-      </div>
-      <div class="fm-caixa fm-caixa-temps">
-        <span class="fm-etiq">Temps <b data-temps>40</b> s</span>
-        <span class="fm-barra"><i data-barra></i></span>
-      </div>
-    </div>
-
-    <div class="fm-capa" data-inici>
-      <div class="fm-capa-in">
-        <p class="fm-capa-titol">Fora molins!</p>
-        <p class="fm-capa-text">Toca cada molí <strong>abans que girin les pales</strong>.<br>Com més aviat l’aturis, més punts. Tens <strong>40 segons</strong>.</p>
-        <button class="fm-boto" type="button" data-juga>Juga</button>
-        <span class="fm-rec" data-rec-inici></span>
-      </div>
-    </div>
-
-    <div class="fm-capa fm-capa-final" data-final hidden>
-      <div class="fm-capa-in fm-cartell">
-        <img class="fm-logo" data-logo alt="Defensem l’Empordanet · Aturem el Plater" width="480" height="351">
-        <p class="fm-petit">Has fet</p>
-        <p class="fm-gran" data-f-punts>0</p>
-        <p class="fm-capa-text"><strong>punts</strong> · has aturat <strong data-f-aturats>0</strong> molins i se n’han construït <strong data-f-construits>0</strong></p>
-        <p class="fm-frase" data-f-frase></p>
-        <span class="fm-rec" data-f-rec></span>
-        <p class="fm-capa-text fm-crida">Al joc s’aturen amb un dit. A la vida real, cal que siguem molts.</p>
-        <div class="fm-botons">
-          <a class="fm-boto fm-boto-signa" href="https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform" target="_blank" rel="noopener" aria-label="Fes-te’n soci o sòcia (s’obre en una pestanya nova, formulari de Google)">Fes-te’n soci o sòcia</a>
-          <button class="fm-boto fm-boto-sec" type="button" data-torna>Torna a jugar</button>
-          <button class="fm-boto fm-boto-sec" type="button" data-comparteix hidden>Comparteix</button>
-        </div>
-      </div>
-    </div>
-
-    <button class="fm-so" type="button" data-so aria-pressed="false" aria-label="Silencia el so">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fm-so-altaveu" d="M4 9h4l5-4v14l-5-4H4z"/><path class="fm-so-ones" d="M16 8.5c1.2 1 1.8 2.2 1.8 3.5s-.6 2.5-1.8 3.5M18.5 6c2 1.6 3 3.6 3 6s-1 4.4-3 6"/><path class="fm-so-creu" d="M16 9l5 6M21 9l-5 6"/></svg>
-    </button>
-  </div>
-
-  <div class="fm-sr" aria-live="polite" data-anunci></div>
-</div>
-</section>
 </main>
 <script src="/js/marc.js" data-part="peu"></script>
 <script src="/js/config.js"></script>
-<script src="/fora-molins/joc.js" defer></script>
 <script src="/js/menu.js" defer></script>
 </body>
 </html>

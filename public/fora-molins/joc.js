@@ -730,11 +730,29 @@
     pintaSo();
   });
   pintaSo();
+  // «Comparteix»: Web Share API i, si no n'hi ha (p. ex. navegadors d'escriptori o d'apps), copia el text i l'enllaç.
+  // El text es pot fixar a la pàgina amb data-comparteix-text (ha d'incloure l'enllaç); si no, es fa amb els punts.
   if (ui.comparteix) {
-    if (navigator.share) {
+    var textFix = root.getAttribute('data-comparteix-text');
+    var potCopiar = !!(navigator.clipboard && navigator.clipboard.writeText);
+    if (navigator.share || potCopiar) {
       ui.comparteix.hidden = false;
+      var etiqueta = ui.comparteix.textContent;
+      var avisa = function (t) {
+        ui.comparteix.textContent = t; if (ui.anunci) ui.anunci.textContent = t;
+        clearTimeout(avisa.t); avisa.t = setTimeout(function () { ui.comparteix.textContent = etiqueta; }, 2500);
+      };
       ui.comparteix.addEventListener('click', function () {
-        navigator.share({ title: 'Fora molins!', text: 'He fet ' + joc.punts + ' punts aturant molins a la plana de l’Empordanet. Defensem l’Empordanet!', url: location.href.split('#')[0] + '#joc' }).catch(function () {});
+        var url = location.href.split('#')[0] + '#joc';
+        var text = textFix || ('He fet ' + joc.punts + ' punts aturant molins a la plana de l’Empordanet. Defensem l’Empordanet!');
+        var copia = function () {
+          if (!potCopiar) return;
+          navigator.clipboard.writeText(textFix || (text + ' ' + url)).then(function () { avisa('Enllaç copiat!'); }, function () { avisa('No s’ha pogut copiar'); });
+        };
+        if (navigator.share) {
+          navigator.share(textFix ? { title: 'Fora molins!', text: textFix } : { title: 'Fora molins!', text: text, url: url })
+            .catch(function (e) { if (!e || e.name !== 'AbortError') copia(); });
+        } else copia();
       });
     }
   }

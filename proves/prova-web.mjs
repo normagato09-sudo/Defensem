@@ -26,6 +26,8 @@ const servidor = http.createServer(async (req, res) => {
   if (cami.includes('..')) { res.writeHead(400); return res.end(); }
   const red = (VERCEL.redirects || []).find((r) => r.source === ruta);   // com Vercel: redireccions de vercel.json (camins exactes)
   if (red) { res.writeHead(red.statusCode || (red.permanent === false ? 307 : 308), { Location: red.destination, ...capcaleres(ruta) }); return res.end(); }
+  const rew = (VERCEL.rewrites || []).find((r) => r.source === ruta);    // com Vercel: rewrites (p. ex. /joc → /joc.html)
+  if (rew) cami = rew.destination.replace(/^\//, '');
   let f = join(ARREL, cami);
   try { if ((await stat(f)).isDirectory()) f = join(f, 'index.html'); const c = await readFile(f);
     res.writeHead(200, { 'Content-Type': MIME[extname(f)] || 'application/octet-stream', ...capcaleres(ruta) }); res.end(c);
@@ -234,7 +236,7 @@ async function provaUll(pg, id, etiqueta, tactil) {
   comprova(etiqueta + ': el botó no envia el formulari', peticions.length === peticionsAbans);
 }
 
-const PAGINES = ['/', '/qui-som.html', '/actualitat.html', '/recursos.html', '/contacte.html', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid',
+const PAGINES = ['/', '/joc.html', '/qui-som.html', '/actualitat.html', '/recursos.html', '/contacte.html', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid',
   '/area-privada/', '/area-privada/contrasenya.html', '/area-privada/panel.html'];
 
 console.log('\n1. Totes les pàgines sense Supabase (mòbil 390 px i escriptori 1280 px)');
@@ -268,9 +270,9 @@ const SECCIONS = [
 {
   const pg = await pagina(ESCRIPTORI, false);
   await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
-  comprova('portada: només el bloc principal (hero)', JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))) === JSON.stringify(['hero']),
+  comprova('portada: el bloc principal (hero) i, a sota, el minijoc', JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))) === JSON.stringify(['hero', 'joc']),
     JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))));
-  comprova('portada: cap altra secció (notícies, agenda, entitats, eines…)', !(await pg.$('#news, #propers, #actes, #ent-llista, #eines-llista, .accessos, #qui-som, #el-projecte, #joc, #preguntes, #contacte')));
+  comprova('portada: cap altra secció (notícies, agenda, entitats, eines…)', !(await pg.$('#news, #propers, #actes, #ent-llista, #eines-llista, .accessos, #qui-som, #el-projecte, #preguntes, #contacte')));
   comprova('menú: Inici, Qui som, Actualitat, Recursos i Contacte', (await textos(pg, '#nav a')).join() === 'Inici,Qui som,Actualitat,Recursos,Contacte');
   comprova('logo del hero en alta resolució (640 × 468, WebP)', await pg.$eval('.hero-logo', (p) => p.querySelector('source').srcset === '/img/logo-defensem-2x.webp'
     && p.querySelector('img').getAttribute('src') === '/img/logo-defensem-2x.png' && p.querySelector('img').getAttribute('width') === '640' && p.querySelector('img').getAttribute('height') === '468'
@@ -331,8 +333,8 @@ const SECCIONS = [
   comprova('Qui som: la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
   comprova('Qui som: els blocs Qui som i El projecte, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#qui-som,#el-projecte,#preguntes'
     && !!(await pg.$('section#qui-som')) && (await pg.textContent('#el-projecte h2')) === 'El projecte');
-  comprova('El projecte: 3 projectes, «Per què ens hi oposem», 6 preguntes i el minijoc', (await pg.$$('.projecte')).length === 3 && (await pg.$$('.impactes li')).length === 6
-    && (await pg.$$('#preguntes details')).length === 6 && !!(await pg.$('section#joc')));
+  comprova('El projecte: 3 projectes, «Per què ens hi oposem» i 6 preguntes (el minijoc ja no hi és: és a la portada)', (await pg.$$('.projecte')).length === 3 && (await pg.$$('.impactes li')).length === 6
+    && (await pg.$$('#preguntes details')).length === 6 && !(await pg.$('#joc, [data-fora-molins]')) && !(await pg.$('link[href*="joc.css"], script[src*="joc.js"]')));
   comprova('El projecte: «Què pots fer» de les preguntes porta a Contacte', !!(await pg.$('#preguntes a[href="/contacte.html#actua"]')) && !!(await pg.$('#preguntes a[href="#el-projecte"]')));
   await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
   comprova('Actualitat: blocs Notícies i Agenda, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#noticies,#agenda'
@@ -351,13 +353,15 @@ const SECCIONS = [
 
   console.log('\n3e. Enllaços antics (pàgines i àncores) → pàgina nova');
   for (const [antic, nou] of [['/#noticies', '/actualitat.html#noticies'], ['/#agenda', '/actualitat.html#agenda'], ['/#qui-som', '/qui-som.html'],
-    ['/#el-projecte', '/qui-som.html#el-projecte'], ['/#preguntes', '/qui-som.html#preguntes'], ['/#joc', '/qui-som.html#joc'], ['/#actua', '/contacte.html#actua'],
+    ['/#el-projecte', '/qui-som.html#el-projecte'], ['/#preguntes', '/qui-som.html#preguntes'], ['/#actua', '/contacte.html#actua'],
     ['/#contacte', '/contacte.html'], ['/projecte.html', '/qui-som.html#el-projecte'], ['/agenda.html', '/actualitat.html#agenda'], ['/noticies.html', '/actualitat.html#noticies'],
     ['/entitats.html', '/recursos.html#entitats'], ['/eines.html', '/recursos.html#eines']]) {
     await pg.goto(ORIGEN + antic); await pg.waitForURL((u) => u.pathname !== '/' && u.pathname !== antic, { timeout: 5000 }).catch(() => {});
     const u = new URL(pg.url());
     comprova(`${antic} → ${nou}`, u.pathname + u.hash === nou, u.pathname + u.hash);
   }
+  await pg.goto(ORIGEN + '/#joc');
+  comprova('/#joc es queda a la portada (el minijoc hi és)', new URL(pg.url()).pathname === '/' && new URL(pg.url()).hash === '#joc');
   await pg.goto(ORIGEN + '/#inici');
   comprova('/#inici (salt al contingut) no redirigeix', new URL(pg.url()).pathname === '/');
   const ap = await fetch(ORIGEN + '/area-privada/');
@@ -1122,7 +1126,7 @@ console.log('\n12. Fitxers nous, icones i capçaleres de seguretat');
     comprova(`${ruta}: les cinc línies d’icones a <head>`, falten.length === 0, falten.join(' '));
     if (!ruta.startsWith('/area-privada')) {
       const og = await pg.evaluate(() => [document.querySelector('meta[property="og:image"]')?.content, document.querySelector('meta[name="twitter:card"]')?.content].join());
-      comprova(`${ruta}: imatge per compartir (og:image i twitter:card)`, og === 'https://defensem.vercel.app/img/og-defensem.jpg,summary_large_image', og);
+      comprova(`${ruta}: imatge per compartir (og:image i twitter:card)`, og === `https://defensem.vercel.app/img/og-${ruta === '/joc.html' ? 'joc' : 'defensem'}.jpg,summary_large_image`, og);
     }
     await pg.context().close();
   }
@@ -1243,8 +1247,8 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   const recursos = [];
   // Només el logo de la pantalla final (90 kB) es baixa d'entrada: joc.js li posa el src en arrencar.
   pg.on('request', (r) => { if (/\/fora-molins\/(assets|sons)\//.test(r.url()) && !/\/assets\/logo\.webp/.test(r.url())) recursos.push(r.url()); });
-  await pg.goto(ORIGEN + '/qui-som.html?debug', { waitUntil: 'networkidle' });
-  comprova(`joc ${nom}: els gràfics i sons (tret del logo final) no es baixen fins que t’hi acostes`, recursos.length === 0 && (await pg.textContent('[data-juga]')) === 'Carregant…', recursos.slice(0, 3).join());
+  await pg.goto(ORIGEN + '/?debug', { waitUntil: 'networkidle' });
+  comprova(`joc ${nom}: és a la portada, just sota el bloc principal`, await pg.evaluate(() => document.querySelector('.hero').nextElementSibling.id === 'joc'));
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   const llest = await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
   comprova(`joc ${nom}: carrega el manifest i els gràfics i el botó diu «Juga»`, llest && (await pg.textContent('[data-juga]')) === 'Juga' && recursos.some((u) => u.includes('manifest.json')));
@@ -1320,7 +1324,7 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
 }
 {
   const pg = await pagina(ESCRIPTORI, false);
-  await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
+  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
   comprova('joc: sense ?debug no s’exposa cap objecte de depuració', (await pg.evaluate(() => typeof window.__foraMolins)) === 'undefined');
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   comprova('joc: també s’hi juga sense ?debug (el botó passa a «Juga» i arrenca)', await espera(pg, () => document.querySelector('[data-juga]').textContent === 'Juga')
@@ -1331,9 +1335,74 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   // Si no troba els gràfics, el botó ofereix tornar-ho a provar (la guia «Si alguna cosa falla»).
   const pg = await pagina(ESCRIPTORI, false);
   await pg.route('**/fora-molins/assets/manifest.json*', (r) => r.fulfill({ status: 500, body: 'x' }));
-  await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
+  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   comprova('joc: sense manifest, el botó diu «Torna-ho a provar»', await espera(pg, () => document.querySelector('[data-juga]').textContent === 'Torna-ho a provar'));
+  await pg.context().close();
+}
+
+console.log('\n15c. Pàgina del joc /joc (pantalla completa, per obrir des d’Instagram)');
+const TEXT_JOC = 'He jugat al joc de Defensem l’Empordanet! Prova-ho: https://defensem.vercel.app/joc';
+{
+  const a = await fetch(ORIGEN + '/joc'), b = await fetch(ORIGEN + '/joc.html');
+  comprova('/joc funciona sense .html (rewrite de vercel.json) i és la mateixa pàgina', a.status === 200 && (await a.text()) === (await b.text()));
+  const html = await (await fetch(ORIGEN + '/joc')).text(), portada = await (await fetch(ORIGEN + '/')).text();
+  comprova('/joc i la portada fan servir el mateix codi del joc (joc.js i joc.css), sense copiar-lo', ['/fora-molins/joc.js', '/fora-molins/joc.css'].every((x) => html.includes(x) && portada.includes(x))
+    && !/<script>(?!<\/)/.test(html));
+  const meta = (k) => (html.match(new RegExp(`<meta property="${k}" content="([^"]+)"`)) || [])[1];
+  comprova('/joc: Open Graph propi (títol, descripció, imatge 1200 × 630 i URL)', /Fora molins!/.test(meta('og:title')) && !!meta('og:description')
+    && meta('og:image') === 'https://defensem.vercel.app/img/og-joc.jpg' && meta('og:url') === 'https://defensem.vercel.app/joc', JSON.stringify([meta('og:title'), meta('og:image')]));
+  const og = await fetch(ORIGEN + '/img/og-joc.jpg');
+  comprova('la imatge og-joc.jpg existeix', og.status === 200 && og.headers.get('content-type') === 'image/jpeg');
+  for (const [img, w, h] of [['/img/instagram/joc-post.png', 1080, 1350], ['/img/instagram/joc-historia.png', 1080, 1920], ['/img/og-joc.jpg', 1200, 630]]) {
+    const pg = await pagina(MOBIL, false); await pg.goto(ORIGEN + img);
+    const mida = await pg.evaluate(() => { const i = document.querySelector('img'); return [i.naturalWidth, i.naturalHeight].join('x'); });
+    comprova(`${img}: ${w}×${h}`, mida === w + 'x' + h, mida); await pg.context().close();
+  }
+}
+for (const vp of [MOBIL, ESCRIPTORI]) {
+  const nom = `@${vp.width}px`;
+  const pg = await pagina(vp, false);
+  // Web Share API simulada: es desa què es comparteix.
+  await pg.addInitScript(() => { window.__compartit = []; navigator.share = (d) => { window.__compartit.push(d); return Promise.resolve(); }; });
+  await pg.goto(ORIGEN + '/joc?debug', { waitUntil: 'networkidle' });
+  const c = await pg.evaluate(() => ({ menu: !!document.querySelector('#nav, #mb'), logo: document.querySelector('header .logo')?.getAttribute('href'),
+    pet: (() => { const a = document.querySelector('header .btn-peticio'); return a && [a.textContent, a.target, /docs\.google\.com\/forms/.test(a.href)].join('|'); })(),
+    titol: document.querySelector('main h1')?.textContent, esc: document.querySelector('.fm-escenari').getBoundingClientRect(), alt: innerHeight, ample: innerWidth }));
+  comprova(`/joc ${nom}: capçalera mínima (logo i «Signa la petició», sense menú)`, !c.menu && c.logo === '/' && c.pet === 'Signa la petició|_blank|true' && c.titol === 'Fora molins!', JSON.stringify(c));
+  comprova(`/joc ${nom}: el joc ocupa la pantalla i es veu sencer sense desplaçar`, c.esc.bottom <= c.alt && (vp === MOBIL ? c.esc.width >= c.ample - 20 : c.esc.height >= c.alt * 0.6)
+    && (await desbordament(pg)) <= 0, JSON.stringify(c.esc));
+  const llest = await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
+  await pg.click('[data-juga]');
+  comprova(`/joc ${nom}: es juga`, llest && await espera(pg, () => window.__foraMolins.joc.fase === 'joc', null, 5000));
+  await pg.evaluate(() => { window.__foraMolins.joc.temps = 39.95; });
+  comprova(`/joc ${nom}: en acabar surt la pantalla final`, await espera(pg, () => !document.querySelector('[data-final]').hidden, null, 4000));
+  const f = await pg.evaluate(() => ({ punts: document.querySelector('[data-f-punts]').textContent,
+    botons: [...document.querySelectorAll('[data-final] .fm-botons > *')].filter((e) => !e.hidden).map((e) => e.textContent.trim()),
+    signa: (() => { const a = document.querySelector('[data-final] a.fm-boto-signa'); return [a.target, a.rel, /docs\.google\.com\/forms/.test(a.href)].join('|'); })() }));
+  comprova(`/joc ${nom}: pantalla final amb la puntuació, «Torna a jugar», «Signa la petició» i «Comparteix»`, f.punts === '0' && f.botons.join() === 'Torna a jugar,Signa la petició,Comparteix'
+    && f.signa === '_blank|noopener noreferrer|true', JSON.stringify(f));
+  comprova(`/joc ${nom}: pantalla final sense desbordament`, (await desbordament(pg)) <= 0);
+  await pg.click('[data-comparteix]');
+  const comp = await pg.evaluate(() => window.__compartit);
+  comprova(`/joc ${nom}: «Comparteix» fa servir la Web Share API amb el text demanat`, comp.length === 1 && comp[0].text === 'He jugat al joc de Defensem l’Empordanet! Prova-ho: https://defensem.vercel.app/joc', JSON.stringify(comp));
+  comprova(`/joc ${nom}: cap error ni recurs extern`, pg.errors.length === 0 && pg.externes.length === 0, JSON.stringify({ e: pg.errors, x: pg.externes }));
+  await pg.context().close();
+}
+{
+  // Sense Web Share API (navegadors d'escriptori, algunes apps): copia el text i l'enllaç.
+  const pg = await pagina(ESCRIPTORI, false, { permissions: ['clipboard-read', 'clipboard-write'] });
+  await pg.addInitScript(() => { try { delete Navigator.prototype.share; } catch (e) { /* res */ } });
+  await pg.goto(ORIGEN + '/joc?debug', { waitUntil: 'networkidle' });
+  await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
+  await pg.click('[data-juga]'); await espera(pg, () => window.__foraMolins.joc.fase === 'joc', null, 5000);
+  await pg.evaluate(() => { window.__foraMolins.joc.temps = 39.95; });
+  await espera(pg, () => !document.querySelector('[data-final]').hidden, null, 4000);
+  const visible = await pg.$eval('[data-comparteix]', (b) => !b.hidden && typeof navigator.share === 'undefined');
+  await pg.click('[data-comparteix]');
+  const ok2 = await espera(pg, () => document.querySelector('[data-comparteix]').textContent === 'Enllaç copiat!');
+  const copiat = await pg.evaluate(() => navigator.clipboard.readText());
+  comprova('/joc: sense Web Share API, «Comparteix» copia el text amb l’enllaç i ho diu', visible && ok2 && copiat === TEXT_JOC, JSON.stringify({ visible, ok2, copiat }));
   await pg.context().close();
 }
 
