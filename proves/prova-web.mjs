@@ -63,7 +63,9 @@ function dadesInicials() {
         contingut: '<p>Text <b>important</b>.</p><script>window.__xss=1</script><img src=x onerror="window.__xss=2"><a href="javascript:window.__xss=3">mal</a><p style="color:red" onclick="window.__xss=4">estil</p><a href="https://exemple.cat">bo</a>' }
     ],
     documents: [{ id: randomUUID(), titol: 'Acta de l’assemblea', descripcio: 'Acta', enllac: 'https://exemple.cat/acta.pdf', created_by: U.A, created_at: ara }],
-    permisos_document: []
+    permisos_document: [],
+    entitats: [],
+    sollicituds_entitats: []
   };
 }
 let BD = dadesInicials(), peticions = [], fallaLogout = false;
@@ -80,6 +82,8 @@ function visibles(taula, u) {
   const rol = u && u.actiu ? u.rol : null;
   if (taula === 'publicacions_publiques') return BD.publicacions.filter((p) => p.estat === 'publicat')
     .map(({ id, tipus, titol, resum, contingut, imatge, published_at }) => ({ id, tipus, titol, resum, contingut, imatge, published_at }));
+  if (taula === 'entitats') return BD.entitats.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
+  if (taula === 'sollicituds_entitats') return ['admin', 'editor'].includes(rol) ? BD.sollicituds_entitats : (u ? [] : null);
   if (!u) return null;
   if (taula === 'profiles') return BD.profiles.filter((p) => p.id === u.id || rol === 'admin');
   if (taula === 'noms_usuaris') return ['admin', 'editor'].includes(rol) ? BD.profiles.map(({ id, nom }) => ({ id, nom })) : [];
@@ -117,6 +121,11 @@ async function supabaseFals(route) {
   if (p === '/auth/v1/recover') return json(200, {});
   if (p.startsWith('/rest/v1/')) {
     const taula = p.slice('/rest/v1/'.length), u = quiEs(h);
+    // Sol·licituds d'adhesió: qualsevol pot inserir-ne (sense llegir-les).
+    if (taula === 'sollicituds_entitats' && m === 'POST') {
+      BD.sollicituds_entitats.push({ id: randomUUID(), estat: 'nova', created_at: new Date().toISOString(), ...JSON.parse(req.postData()) });
+      return route.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' } });
+    }
     const vis = visibles(taula, u);
     if (vis === null) return json(401, { code: '42501', message: 'permission denied for table ' + taula });
     if (m === 'GET' || m === 'HEAD') {
@@ -210,7 +219,7 @@ async function provaUll(pg, id, etiqueta, tactil) {
   comprova(etiqueta + ': el botó no envia el formulari', peticions.length === peticionsAbans);
 }
 
-const PAGINES = ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid',
+const PAGINES = ['/', '/entitats.html', '/eines.html', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html?id=no-valid',
   '/area-privada/', '/area-privada/contrasenya.html', '/area-privada/panel.html'];
 
 console.log('\n1. Totes les pàgines sense Supabase (mòbil 390 px i escriptori 1280 px)');
@@ -238,7 +247,7 @@ console.log('\n3. La web pública continua igual');
   comprova('seccions en ordre: hero, Qui som, El projecte, Què pots fer, Agenda, minijoc, Notícies, Preguntes i Contacte',
     JSON.stringify(await pg.$$eval('main > section', (l) => l.map((s) => s.id || s.className))) === JSON.stringify(['hero', 'qui-som', 'el-projecte', 'actua', 'agenda', 'joc', 'noticies', 'preguntes', 'contacte']),
     JSON.stringify(await pg.$$eval('main > section', (l) => l.map((s) => s.id || s.className))));
-  comprova('menú: Qui som, El projecte, Agenda, Notícies i Contacte', (await textos(pg, '#nav a')).join() === 'Qui som,El projecte,Agenda,Notícies,Contacte');
+  comprova('menú: Qui som, El projecte, Agenda, Notícies, Entitats, Eines i Contacte', (await textos(pg, '#nav a')).join() === 'Qui som,El projecte,Agenda,Notícies,Entitats,Eines,Contacte');
   comprova('logo del hero en alta resolució (640 × 468, WebP)', await pg.$eval('.hero-logo', (p) => p.querySelector('source').srcset === '/img/logo-defensem-2x.webp'
     && p.querySelector('img').getAttribute('src') === '/img/logo-defensem-2x.png' && p.querySelector('img').getAttribute('width') === '640' && p.querySelector('img').getAttribute('height') === '468'
     && p.querySelector('img').naturalWidth >= 640));
@@ -265,7 +274,7 @@ console.log('\n3. La web pública continua igual');
   comprova('notícies buides amb el missatge', /Encara no hi ha notícies publicades/.test(await pg.$eval('#news', (e) => e.textContent)));
   comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&
     (await pg.evaluate(() => Object.keys(localStorage).join())) === CC_CLAU);
-  for (const f of ['/', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html', '/404.html']) {
+  for (const f of ['/', '/entitats.html', '/eines.html', '/avis-legal.html', '/privacitat.html', '/cookies.html', '/preferencies-cookies.html', '/noticia.html', '/404.html']) {
     await pg.goto(ORIGEN + f, { waitUntil: 'networkidle' });
     const p = await pg.evaluate(() => ({ legal: [...document.querySelectorAll('footer .legal a')].map((a) => a.textContent.trim()),
       privada: !!document.querySelector('footer a[href^="/area-privada"]'), petit: document.querySelector('footer .small')?.textContent,
@@ -275,7 +284,7 @@ console.log('\n3. La web pública continua igual');
       afegits: [...document.querySelectorAll('link[rel=stylesheet]')].map((l) => l.getAttribute('href')).join() }));
     comprova(`${f}: el peu ja no té «Àrea privada»`, !p.privada && p.legal.join() === 'Avís legal,Política de privacitat,Política de cookies,Preferències de cookies', JSON.stringify(p.legal));
     comprova(`${f}: text petit del peu nou (associació · correu · Instagram)`, p.petit === 'Web de l’Associació Defensem l’Empordanet · defensemlempordanet@gmail.com · Instagram', p.petit);
-    comprova(`${f}: menú nou amb El projecte i Agenda`, p.menu === '/#qui-som,/#el-projecte,/#agenda,/#noticies,/#contacte' || (f === '/' && p.menu === '#qui-som,#el-projecte,#agenda,#noticies,#contacte'), p.menu);
+    comprova(`${f}: menú nou amb El projecte i Agenda`, p.menu === '/#qui-som,/#el-projecte,/#agenda,/#noticies,/entitats.html,/eines.html,/#contacte', p.menu);
     comprova(`${f}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
     comprova(`${f}: afegits.css carrega després de site.css`, /\/css\/site\.css,\/css\/afegits\.css/.test(p.afegits), p.afegits);
     if (f !== '/') {
@@ -728,8 +737,8 @@ for (const [vp, nom, tactil] of [[ESCRIPTORI, '1280 px', false], [MOBIL, '390 px
 console.log('\n8. Menú i botons segons el rol');
 const ESPERAT = {
   'col@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Documents'],
-  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Documents'],
-  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Documents', 'Usuaris'],
+  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Documents'],
+  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Documents', 'Usuaris'],
   'consulta@ex.cat': ['Inici', 'Documents']
 };
 const ROL = { 'col@ex.cat': 'Col·laborador de notícies', 'editor@ex.cat': 'Editor', 'admin@ex.cat': 'Administrador', 'consulta@ex.cat': 'Usuari de consulta' };
@@ -975,7 +984,7 @@ for (const ruta of ['/', '/noticia.html?id=no-valid', '/avis-legal.html', '/no-e
   await pg.click('#mb');
   const obert = await pg.evaluate(() => ({ exp: document.getElementById('mb').getAttribute('aria-expanded'), visibles: [...document.querySelectorAll('#nav a')].filter((a) => a.offsetParent).length,
     dins: [...document.querySelectorAll('#nav a')].every((a) => a.getBoundingClientRect().right <= innerWidth) }));
-  comprova(`${ruta}: el botó Menú obre els 5 enllaços, sense sortir per la dreta`, tancat.boto && !tancat.nav && obert.exp === 'true' && obert.visibles === 5 && obert.dins && (await desbordament(pg)) <= 0, JSON.stringify({ tancat, obert }));
+  comprova(`${ruta}: el botó Menú obre els 7 enllaços, sense sortir per la dreta`, tancat.boto && !tancat.nav && obert.exp === 'true' && obert.visibles === 7 && obert.dins && (await desbordament(pg)) <= 0, JSON.stringify({ tancat, obert }));
   await pg.keyboard.press('Escape');
   comprova(`${ruta}: Escape el tanca`, (await pg.getAttribute('#mb', 'aria-expanded')) === 'false');
   if (ruta === '/') {
@@ -1002,7 +1011,7 @@ console.log('\n12. Fitxers nous, icones i capçaleres de seguretat');
   comprova('sitemap.xml inclou la portada', sitemap.includes('<loc>https://defensem.vercel.app/</loc>'));
 
   const ICONES = ['link[rel=icon][href="/favicon.ico"][sizes="48x48"]', 'link[rel=icon][href="/img/icona-32.png"][type="image/png"][sizes="32x32"]',
-    'link[rel=apple-touch-icon][href="/img/apple-touch-icon.png"]', 'link[rel=manifest][href="/site.webmanifest"]', 'meta[name=theme-color][content="#da1415"]'];
+    'link[rel=apple-touch-icon][href="/img/apple-touch-icon.png"]', 'link[rel=manifest][href="/site.webmanifest"]', 'meta[name=theme-color][content="#298d3b"]'];
   for (const ruta of [...PAGINES, '/404.html']) {
     const pg = await pagina(MOBIL, false);
     await pg.goto(ORIGEN + ruta);
@@ -1222,6 +1231,141 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   comprova('joc: sense manifest, el botó diu «Torna-ho a provar»', await espera(pg, () => document.querySelector('[data-juga]').textContent === 'Torna-ho a provar'));
+  await pg.context().close();
+}
+
+console.log('\n16. Entitats i Eines');
+{
+  // Sense Supabase: estat buit, un sol botó i el formulari amagat fins que es demana.
+  const pg = await pagina(MOBIL, false);
+  await pg.goto(ORIGEN + '/entitats.html', { waitUntil: 'networkidle' });
+  const e = await pg.evaluate(() => ({ text: document.querySelector('#ent-llista .buit p')?.textContent,
+    botons: [...document.querySelectorAll('button')].filter((b) => b.offsetParent && /adherir/.test(b.textContent)).length,
+    form: document.getElementById('adh-form').hidden, filtres: document.getElementById('ent-filtres').hidden }));
+  comprova('entitats sense dades: «Aviat hi trobareu les entitats adherides» i un sol botó d’adhesió', e.text === 'Aviat hi trobareu les entitats adherides.' && e.botons === 1 && e.form && e.filtres, JSON.stringify(e));
+  await pg.click('#ent-llista .adh-obre');
+  comprova('el botó obre el formulari i marca aria-expanded', await pg.evaluate(() => !document.getElementById('adh-form').hidden
+    && document.querySelector('#ent-llista .adh-obre').getAttribute('aria-expanded') === 'true'));
+  comprova('formulari: consentiment RGPD obligatori, enllaç a la privacitat i camp parany ocult', await pg.evaluate(() => {
+    const p = document.getElementById('adh-lloc'), r = p.getBoundingClientRect();
+    return document.getElementById('adh-consent').required && !!document.querySelector('.info-rgpd a[href="/privacitat.html"]') && p.tabIndex === -1 && r.right <= 0;
+  }));
+  comprova('formulari sense desbordament a 390 px', (await desbordament(pg)) <= 0);
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/entitats-form-390.png`, fullPage: true });
+  await pg.context().close();
+}
+{
+  // Amb Supabase i cap entitat publicada: el formulari envia la sol·licitud.
+  BD = dadesInicials(); peticions = [];
+  BD.entitats.push({ id: randomUUID(), nom: 'No publicada', tipus: 'associacio', municipi: 'Albons', descripcio: '', publicada: false });
+  const pg = await pagina(ESCRIPTORI, true);
+  await pg.goto(ORIGEN + '/entitats.html', { waitUntil: 'networkidle' });
+  comprova('una entitat no publicada no es mostra', (await pg.textContent('#ent-llista')).includes('Aviat hi trobareu') && peticions.some((p) => p.url.includes('publicada=eq.true')));
+  await pg.click('#ent-llista .adh-obre');
+  await pg.fill('#adh-nom', 'Associació de prova'); await pg.selectOption('#adh-tipus', 'entitat_veinal'); await pg.fill('#adh-municipi', 'Albons');
+  await pg.fill('#adh-persona', 'Persona Prova'); await pg.fill('#adh-email', 'prova@ex.cat'); await pg.fill('#adh-ig', 'https://www.instagram.com/prova_ent/');
+  await pg.click('#adh-envia');
+  comprova('sense consentiment no s’envia', (await pg.textContent('#adh-msg')).includes('protecció de dades') && BD.sollicituds_entitats.length === 0);
+  await pg.check('#adh-consent');
+  await pg.waitForTimeout(3100);
+  await pg.click('#adh-envia');
+  await espera(pg, () => /Gràcies/.test(document.getElementById('adh-msg').textContent));
+  const s = BD.sollicituds_entitats[0] || {};
+  comprova('la sol·licitud arriba amb les dades i el consentiment', BD.sollicituds_entitats.length === 1 && s.nom_entitat === 'Associació de prova' && s.tipus === 'entitat_veinal'
+    && s.consentiment === true && s.instagram === '@prova_ent' && !('lloc' in s), JSON.stringify(s));
+  comprova('després d’enviar es buida el formulari', (await pg.inputValue('#adh-nom')) === '' && !(await pg.isChecked('#adh-consent')));
+  // Parany: si s'omple, no s'envia res però es mostra el mateix missatge.
+  await pg.fill('#adh-nom', 'Robot'); await pg.selectOption('#adh-tipus', 'altres'); await pg.fill('#adh-municipi', 'X'); await pg.fill('#adh-persona', 'R');
+  await pg.fill('#adh-email', 'robot@ex.cat'); await pg.check('#adh-consent');
+  await pg.$eval('#adh-lloc', (i) => { i.value = 'http://spam'; });
+  await pg.click('#adh-envia');
+  comprova('amb el camp parany ple no s’envia res', BD.sollicituds_entitats.length === 1);
+  comprova('entitats amb Supabase: cap error', pg.errors.length === 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+{
+  BD = dadesInicials();
+  BD.entitats.push(
+    { id: randomUUID(), nom: 'Col·lectiu Àrids', tipus: 'collectiu', municipi: 'la Tallada d’Empordà', descripcio: 'Defensa dels camps.', web: 'https://exemple.cat', instagram: 'https://www.instagram.com/arids/', logo: U.E + '/logo.png', publicada: true },
+    { id: randomUUID(), nom: 'Associació Veïnal B', tipus: 'entitat_veinal', municipi: 'Albons', descripcio: 'Veïns.', web: 'javascript:alert(1)', instagram: null, logo: null, publicada: true },
+    { id: randomUUID(), nom: 'Amagada', tipus: 'associacio', municipi: 'Albons', descripcio: '', publicada: false });
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    const pg = await pagina(vp, true);
+    await pg.goto(ORIGEN + '/entitats.html', { waitUntil: 'networkidle' });
+    const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.ent-card').length, filtres: !document.getElementById('ent-filtres').hidden,
+      tipus: [...document.querySelectorAll('#ent-tipus option')].map((o) => o.value).join(), muns: [...document.querySelectorAll('#ent-municipi option')].map((o) => o.value).join(),
+      enllacos: [...document.querySelectorAll('.ent-card a')].map((a) => a.href + '|' + a.target + '|' + a.rel).join(' ; '), logo: document.querySelector('.ent-logo')?.alt,
+      capOcult: document.querySelector('.adhesio h2').offsetParent !== null }));
+    comprova(`entitats @${vp.width}px: dues targetes publicades, filtres de tipus i municipi`, d.n === 2 && d.filtres && d.tipus === ',collectiu,entitat_veinal' && d.muns === ',Albons,la Tallada d’Empordà', JSON.stringify(d));
+    comprova(`entitats @${vp.width}px: enllaços en pestanya nova amb noopener i cap enllaç javascript:`, !/javascript/.test(d.enllacos) && d.enllacos.split(' ; ').length === 2 && d.enllacos.split(' ; ').every((x) => /\|_blank\|noopener/.test(x)), d.enllacos);
+    comprova(`entitats @${vp.width}px: logo amb text alternatiu i secció d’adhesió visible`, d.logo === 'Logo de Col·lectiu Àrids' && d.capOcult);
+    await pg.selectOption('#ent-municipi', 'Albons');
+    comprova(`entitats @${vp.width}px: el filtre de municipi deixa una entitat`, (await pg.$$('.ent-card')).length === 1 && /1 de 2/.test(await pg.textContent('#ent-recompte')));
+    await pg.selectOption('#ent-municipi', '');
+    await pg.fill('#ent-cerca', 'arids');
+    comprova(`entitats @${vp.width}px: la cerca no distingeix accents`, (await pg.$$eval('.ent-card h3', (l) => l.map((h) => h.textContent))).join() === 'Col·lectiu Àrids');
+    await pg.fill('#ent-cerca', 'zzz');
+    comprova(`entitats @${vp.width}px: missatge si no hi ha coincidències`, /Cap entitat/.test(await pg.textContent('#ent-llista')));
+    await pg.fill('#ent-cerca', '');
+    comprova(`entitats @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
+    if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/entitats-${vp.width}.png`, fullPage: true });
+    await pg.context().close();
+  }
+}
+{
+  const pg = await pagina(MOBIL, false);
+  await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
+  comprova('eines: sense visors verificats, missatge d’espera (cap visor inventat)', /Aviat els hi trobareu/.test(await pg.textContent('#eines-llista')) && (await pg.$$('.eina')).length === 0);
+  // Amb una llista de prova: targetes, filtre i «Veure aquí» només amb consentiment.
+  await pg.route('**/js/eines.js', async (r) => r.fulfill({ status: 200, contentType: 'text/javascript',
+    body: (await readFile(join(ARREL, 'js/eines.js'), 'utf8')).replace('var EINES = [', `var EINES = [
+      { nom: 'Visor A', organisme: 'Org A', descripcio: 'd', url: 'https://a.exemple.cat/', categoria: 'urbanisme', incrustable: true },
+      { nom: 'Visor B', organisme: 'Org B', descripcio: 'd', url: 'https://b.exemple.cat/', categoria: 'energia' },
+      { nom: 'Dolent', organisme: 'X', descripcio: 'd', url: 'javascript:alert(1)', categoria: 'energia' },`) }));
+  await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
+  const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.eina').length, filtres: [...document.querySelectorAll('.filtre-btn')].map((b) => b.textContent).join(),
+    a: [...document.querySelectorAll('.eina a')].map((a) => a.target + '|' + a.rel).join(), aqui: document.querySelectorAll('.eina button').length }));
+  comprova('eines: només visors amb URL https, s’obren en pestanya nova amb noopener', d.n === 2 && d.a === '_blank|noopener noreferrer,_blank|noopener noreferrer' && d.aqui === 1, JSON.stringify(d));
+  comprova('eines: filtres només de les categories presents', d.filtres === 'Totes,Urbanisme,Energia', d.filtres);
+  await pg.click('.filtre-btn:has-text("Energia")');
+  comprova('eines: el filtre de categoria funciona', (await pg.$$eval('.eina h3', (l) => l.map((h) => h.textContent))).join() === 'Visor B');
+  await pg.click('.filtre-btn:has-text("Totes")');
+  await pg.click('.eina button');
+  comprova('eines: «Veure aquí» sense consentiment no carrega cap iframe', !(await pg.$('#eines-visor iframe')) && !(await pg.isHidden('#eines-visor')));
+  comprova('eines: sense errors ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/eines-390.png`, fullPage: true });
+  await pg.context().close();
+}
+{
+  // Tauler: l'editor crea una entitat a partir d'una sol·licitud i la publica.
+  BD = dadesInicials(); peticions = [];
+  const SOL = { id: randomUUID(), nom_entitat: 'Entitat sol·licitant', tipus: 'fundacio', municipi: 'Ultramort', descripcio: 'Desc', web: 'https://ent.exemple.cat',
+    instagram: '@ent_ex', persona_contacte: 'Pere', email: 'pere@ex.cat', telefon: null, missatge: 'Hola', consentiment: true, estat: 'nova', created_at: new Date().toISOString() };
+  BD.sollicituds_entitats.push(SOL);
+  const pg = await pagina(ESCRIPTORI, true);
+  await pg.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
+  await pg.fill('#email', 'editor@ex.cat'); await pg.fill('#contrasenya', PW); await pg.click('#f-login button[type=submit]');
+  await pg.waitForURL(/panel/);
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/sollicituds', { waitUntil: 'networkidle' });
+  await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Sol·licituds d’adhesió');
+  comprova('tauler: l’editor veu la sol·licitud amb el contacte', (await pg.textContent('#vista')).includes('pere@ex.cat'));
+  await pg.click('a:has-text("Crea l’entitat amb aquestes dades")');
+  await espera(pg, () => document.getElementById('e-nom')?.value === 'Entitat sol·licitant');
+  comprova('tauler: el formulari d’entitat s’omple amb la sol·licitud', await pg.evaluate(() => document.getElementById('e-tipus').value === 'fundacio'
+    && document.getElementById('e-ig').value === 'https://www.instagram.com/ent_ex/' && document.querySelector('#menu a[aria-current=page]')?.textContent === 'Entitats'));
+  await pg.check('#e-pub');
+  await pg.click('#vista button[type=submit]');
+  await espera(pg, () => /^#\/entitat\/[0-9a-f-]{36}$/.test(location.hash));
+  const ent = BD.entitats[0] || {};
+  comprova('tauler: l’entitat es crea publicada i la sol·licitud queda acceptada', ent.nom === 'Entitat sol·licitant' && ent.publicada === true && SOL.estat === 'acceptada', JSON.stringify({ ent, estat: SOL.estat }));
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
+  await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Entitats' && !!document.querySelector('#vista .item'));
+  comprova('tauler: l’editor no veu «Elimina» a les entitats', !(await pg.$('#vista .item button:has-text("Elimina")')));
+  await pg.click('#vista .item button:has-text("Despublica")');
+  await espera(pg, () => !!document.querySelector('#vista .item button') && /Publica/.test(document.querySelector('#vista .item button').textContent));
+  comprova('tauler: «Despublica» retira l’entitat de la web', ent.publicada === false);
+  comprova('tauler entitats: cap error', pg.errors.length === 0, JSON.stringify(pg.errors));
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/panel-entitats.png`, fullPage: true });
   await pg.context().close();
 }
 

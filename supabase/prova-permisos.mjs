@@ -260,6 +260,65 @@ comprova('col·laborador esborra la seva imatge', await afecta(C, "delete from s
 comprova('consulta NO veu fitxers', (await files(Q, 'select name from storage.objects')).length === 0);
 comprova('admin esborra imatges d\'altres', await afecta(A, "delete from storage.objects where name = $1", [E + '/b.png']) === 1);
 
+console.log('\nEntitats');
+const novaEnt = (u, camps = {}) => com(u, 'insert into entitats (nom, tipus, municipi, publicada) values ($1,$2,$3,$4) returning id',
+  [camps.nom || 'Entitat', camps.tipus || 'associacio', camps.municipi || 'Albons', !!camps.publicada]).then((r) => r.rows[0].id);
+const ENT1 = await novaEnt(E, { nom: 'Entitat esborrany' });
+comprova('editor crea una entitat (no publicada per defecte)', !!ENT1 && (await su('select publicada from entitats where id = $1', [ENT1]))[0].publicada === false);
+comprova('created_by és qui la crea, encara que s\'intenti falsejar',
+  (await files(A, 'insert into entitats (nom, tipus, created_by) values ($1, $2, $3) returning created_by', ['Una altra', 'collectiu', E]))[0].created_by === A);
+comprova('admin publica una entitat', await afecta(A, 'update entitats set publicada = true where id = $1', [ENT1]) === 1);
+const ENT2 = await novaEnt(A, { nom: 'Entitat amagada' });
+comprova('anònim veu només les publicades', (await files(null, 'select id from entitats')).map((x) => x.id).join() === ENT1);
+comprova('anònim NO veu created_by', await falla(null, 'select created_by from entitats'));
+comprova('anònim NO crea entitats', await falla(null, "insert into entitats (nom, tipus) values ('x','associacio')"));
+comprova('anònim NO edita entitats', await bloquejat(null, "update entitats set nom = 'x' where id = $1", [ENT1]));
+comprova('col·laborador NO crea entitats', await falla(C, "insert into entitats (nom, tipus) values ('x','associacio')"));
+comprova('col·laborador NO publica entitats', await bloquejat(C, 'update entitats set publicada = true where id = $1', [ENT2]));
+comprova('col·laborador veu només les publicades', (await files(C, 'select id from entitats')).every((x) => x.id === ENT1));
+comprova('consulta NO crea entitats', await falla(Q, "insert into entitats (nom, tipus) values ('x','associacio')"));
+comprova('desactivat NO crea entitats', await falla(D, "insert into entitats (nom, tipus) values ('x','associacio')"));
+comprova('editor veu també les no publicades', (await files(E, 'select id from entitats where id = $1', [ENT2])).length === 1);
+comprova('editor edita i despublica', await afecta(E, 'update entitats set descripcio = $2, publicada = false where id = $1', [ENT1, 'Text']) === 1);
+comprova('tipus no vàlid rebutjat', await falla(E, "insert into entitats (nom, tipus) values ('x','empresa')"));
+comprova('web sense https rebutjada', await falla(E, "update entitats set web = 'javascript:alert(1)' where id = $1", [ENT1]));
+comprova('instagram que no és instagram.com rebutjat', await falla(E, "update entitats set instagram = 'https://ex.cat/x' where id = $1", [ENT1]));
+comprova('instagram vàlid acceptat', await afecta(E, "update entitats set instagram = 'https://www.instagram.com/nom.entitat/' where id = $1", [ENT1]) === 1);
+comprova('logo amb ruta no vàlida rebutjat', await falla(E, "update entitats set logo = '../x.png' where id = $1", [ENT1]));
+comprova('editor NO esborra entitats', await bloquejat(E, 'delete from entitats where id = $1', [ENT2]));
+comprova('admin esborra entitats', await afecta(A, 'delete from entitats where id = $1', [ENT2]) === 1);
+
+console.log('\nSol·licituds d\'adhesió');
+const sol = (u, camps = {}) => afecta(u, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ($1,$2,$3,$4,$5,$6)`, [camps.nom || 'Associació X', camps.tipus || 'associacio', camps.municipi || 'Albons',
+  camps.persona || 'Persona', camps.email || 'contacte@ex.cat', camps.consentiment === undefined ? true : camps.consentiment]);
+comprova('anònim envia una sol·licitud', await sol(null) === 1);
+comprova('anònim NO llegeix sol·licituds', await falla(null, 'select * from sollicituds_entitats'));
+comprova('sense consentiment es rebutja', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('x','associacio','Albons','P','a@ex.cat', false)`));
+comprova('correu no vàlid rebutjat', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('x','associacio','Albons','P','no-es-correu', true)`));
+comprova('anònim NO pot fixar l\'estat', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment, estat)
+  values ('x','associacio','Albons','P','b@ex.cat', true, 'acceptada')`));
+comprova('el correu es desa en minúscules', (await su("select email from sollicituds_entitats order by created_at desc limit 1"))[0].email === 'contacte@ex.cat');
+await sol(null, { email: 'Repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' });
+comprova('màxim 3 sol·licituds per correu i dia', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('x','associacio','Albons','P','REPETIT@ex.cat', true)`));
+comprova('col·laborador NO llegeix sol·licituds', (await files(C, 'select id from sollicituds_entitats')).length === 0);
+comprova('consulta NO llegeix sol·licituds', (await files(Q, 'select id from sollicituds_entitats')).length === 0);
+const S1 = (await files(E, 'select id from sollicituds_entitats order by created_at limit 1'))[0]?.id;
+comprova('editor llegeix sol·licituds', !!S1);
+comprova('editor canvia l\'estat', await afecta(E, "update sollicituds_entitats set estat = 'revisada' where id = $1", [S1]) === 1);
+comprova('editor NO modifica les dades enviades', await falla(E, "update sollicituds_entitats set email = 'x@ex.cat' where id = $1", [S1]));
+comprova('col·laborador NO canvia l\'estat', await bloquejat(C, "update sollicituds_entitats set estat = 'acceptada' where id = $1", [S1]));
+comprova('editor NO esborra sol·licituds', await bloquejat(E, 'delete from sollicituds_entitats where id = $1', [S1]));
+comprova('admin esborra sol·licituds', await afecta(A, 'delete from sollicituds_entitats where id = $1', [S1]) === 1);
+for (let i = 0; (await su("select count(*)::int n from sollicituds_entitats where created_at > now() - interval '1 hour'"))[0].n < 20; i++)
+  await su(`insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('x','associacio','Albons','P',$1, true)`, ['massiu' + i + '@ex.cat']);
+comprova('límit global de 20 sol·licituds per hora', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('x','associacio','Albons','P','nou@ex.cat', true)`));
+
 console.log('\nIdempotència amb dades');
 await db.exec(ESQUEMA);
 comprova('tornar a executar l\'esquema no perd dades', (await su('select count(*)::int n from profiles'))[0].n === 7 && !!(await pub(P1)));

@@ -23,7 +23,8 @@ color-scheme:only light;
 --color-text-suau:#4a4a46;
 }
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:76px;-webkit-text-size-adjust:100%}
+/* Sempre clar: cap regla de mode fosc. «only light» demana, a més, que el navegador no enfosqueixi la web pel seu compte. */
+html{background:var(--color-fons);color:var(--color-text);scroll-behavior:smooth;scroll-padding-top:76px;-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--color-fons);color:var(--color-text);font:400 1.0625rem/1.7 var(--font-defensem);overflow-x:hidden}
 img,svg{max-width:100%}
 h1,h2,h3,.cond{font-family:var(--font-defensem);font-weight:800;line-height:1.12;margin:0}

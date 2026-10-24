@@ -125,3 +125,13 @@ fieldset{border:0;padding:0;margin:0}
 .fitxer input[type=file]:focus-visible+label{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
 .fitxer input[type=file]:disabled+label{display:none}
 .fitxer .nom-fitxer{font-size:.95rem;color:var(--color-text-suau);overflow-wrap:anywhere}
+
+/* Entitats i sol·licituds d'adhesió */
+.logo-prev{max-width:160px;background:#fff;object-fit:contain}
+.camp .check{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700}
+.dades-sol{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:10px 0 0;font-size:.95rem}
+.dades-sol dt{font-weight:700}
+.dades-sol dd{margin:0;overflow-wrap:anywhere;white-space:pre-line}
+.camp-linia{margin:0}
+.camp-linia select{min-height:44px}
+@media(max-width:520px){.dades-sol{grid-template-columns:1fr}.dades-sol dd{margin-bottom:6px}}

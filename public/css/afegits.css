@@ -110,3 +110,69 @@ main:focus{outline:none}
 
 /* Peu: correu i Instagram */
 footer .small a{color:var(--color-fons)}
+
+/* ---------- Entitats (/entitats.html) i Eines (/eines.html) ----------
+   Pàgines de llistat: fan servir l'amplada completa (.doc es queda a 800 px per als textos legals). */
+.doc.ent,.doc.eines{max-width:1080px}
+.doc.ent .intro,.doc.eines .intro{margin:0 0 8px}
+/* Camps de formulari de la web pública (sempre clars, mai els colors del sistema) */
+.camp-public{margin:0 0 16px;min-width:0}
+.camp-public label,.form-public legend{display:block;font-weight:700;margin-bottom:6px}
+.camp-public input,.camp-public select,.camp-public textarea{width:100%;min-height:48px;padding:10px 12px;border:2px solid var(--color-text);border-radius:0;background:#fff;color:var(--color-text);font:400 1rem/1.5 var(--font-defensem)}
+.camp-public textarea{min-height:110px;resize:vertical}
+.camp-public input:focus-visible,.camp-public select:focus-visible,.camp-public textarea:focus-visible,.consent input:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:2px}
+.ajuda{display:block;font-size:.9rem;color:var(--color-text-suau);margin-top:4px}
+.ent-filtres{display:grid;grid-template-columns:2fr 1fr 1fr;gap:0 16px;margin-top:28px;padding:16px 16px 0;background:var(--color-fons-fosc);border:2px solid var(--color-text)}
+.ent-filtres[hidden]{display:none}
+@media(max-width:760px){.ent-filtres{grid-template-columns:1fr}}
+.ent-recompte{margin:14px 0 0;font-weight:700;color:var(--color-text-suau)}
+.ent-recompte:empty{display:none}
+.ent-llista,.eines-llista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:24px;margin-top:20px}
+.ent-cap{display:flex;gap:14px;align-items:flex-start;padding:18px 18px 0}
+.ent-logo{flex:none;width:72px;height:72px;object-fit:contain;background:#fff;border:2px solid var(--color-text);padding:4px}
+.ent-tit{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ent-card .ent-mun{flex:none;font-weight:700;color:var(--color-verd-text);font-size:.95rem}
+.ent-card .tx{padding-top:10px}
+.ent-enllacos{display:flex;flex-wrap:wrap;gap:6px 18px;flex:none!important}
+.ent-enllacos a{display:inline-flex;align-items:center;min-height:44px;font-weight:700;color:var(--color-verd-text);text-underline-offset:3px}
+.ent-buit{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.ent-buit p{margin:0}
+/* Formulari d'adhesió */
+.adhesio{margin-top:clamp(40px,7vw,72px);padding-top:clamp(28px,5vw,40px);border-top:2px solid var(--color-text)}
+.adhesio h2{margin-top:0}
+.adhesio.nomes-form{margin-top:16px;padding-top:0;border-top:0}
+.adhesio.nomes-form>h2,.adhesio.nomes-form>p{display:none}
+.form-public{max-width:800px;margin-top:20px;padding:clamp(18px,4vw,28px);background:var(--color-fons);border:2px solid var(--color-text);box-shadow:8px 8px 0 var(--color-defensem-verd)}
+.form-public[hidden]{display:none}
+.form-public fieldset{border:0;padding:0;margin:0 0 12px;min-width:0}
+.form-public legend{font:800 1.15rem var(--font-defensem);color:var(--color-verd-text);margin-bottom:12px;padding:0}
+.graella-public{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:0 16px}
+.parany{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.info-rgpd{background:var(--color-fons-fosc);border-left:5px solid var(--color-defensem-verd);padding:12px 14px;font-size:.88rem;line-height:1.55;margin:4px 0 14px}
+.info-rgpd p{margin:0;max-width:none}
+.info-rgpd a{color:var(--color-verd-text);font-weight:700}
+.consent{display:flex;gap:12px;align-items:flex-start;font-size:.95rem;cursor:pointer}
+.consent input{flex:none;width:22px;height:22px;margin-top:2px;accent-color:var(--color-verd-fosc)}
+.msg-public{border-left:5px solid var(--color-defensem-verd);background:var(--color-fons-fosc);padding:12px 14px;margin:0 0 16px;font-weight:600}
+.msg-public.error{border-left-color:var(--color-defensem-vermell)}
+.msg-public:empty{display:none}
+.msg-public:focus{outline:none}
+/* Eines */
+.eines-filtre{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.eines-filtre[hidden]{display:none}
+.filtre-btn{min-height:44px;padding:8px 16px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .9rem var(--font-defensem);letter-spacing:.03em;text-transform:uppercase;cursor:pointer}
+.filtre-btn:hover{border-color:var(--color-defensem-verd);color:var(--color-verd-text)}
+.filtre-btn[aria-pressed=true]{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+.eina .eina-org{flex:none;font-weight:700;color:var(--color-verd-text);font-size:.92rem}
+.eina-accions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.eina-accions .btn{min-height:44px;padding:9px 16px;font-size:.85rem}
+.eines-visor{margin-top:32px;border:2px solid var(--color-text);background:var(--color-fons)}
+.eines-visor[hidden]{display:none}
+.eines-visor-cap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text);background:var(--color-fons-fosc)}
+.eines-visor-cap h2{font-size:1.3rem;margin:0!important}
+.eines-visor-marc iframe{display:block;width:100%;height:min(75vh,720px);border:0;background:#fff}
+.eines-visor-marc .buit{margin:16px;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.eines-visor-marc .buit p{margin:0}
+.avis-eines{margin-top:40px;font-size:.92rem;color:var(--color-text-suau)}
+.avis-eines a{color:var(--color-verd-text);font-weight:700}
+nav a[aria-current=page]:not(.btn){color:var(--color-defensem-vermell)}

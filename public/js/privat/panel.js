@@ -1,5 +1,5 @@
 /* Tauler de l'àrea privada (rutes per hash: #/inici, #/nova, #/editar/<id>, #/meves, #/revisio,
-   #/totes[/<estat>], #/documents, #/usuaris).
+   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/documents, #/usuaris).
    El rol es llegeix SEMPRE de la taula profiles. El menú només s'hi adapta per comoditat:
    qui decideix què es pot fer són les polítiques RLS i els triggers de la base de dades. */
 (function () {
@@ -10,6 +10,10 @@
   var avisos = document.getElementById('avisos');
   var ESCRIU = ['admin', 'editor', 'col_laborador'], EDITA = ['admin', 'editor'], TOTS = ['admin', 'editor', 'col_laborador', 'consulta'];
   var TIPUS = { noticia: 'Notícia', comunicat: 'Comunicat' };
+  // Mateixa llista que el check de supabase/schema.sql i que js/entitats.js.
+  var TIPUS_ENT = { associacio: 'Associació', collectiu: 'Col·lectiu', entitat_veinal: 'Entitat veïnal', fundacio: 'Fundació',
+    cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', altres: 'Altres' };
+  var ESTATS_SOL = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Descartada' };
   var MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
   var SENSE_PERMIS = 'No tens permís per fer aquesta acció.';
   var jo = null, torn = 0, sb = P.client();
@@ -20,6 +24,9 @@
     { r: 'meves', t: 'Les meves publicacions', rols: ESCRIU, f: vMeves },
     { r: 'revisio', t: 'Revisió', rols: EDITA, f: vRevisio },
     { r: 'totes', t: 'Totes les publicacions', rols: EDITA, f: vTotes },
+    { r: 'entitats', t: 'Entitats', rols: EDITA, f: vEntitats },
+    { r: 'entitat', t: 'Entitat', rols: EDITA, f: vEntitat, pare: 'entitats' },
+    { r: 'sollicituds', t: 'Sol·licituds d’adhesió', rols: EDITA, f: vSollicituds },
     { r: 'documents', t: 'Documents', rols: TOTS, f: vDocuments },
     { r: 'usuaris', t: 'Usuaris', rols: ['admin'], f: vUsuaris }
   ];
@@ -398,6 +405,193 @@
     ]);
   }
 
+  // ---------- Entitats (admin i editor) ----------
+  function estatEnt(pub) { return el('span', { class: 'estat ' + (pub ? 'publicat' : 'pendent') }, [pub ? 'Publicada' : 'No publicada']); }
+  // «@nom», «nom» o una adreça d'Instagram → https://www.instagram.com/nom/ (o '' si no és vàlid).
+  function urlInstagram(v) {
+    v = (v || '').trim();
+    if (!v) return '';
+    var m = v.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:[?#].*)?$/i) || v.match(/^@?([A-Za-z0-9._]{1,30})$/);
+    return m ? 'https://www.instagram.com/' + m[1] + '/' : null;
+  }
+
+  async function vEntitats(t) {
+    var r = await sb.from('entitats').select('id,nom,tipus,municipi,publicada,logo,updated_at').order('nom');
+    if (r.error) throw r.error;
+    var pend = await sb.from('sollicituds_entitats').select('id', { count: 'exact', head: true }).eq('estat', 'nova');
+    var items = (r.data || []).map(function (e) {
+      return el('li', { class: 'item' }, [
+        el('h3', null, [e.nom]),
+        el('div', { class: 'meta' }, [estatEnt(e.publicada), el('span', null, [TIPUS_ENT[e.tipus] || e.tipus]),
+          e.municipi ? el('span', null, [e.municipi]) : null, el('span', null, ['Actualitzada el ' + data(e.updated_at)])]),
+        el('div', { class: 'accions' }, [
+          enllacRuta('Edita', 'entitat/' + e.id, 'btn o fosc petit'),
+          boto(e.publicada ? 'Despublica' : 'Publica', e.publicada ? 'o' : 'v', async function () {
+            var ok = await escriu(sb.from('entitats').update({ publicada: !e.publicada }).eq('id', e.id));
+            if (ok) { avis(e.publicada ? 'Entitat retirada de la web.' : 'Entitat publicada. Ja es veu a la web.'); refresca(); }
+          }, { 'aria-label': (e.publicada ? 'Despublica ' : 'Publica ') + e.nom }),
+          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
+            if (!window.confirm('Segur que vols eliminar l’entitat «' + e.nom + '»? Aquesta acció no es pot desfer.')) return;
+            var d = await escriu(sb.from('entitats').delete().eq('id', e.id));
+            if (d) { esborraImatge(e.logo); avis('Entitat eliminada.'); refresca(); }
+          }, { 'aria-label': 'Elimina ' + e.nom }) : null
+        ])
+      ]);
+    });
+    pinta(t, [
+      el('h1', null, ['Entitats']),
+      el('p', null, ['Entitats que es mostren a la pàgina pública ', el('a', { href: '/entitats.html', target: '_blank', rel: 'noopener' }, ['Entitats']),
+        '. Només hi surten les publicades.']),
+      !pend.error && pend.count ? el('p', { class: 'msg' }, ['Hi ha ', el('strong', null, [String(pend.count)]),
+        pend.count === 1 ? ' sol·licitud d’adhesió nova. ' : ' sol·licituds d’adhesió noves. ', enllacRuta('Revisa-les', 'sollicituds')]) : null,
+      el('p', { class: 'destacat' }, [enllacRuta('Afegeix una entitat', 'entitat/nova', 'btn')]),
+      items.length ? el('ul', { class: 'llista' }, items) : buit('Encara no hi ha cap entitat.')
+    ]);
+  }
+
+  async function vEntitat(t, id, deSol) {
+    var e = null, sol = null;
+    if (id && id !== 'nova') {
+      if (!S.esUuid(id)) { pinta(t, [el('h1', null, ['No hem trobat aquesta entitat.'])]); return; }
+      var r = await sb.from('entitats').select('*').eq('id', id).maybeSingle();
+      if (r.error) throw r.error;
+      if (!r.data) { pinta(t, [el('h1', null, ['No hem trobat aquesta entitat.']), el('p', null, [enllacRuta('Torna a Entitats', 'entitats')])]); return; }
+      e = r.data;
+    } else if (deSol && S.esUuid(deSol)) {
+      var rs = await sb.from('sollicituds_entitats').select('*').eq('id', deSol).maybeSingle();
+      if (rs.error) throw rs.error;
+      sol = rs.data;
+    }
+    var ini = e || (sol ? { nom: sol.nom_entitat, tipus: sol.tipus, municipi: sol.municipi, descripcio: sol.descripcio,
+      web: /^https:\/\//i.test(sol.web || '') ? sol.web : '', instagram: urlInstagram(sol.instagram) || '' } : {});
+    var logoActual = e ? e.logo : null, fitxerNou = null, treure = false;
+
+    var fNom = el('input', { id: 'e-nom', type: 'text', maxlength: 200, required: true, value: ini.nom || '' });
+    var fTipus = el('select', { id: 'e-tipus', value: ini.tipus || 'associacio' },
+      Object.keys(TIPUS_ENT).map(function (k) { return el('option', { value: k }, [TIPUS_ENT[k]]); }));
+    var fMun = el('input', { id: 'e-mun', type: 'text', maxlength: 100, value: ini.municipi || '' });
+    var fDesc = el('textarea', { id: 'e-desc', maxlength: 600, 'aria-describedby': 'e-desc-ajuda', value: ini.descripcio || '' });
+    var fWeb = el('input', { id: 'e-web', type: 'url', placeholder: 'https://', maxlength: 300, value: ini.web || '' });
+    var fIg = el('input', { id: 'e-ig', type: 'text', placeholder: '@nom o https://www.instagram.com/nom/', maxlength: 100, 'aria-describedby': 'e-ig-ajuda', value: ini.instagram || '' });
+    var fPub = el('input', { id: 'e-pub', type: 'checkbox', checked: !!(e && e.publicada) });
+
+    var cont = el('div', { class: 'portada-actual' });
+    var fLogo = el('input', { id: 'e-logo', type: 'file', accept: 'image/jpeg,image/png,image/webp', 'aria-describedby': 'e-logo-nom e-logo-ajuda' });
+    var nomFitxer = el('span', { class: 'nom-fitxer', id: 'e-logo-nom' }, [logoActual ? 'Té logo.' : 'Sense logo.']);
+    function pintaLogo() {
+      cont.textContent = '';
+      var img = fitxerNou ? imatgePortada(null, URL.createObjectURL(fitxerNou)) : (treure ? null : imatgePortada(logoActual));
+      if (img) {
+        img.alt = 'Logo'; img.classList.add('logo-prev');
+        cont.appendChild(img);
+        cont.appendChild(boto('Treu el logo', 'o fosc', function () { fitxerNou = null; treure = true; fLogo.value = ''; nomFitxer.textContent = 'Sense logo.'; pintaLogo(); }));
+      }
+    }
+    fLogo.addEventListener('change', function () {
+      var f = fLogo.files && fLogo.files[0];
+      if (!f) return;
+      if (!MIME[f.type]) { avis('El logo ha de ser JPEG, PNG o WebP.', 'error'); fLogo.value = ''; return; }
+      if (f.size > 5 * 1024 * 1024) { avis('El logo no pot superar els 5 MB.', 'error'); fLogo.value = ''; return; }
+      fitxerNou = f; treure = false; nomFitxer.textContent = 'Logo nou: ' + f.name; pintaLogo();
+    });
+
+    var bDesa = el('button', { type: 'submit', class: 'btn' }, [e ? 'Desa els canvis' : 'Crea l’entitat']);
+    var form = el('form', { novalidate: true, onsubmit: async function (ev) {
+      ev.preventDefault();
+      var nom = fNom.value.trim(), web = fWeb.value.trim(), ig = urlInstagram(fIg.value);
+      if (!nom) { avis('El nom és obligatori.', 'error'); fNom.focus(); return; }
+      if (web && (!/^https:\/\/\S+$/i.test(web) || !S.enllac(web))) { avis('El web ha de començar per https://', 'error'); fWeb.focus(); return; }
+      if (ig === null) { avis('L’Instagram ha de ser @nom o una adreça d’instagram.com.', 'error'); fIg.focus(); return; }
+      bDesa.disabled = true;
+      var pujada = null;
+      try {
+        var logo = treure ? null : logoActual;
+        if (fitxerNou) {
+          pujada = jo.id + '/' + crypto.randomUUID() + '.' + MIME[fitxerNou.type];
+          var up = await sb.storage.from('portades').upload(pujada, fitxerNou, { contentType: fitxerNou.type, upsert: false });
+          if (up.error) { pujada = null; avis('No s’ha pogut pujar el logo. ' + (/security|policy|403/i.test(up.error.message || '') ? SENSE_PERMIS : ''), 'error'); return; }
+          logo = pujada;
+        }
+        var dades = { nom: nom, tipus: fTipus.value, municipi: fMun.value.trim(), descripcio: fDesc.value.trim(),
+          web: web || null, instagram: ig || null, logo: logo, publicada: fPub.checked };
+        var res = e ? await escriu(sb.from('entitats').update(dades).eq('id', e.id)) : await escriu(sb.from('entitats').insert(dades));
+        if (!res) { if (pujada) esborraImatge(pujada); return; }
+        if (logoActual && logoActual !== logo) esborraImatge(logoActual);
+        if (sol && sol.estat !== 'acceptada') await sb.from('sollicituds_entitats').update({ estat: 'acceptada' }).eq('id', sol.id);
+        avis(dades.publicada ? 'Desat. L’entitat ja es veu a la web.' : 'Desat. L’entitat encara no és pública.');
+        if (!e) location.hash = '#/entitat/' + res[0].id; else refresca();
+      } catch (err) {
+        if (pujada) esborraImatge(pujada);
+        falla(err);
+      } finally { bDesa.disabled = false; }
+    } }, [
+      el('div', { class: 'graella-form' }, [
+        el('div', { class: 'camp' }, [el('label', { for: 'e-nom' }, ['Nom']), fNom]),
+        el('div', { class: 'camp' }, [el('label', { for: 'e-tipus' }, ['Tipus']), fTipus]),
+        el('div', { class: 'camp' }, [el('label', { for: 'e-mun' }, ['Municipi']), fMun])
+      ]),
+      el('div', { class: 'camp' }, [el('label', { for: 'e-desc' }, ['Descripció breu']), fDesc,
+        el('span', { class: 'ajuda', id: 'e-desc-ajuda' }, ['Es mostra a la targeta pública. Màxim 600 caràcters.'])]),
+      el('div', { class: 'graella-form' }, [
+        el('div', { class: 'camp' }, [el('label', { for: 'e-web' }, ['Web (opcional)']), fWeb]),
+        el('div', { class: 'camp' }, [el('label', { for: 'e-ig' }, ['Instagram (opcional)']), fIg,
+          el('span', { class: 'ajuda', id: 'e-ig-ajuda' }, ['@nom o adreça del perfil.'])])
+      ]),
+      el('div', { class: 'camp' }, [el('span', { class: 'etiqueta-camp' }, ['Logo (opcional)']), cont,
+        el('div', { class: 'fitxer' }, [fLogo, el('label', { for: 'e-logo', class: 'btn o fosc petit' }, [logoActual ? 'Canvia el logo' : 'Tria un logo']), nomFitxer]),
+        el('span', { class: 'ajuda', id: 'e-logo-ajuda' }, ['JPEG, PNG o WebP. Màxim 5 MB. Fes servir només logos que l’entitat us hagi autoritzat a publicar.'])]),
+      el('div', { class: 'camp' }, [el('label', { class: 'check' }, [fPub, ' Publicada (es veu a la web pública)'])]),
+      el('div', { class: 'accions' }, [bDesa, enllacRuta('Torna a Entitats', 'entitats', 'btn o fosc petit')])
+    ]);
+    if (pinta(t, [
+      el('p', { class: 'kicker' }, ['Entitat']),
+      el('h1', null, [e ? e.nom : 'Nova entitat']),
+      e ? el('p', null, ['Estat: ', estatEnt(e.publicada)]) : null,
+      sol ? el('p', { class: 'msg' }, ['Dades omplertes a partir de la sol·licitud de ' + sol.persona_contacte + '. Revisa-les abans de publicar: en desar, la sol·licitud es marca com a acceptada.']) : null,
+      form
+    ])) pintaLogo();
+  }
+
+  async function vSollicituds(t) {
+    var r = await sb.from('sollicituds_entitats').select('*').order('created_at', { ascending: false });
+    if (r.error) throw r.error;
+    var items = (r.data || []).map(function (s) {
+      var sel = el('select', { 'aria-label': 'Estat de la sol·licitud de ' + s.nom_entitat, value: s.estat },
+        Object.keys(ESTATS_SOL).map(function (k) { return el('option', { value: k }, [ESTATS_SOL[k]]); }));
+      sel.addEventListener('change', async function () {
+        var ok = await escriu(sb.from('sollicituds_entitats').update({ estat: sel.value }).eq('id', s.id));
+        if (ok) { s.estat = sel.value; avis('Estat actualitzat: ' + ESTATS_SOL[s.estat] + '.'); } else sel.value = s.estat;
+      });
+      var web = /^https?:\/\//i.test(s.web || '') ? S.enllac(s.web) : '';
+      var dades = [
+        ['Tipus', TIPUS_ENT[s.tipus] || s.tipus], ['Municipi', s.municipi], ['Descripció', s.descripcio],
+        ['Web', web ? el('a', { href: web, target: '_blank', rel: 'noopener noreferrer' }, [s.web]) : s.web],
+        ['Instagram', s.instagram], ['Contacte', s.persona_contacte],
+        ['Correu', el('a', { href: 'mailto:' + s.email }, [s.email])], ['Telèfon', s.telefon], ['Missatge', s.missatge]
+      ].filter(function (x) { return x[1]; });
+      return el('li', { class: 'item' }, [
+        el('h3', null, [s.nom_entitat]),
+        el('div', { class: 'meta' }, [el('span', { class: 'estat ' + ({ nova: 'pendent', acceptada: 'publicat', descartada: 'arxivat' }[s.estat] || '') }, [ESTATS_SOL[s.estat] || s.estat]),
+          el('span', null, ['Rebuda el ' + data(s.created_at)])]),
+        el('dl', { class: 'dades-sol' }, dades.reduce(function (a, x) { return a.concat([el('dt', null, [x[0]]), el('dd', null, [x[1]])]); }, [])),
+        el('div', { class: 'accions' }, [
+          el('div', { class: 'camp camp-linia' }, [sel]),
+          enllacRuta('Crea l’entitat amb aquestes dades', 'entitat/nova/' + s.id, 'btn v petit'),
+          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
+            if (!window.confirm('Segur que vols eliminar la sol·licitud de «' + s.nom_entitat + '»? S’esborraran també les dades de contacte.')) return;
+            var d = await escriu(sb.from('sollicituds_entitats').delete().eq('id', s.id));
+            if (d) { avis('Sol·licitud eliminada.'); refresca(); }
+          }, { 'aria-label': 'Elimina la sol·licitud de ' + s.nom_entitat }) : null
+        ])
+      ]);
+    });
+    pinta(t, [
+      el('h1', null, ['Sol·licituds d’adhesió']),
+      el('p', null, ['Enviades des del formulari de la pàgina Entitats, de la més nova a la més antiga. Les dades de contacte són privades: no les publiquis ni les comparteixis. Esborra les sol·licituds resoltes quan ja no calguin (com a màxim, un any després).']),
+      items.length ? el('ul', { class: 'llista' }, items) : buit('No hi ha cap sol·licitud.')
+    ]);
+  }
+
   // ---------- Usuaris (només admin) ----------
   async function vUsuaris(t) {
     var r = await sb.from('profiles').select('id,email,nom,rol,actiu,created_at').order('created_at', { ascending: true });
@@ -543,17 +737,17 @@
   async function encamina() {
     var h = location.hash.replace(/^#\/?/, '').split('/');
     var nom = h[0] || 'inici', arg = h[1] || '';
-    var def = RUTES.filter(function (x) { return x.r === (nom === 'editar' ? 'nova' : nom); })[0];
     var t = ++torn;
+    var def = RUTES.filter(function (x) { return x.r === (nom === 'editar' ? 'nova' : nom); })[0];
     Array.prototype.forEach.call(menuUl.querySelectorAll('a'), function (a) {
-      if (a.getAttribute('data-r') === (nom === 'editar' ? '' : nom)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      if (a.getAttribute('data-r') === (nom === 'editar' ? '' : (def && def.pare) || nom)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     nav.classList.remove('open'); mbp.setAttribute('aria-expanded', 'false');
     if (!def) { pinta(t, [el('h1', null, ['No hem trobat aquesta secció.']), el('p', null, [enllacRuta('Torna a l’inici', 'inici')])]); vista.focus(); return; }
     if (!pot(def.rols)) { pinta(t, [el('h1', null, ['No tens accés a aquesta secció.']), el('p', null, [enllacRuta('Torna a l’inici', 'inici')])]); vista.focus(); return; }
     document.title = (nom === 'editar' ? 'Publicació' : def.t) + ' · Àrea privada · Defensem l’Empordanet';
     pinta(t, [el('p', null, ['Carregant…'])]);
-    try { await def.f(t, arg); }
+    try { await def.f(t, arg, h[2] || ''); }
     catch (e) { pinta(t, [el('h1', null, [def.t]), el('p', { class: 'msg error' }, [P.errorText(e)])]); }
     if (t === torn) vista.focus({ preventScroll: true });
   }
@@ -561,7 +755,7 @@
   function construeixMenu() {
     menuUl.textContent = '';
     RUTES.forEach(function (x) {
-      if (pot(x.rols)) menuUl.appendChild(el('li', null, [el('a', { href: '#/' + x.r, 'data-r': x.r }, [x.t])]));
+      if (pot(x.rols) && !x.pare) menuUl.appendChild(el('li', null, [el('a', { href: '#/' + x.r, 'data-r': x.r }, [x.t])]));
     });
   }
 
