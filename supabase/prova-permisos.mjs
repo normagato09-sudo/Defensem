@@ -372,6 +372,25 @@ comprova('col·laborador NO canvia l\'estat', await bloquejat(C, "update missatg
 comprova('editor NO esborra missatges', await bloquejat(E, 'delete from missatges_contacte where id = $1', [M1]));
 comprova('admin esborra missatges', await afecta(A, 'delete from missatges_contacte where id = $1', [M1]) === 1);
 
+console.log('\nAgenda (actes)');
+const nouActe = (u, camps = {}) => com(u, 'insert into actes (titol, data, publicada, cartell) values ($1,$2,$3,$4) returning id',
+  [camps.titol || 'Acte', camps.data || '2026-11-01', !!camps.publicada, camps.cartell || null]).then((r) => r.rows[0].id);
+const AC1 = await nouActe(E, { titol: 'Publicat', publicada: true, cartell: '/img/agenda/caminada-projecte-julia.webp' });
+const AC2 = await nouActe(A, { titol: 'Ocult', cartell: E + '/cartell.jpg' });
+comprova('editor i admin creen actes (no publicats per defecte)', !!AC1 && (await su('select publicada from actes where id = $1', [AC2]))[0].publicada === false);
+comprova('anònim veu només els publicats', (await files(null, 'select id from actes')).map((x) => x.id).join() === AC1);
+comprova('anònim NO veu created_by', await falla(null, 'select created_by from actes'));
+comprova('anònim NO crea actes', await falla(null, "insert into actes (titol, data) values ('x', '2026-11-01')"));
+comprova('col·laborador NO crea actes', await falla(C, "insert into actes (titol, data) values ('x', '2026-11-01')"));
+comprova('col·laborador NO publica actes', await bloquejat(C, 'update actes set publicada = true where id = $1', [AC2]));
+comprova('consulta NO crea actes', await falla(Q, "insert into actes (titol, data) values ('x', '2026-11-01')"));
+comprova('data de fi anterior a la d\'inici rebutjada', await falla(E, "update actes set data_fi = '2026-01-01' where id = $1", [AC1]));
+comprova('cartell amb ruta no vàlida rebutjat', await falla(E, "update actes set cartell = 'https://x.cat/a.jpg' where id = $1", [AC1]));
+comprova('editor publica i oculta', await afecta(E, 'update actes set publicada = true where id = $1', [AC2]) === 1 && await afecta(E, 'update actes set publicada = false where id = $1', [AC2]) === 1);
+comprova('col·laborador NO esborra actes', await bloquejat(C, 'delete from actes where id = $1', [AC1]));
+comprova('editor esborra actes', await afecta(E, 'delete from actes where id = $1', [AC2]) === 1);
+comprova('admin esborra actes', await afecta(A, 'delete from actes where id = $1', [AC1]) === 1);
+
 console.log('\nIdempotència amb dades');
 await db.exec(ESQUEMA);
 comprova('tornar a executar l\'esquema no perd dades', (await su('select count(*)::int n from profiles'))[0].n === 7 && !!(await pub(P1)));

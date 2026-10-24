@@ -125,3 +125,6 @@ section.contacte-discret{padding:clamp(28px,4vw,40px) 0 clamp(40px,6vw,64px)}
 .contacte-discret .contacte a{font-size:1rem;font-weight:600}
 .contacte-discret .ig{font-size:1rem}
 .contacte-discret .ig svg{width:36px;height:36px;padding:8px}
+
+/* Agenda llegida de Supabase: un acte sense cartell ocupa tota l'amplada */
+.acte.sense-cartell{grid-template-columns:1fr}

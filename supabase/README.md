@@ -71,6 +71,12 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 
+## App de la zona privada (`/app`, octubre 2026)
+
+La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Entitats, Eines, Sol·licituds d'adhesió, Usuaris —solo admin—, Documents y El meu perfil), listas por estado, formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).
+
+Para la **Agenda** hay que ejecutar `supabase/app.sql` (crea la tabla `actes` y copia en ella los tres actos que había en la web; se puede repetir). Mientras no exista la tabla, la web sigue mostrando la agenda escrita en el HTML.
+
 ## Roles
 
 | Rol | Puede |

@@ -33,6 +33,19 @@
           "value": "no-store"
         }
       ]
+    },
+    {
+      "source": "/app/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/app/"
+        }
+      ]
     }
   ],
   "redirects": [
@@ -70,6 +83,11 @@
       "source": "/eines.html",
       "destination": "/recursos.html#eines",
       "statusCode": 301
+    },
+    {
+      "source": "/app",
+      "destination": "/app/",
+      "statusCode": 308
     }
   ],
   "rewrites": [

@@ -1,0 +1,110 @@
+/* Defensem Admin (/app): la zona privada com a app per al mòbil. Va després de /css/site.css i en fa servir les
+   variables d'identitat (fons #f1f0ee, verd #298d3b, vermell #da1415, Open Sans). Botons i zones tàctils grans. */
+:root{color-scheme:light}
+html,body{background:var(--color-fons);color:var(--color-text)}
+body.app{min-height:100vh;min-height:100dvh;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.app-cap{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:max(8px,env(safe-area-inset-top)) 16px 8px;background:var(--color-fons);border-bottom:2px solid var(--color-text)}
+.app-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--color-text);font:800 1rem/1.1 var(--font-defensem);min-height:44px}
+.app-logo img{width:auto;height:40px}
+.app-logo b{color:var(--color-defensem-vermell)}
+.app-qui{font-size:.8rem;color:var(--color-text-suau);text-align:right;overflow-wrap:anywhere;max-width:50%}
+.app-vista{max-width:760px;margin:0 auto;padding:16px 16px 40px;outline:none}
+.app-vista h1{font:400 clamp(2rem,9vw,2.8rem)/1.02 var(--font-titular);text-transform:uppercase;color:var(--color-defensem-vermell);margin:8px 0 14px;overflow-wrap:anywhere}
+.app-vista h2{font:800 1.3rem/1.2 var(--font-defensem);color:var(--color-verd-text);margin:28px 0 10px}
+.app-carrega{color:var(--color-text-suau)}
+
+/* «← Inici» sempre a mà */
+.app-inici{position:sticky;top:64px;z-index:10;display:inline-flex;align-items:center;min-height:48px;padding:6px 16px;margin:0 0 4px;
+  background:var(--color-fons);border:2px solid var(--color-text);color:var(--color-text);font:800 1rem var(--font-defensem);text-decoration:none;box-shadow:3px 3px 0 var(--color-defensem-verd)}
+
+/* Botons grans */
+.app-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 18px;border:3px solid var(--color-defensem-vermell);
+  background:var(--color-defensem-vermell);color:#fff;font:800 1rem/1.2 var(--font-defensem);text-decoration:none;cursor:pointer;border-radius:0;touch-action:manipulation}
+.app-btn.gran{min-height:56px;font-size:1.05rem;padding:12px 22px}
+.app-btn.petit{min-height:40px;padding:6px 12px;font-size:.9rem}
+.app-btn.v{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc)}
+.app-btn.o{background:var(--color-fons);color:var(--color-text);border-color:var(--color-text)}
+.app-btn.perill{background:var(--color-fons);color:var(--color-vermell-fosc);border-color:var(--color-vermell-fosc)}
+.app-btn.enllac{background:none;border:0;color:var(--color-verd-text);text-decoration:underline;padding:8px 0;min-height:44px}
+.app-btn:disabled{opacity:.55;cursor:not-allowed}
+.app-btn:focus-visible,.app-bloc:focus-visible,.app-targeta:focus-visible,.app-pestanya:focus-visible,.app-inici:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
+.app-accions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}
+.app-accions .app-btn{flex:1 1 auto}
+.app-sortida{margin-top:36px}
+
+/* Inici: quadrícula de blocs */
+.app-blocs{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(min-width:620px){.app-blocs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.app-blocs li{display:flex}
+.app-bloc{flex:1;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;min-height:128px;padding:16px;
+  background:var(--color-fons);border:2px solid var(--color-text);box-shadow:5px 5px 0 var(--color-defensem-verd);color:var(--color-text);text-decoration:none}
+.app-bloc:active{transform:translate(2px,2px);box-shadow:3px 3px 0 var(--color-defensem-verd)}
+.app-icona{width:40px;height:40px;fill:none;stroke:var(--color-defensem-verd);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.app-bloc-nom{font:800 1.1rem/1.2 var(--font-defensem)}
+.app-compte{position:absolute;top:10px;right:10px;background:var(--color-defensem-vermell);color:#fff;font:800 .78rem/1 var(--font-defensem);padding:6px 9px;border-radius:999px}
+.app-compte[hidden]{display:none}
+
+/* Títol de bloc + «+ Nou», pestanyes i targetes */
+.app-titol{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.app-titol h1{margin-bottom:6px}
+.app-nou{flex:1 1 100%}
+@media(min-width:620px){.app-nou{flex:0 0 auto}}
+.app-pestanyes{display:flex;gap:6px;margin:16px 0 12px;overflow-x:auto;padding-bottom:4px}
+.app-pestanya{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px 14px;border:2px solid var(--color-text);
+  background:var(--color-fons);color:var(--color-text);font:700 .95rem var(--font-defensem);cursor:pointer}
+.app-pestanya[aria-selected=true]{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+.app-pestanya-n{font-size:.8rem;opacity:.85}
+.app-llista{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.app-targeta{display:block;padding:14px 16px;background:#fff;border:2px solid var(--color-text);color:var(--color-text);text-decoration:none}
+.app-targeta h3{font:800 1.08rem/1.25 var(--font-defensem);margin:6px 0 2px;overflow-wrap:anywhere}
+.app-meta{margin:2px 0 0;font-size:.9rem;color:var(--color-text-suau);overflow-wrap:anywhere}
+.app-nota{margin:6px 0 0;padding:8px 10px;border-left:4px solid var(--color-defensem-vermell);background:var(--color-fons-fosc);font-size:.92rem}
+.app-buit{padding:20px;border:2px dashed var(--color-text-suau);color:var(--color-text-suau)}
+.app-estat{display:inline-block;font:800 .72rem/1 var(--font-defensem);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border:2px solid var(--color-text);background:var(--color-fons)}
+.app-estat.publicat{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+.app-estat.pendent{background:#f6e27a}
+.app-estat.retornat{background:var(--color-vermell-fosc);border-color:var(--color-vermell-fosc);color:#fff}
+.app-estat.arxivat{border-style:dashed;color:var(--color-text-suau);border-color:var(--color-text-suau)}
+
+/* Formularis simples */
+.app-form{display:grid;gap:4px}
+.app-camp{margin:0 0 14px;min-width:0}
+.app-etiq{display:block;font-weight:800;margin-bottom:6px}
+.app-camp input:not([type=file]),.app-camp select,.app-camp textarea,.app-ric,.app-retorn textarea{width:100%;min-height:52px;padding:12px;border:2px solid var(--color-text);border-radius:0;background:#fff;
+  color:var(--color-text);font:400 1.05rem/1.5 var(--font-defensem)}
+.app-camp textarea,.app-retorn textarea{min-height:110px;resize:vertical}
+.app-ric{min-height:200px;overflow-wrap:anywhere}
+.app-ric p{margin:0 0 .8em}
+.app-camp input:focus-visible,.app-camp select:focus-visible,.app-camp textarea:focus-visible,.app-ric:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:2px}
+.app-ajuda{display:block;margin-top:4px;font-size:.88rem;color:var(--color-text-suau)}
+.app-barra{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.app-barra button{min-height:44px;min-width:44px;padding:6px 12px;border:2px solid var(--color-text);background:var(--color-fons);font:700 .9rem var(--font-defensem);cursor:pointer}
+.app-fila{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.app-fitxer{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.app-fitxer:focus-visible+.app-btn,.app-fila label:focus-within{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
+.app-foto-prev img{display:block;max-width:100%;max-height:260px;border:2px solid var(--color-text);background:#fff}
+.app-retorn{margin:0 0 16px}
+.app-retorn[hidden]{display:none}
+.app-avis-esb{padding:12px 14px;border-left:5px solid var(--color-defensem-verd);background:var(--color-fons-fosc);margin:0 0 14px}
+.app-avis-esb.error{border-left-color:var(--color-defensem-vermell)}
+.app-previ{margin-top:8px;padding:16px;border:3px solid var(--color-defensem-verd);background:var(--color-fons)}
+.app-previ[hidden]{display:none}
+.app-previ img{display:block;max-width:100%;height:auto;margin:10px 0}
+.app-previ h2{color:var(--color-text);margin-top:4px}
+.app-dades{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 14px;margin:0 0 12px}
+.app-dades dt{font-weight:800}
+.app-dades dd{margin:0;overflow-wrap:anywhere;white-space:pre-line}
+@media(max-width:420px){.app-dades{grid-template-columns:1fr}.app-dades dd{margin-bottom:6px}}
+
+/* Instal·lació */
+.app-instal{margin:10px 0 6px}
+.app-instal[hidden]{display:none}
+.app-instal .app-btn{width:100%}
+.app-ajuda-ios{margin:0;padding:12px 14px;border:2px dashed var(--color-defensem-verd);background:#fff;font-size:.95rem}
+
+/* Avisos («Desat», «Publicat», errors) */
+.app-avisos{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:40;max-width:560px;margin:0 auto;pointer-events:none}
+.app-avis{margin:0;padding:14px 16px;background:var(--color-fons);border:2px solid var(--color-text);border-left:8px solid var(--color-defensem-verd);
+  box-shadow:4px 4px 0 var(--color-text);font-weight:700;pointer-events:auto}
+.app-avis.error{border-left-color:var(--color-defensem-vermell)}

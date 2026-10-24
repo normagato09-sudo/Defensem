@@ -69,10 +69,24 @@ function dadesInicials() {
     entitats: [],
     sollicituds_entitats: [],
     missatges_contacte: [],
-    eines: []
+    eines: [],
+    actes: []
   };
 }
-let BD = dadesInicials(), peticions = [], fallaLogout = false;
+let BD = dadesInicials(), peticions = [], fallaLogout = false, pujades = [];
+// Amplada i alçada d'un JPEG (marcador SOF0/SOF2), per comprovar que les fotos es redueixen abans de pujar-les.
+function midesJpeg(b) {
+  if (!b) return null;
+  const ini = b.indexOf(Buffer.from([0xff, 0xd8, 0xff]));   // supabase-js puja el fitxer dins d'un multipart
+  if (ini < 0) return null;
+  for (let i = ini + 2; i < b.length - 9;) {
+    if (b[i] !== 0xff) { i++; continue; }
+    const m = b[i + 1], len = b.readUInt16BE(i + 2);
+    if (m === 0xc0 || m === 0xc2) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+    i += 2 + len;
+  }
+  return null;
+}
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (u) => b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: u.id, email: u.email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600, session_id: randomUUID() }) + '.signatura';
 const usuariAuth = (u) => ({ id: u.id, aud: 'authenticated', role: 'authenticated', email: u.email, app_metadata: {}, user_metadata: {}, created_at: u.created_at });
@@ -87,6 +101,7 @@ function visibles(taula, u) {
   if (taula === 'publicacions_publiques') return BD.publicacions.filter((p) => p.estat === 'publicat')
     .map(({ id, tipus, titol, resum, contingut, imatge, published_at }) => ({ id, tipus, titol, resum, contingut, imatge, published_at }));
   if (taula === 'missatges_contacte') return ['admin', 'editor'].includes(rol) ? BD.missatges_contacte : (u ? [] : null);
+  if (taula === 'actes') return BD.actes.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
   if (taula === 'eines') return BD.eines.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
   if (taula === 'entitats') return BD.entitats.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
   if (taula === 'sollicituds_entitats') return ['admin', 'editor'].includes(rol) ? BD.sollicituds_entitats : (u ? [] : null);
@@ -114,6 +129,8 @@ async function supabaseFals(route) {
   const p = url.pathname;
   if (p.startsWith('/storage/v1/object/public/')) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64') });
   if (h.apikey !== 'anon-de-prova') return json(401, { message: 'Invalid API key' });
+  if (p.startsWith('/storage/v1/object/portades/') && m === 'POST') { const cos = req.postDataBuffer(); pujades.push({ cami: p.slice('/storage/v1/object/portades/'.length), mida: cos ? cos.length : 0, tipus: h['content-type'], mides: midesJpeg(cos) }); }
+  if (p === '/storage/v1/object/portades' && m === 'DELETE') return json(200, []);
   if (p.startsWith('/storage/v1/object/portades/') && m === 'POST') return quiEs(h) ? json(200, { Key: p.slice('/storage/v1/object/'.length), Id: randomUUID() }) : json(403, { message: 'new row violates row-level security policy' });
   if (p === '/auth/v1/token') {
     const b = JSON.parse(req.postData() || '{}');
@@ -1574,6 +1591,154 @@ console.log('\n16. Entitats i Eines');
   comprova('tauler: «Publica» publica l’eina', BD.eines.find((x) => x.nom === 'Visor nou').publicada === true);
   comprova('tauler entitats: cap error', pg.errors.length === 0, JSON.stringify(pg.errors));
   if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/panel-entitats.png`, fullPage: true });
+  await pg.context().close();
+}
+
+console.log('\n17. App de la zona privada (/app): PWA per blocs');
+{
+  const man = JSON.parse(await (await fetch(ORIGEN + '/app/manifest.webmanifest')).text());
+  comprova('manifest propi: «Defensem Admin» / «Defensem», standalone, colors i icones amb el logo', man.name === 'Defensem Admin' && man.short_name === 'Defensem'
+    && man.display === 'standalone' && man.theme_color === '#298d3b' && man.background_color === '#f1f0ee' && man.start_url === '/app/' && man.scope === '/app/'
+    && man.icons.some((i) => i.sizes === '512x512' && i.purpose === 'maskable') && man.icons.some((i) => i.sizes === '192x192'), JSON.stringify(man));
+  for (const i of man.icons) { const r = await fetch(ORIGEN + i.src); comprova(`icona ${i.src}`, r.status === 200 && r.headers.get('content-type') === 'image/png'); }
+  const sw = await (await fetch(ORIGEN + '/app/sw.js')).text();
+  comprova('service worker només per a /app, amb versió de memòria cau i sense desar dades (Supabase, /api)', /var VERSIO = 'defensem-app-v\d+'/.test(sw)
+    && /url\.origin !== self\.location\.origin\) return/.test(sw) && /ARMADURA\.indexOf\(cami\) === -1\) return/.test(sw) && !/supabase\.co|\/api\//.test(sw.replace(/\/\*[\s\S]*?\*\//, '')));
+  const red = await fetch(ORIGEN + '/app', { redirect: 'manual' });
+  comprova('/app → /app/', [301, 308].includes(red.status) && red.headers.get('location') === '/app/');
+  const html = await (await fetch(ORIGEN + '/app/')).text();
+  comprova('/app: manifest, noindex i mode clar', /<link rel="manifest" href="\/app\/manifest\.webmanifest">/.test(html) && /noindex/.test(html) && /<meta name="color-scheme" content="light">/.test(html));
+}
+const entraApp = async (pg, email) => {
+  await pg.goto(ORIGEN + '/app/', { waitUntil: 'networkidle' });
+  await pg.fill('#a-email', email); await pg.fill('#a-pw', PW); await pg.click('form button[type=submit]');
+  await pg.waitForSelector('.app-blocs');
+};
+const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textContent));
+{
+  BD = dadesInicials(); peticions = []; pujades = [];
+  BD.actes.push({ id: randomUUID(), titol: 'Acte ocult', data: '2026-12-01', hora: null, data_fi: null, quan: '', lloc: 'Albons', descripcio: '', organitza: '', cartell: null, publicada: false, updated_at: new Date().toISOString() });
+  BD.sollicituds_entitats.push({ id: randomUUID(), nom_entitat: 'Entitat nova', tipus: 'collectiu', municipi: 'Verges', descripcio: 'd', web: null, instagram: '@nova', persona_contacte: 'Pere', email: 'p@ex.cat', telefon: null, missatge: '', consentiment: true, estat: 'nova', created_at: new Date().toISOString() });
+  const pg = await pagina(MOBIL, true);
+  await pg.goto(ORIGEN + '/app/', { waitUntil: 'networkidle' });
+  comprova('app: sense sessió, pantalla d’accés', !!(await pg.$('#a-email')) && !(await pg.$('.app-blocs')));
+  await pg.fill('#a-email', 'editor@ex.cat'); await pg.fill('#a-pw', 'dolenta-123'); await pg.click('form button[type=submit]');
+  comprova('app: contrasenya incorrecta → missatge clar', await espera(pg, () => /Correu o contrasenya incorrectes/.test(document.getElementById('avisos').textContent)));
+  await pg.fill('#a-pw', PW); await pg.click('form button[type=submit]'); await pg.waitForSelector('.app-blocs');
+  comprova('app (editor): blocs Notícies, Agenda, Entitats, Eines, Sol·licituds, Documents i El meu perfil (sense Usuaris)',
+    (await blocs(pg)).join() === 'Notícies,Agenda,Entitats,Eines,Sol·licituds d’adhesió,Documents,El meu perfil', (await blocs(pg)).join());
+  await espera(pg, () => [...document.querySelectorAll('.app-compte')].filter((c) => !c.hidden).length >= 3);
+  const comptes = await pg.$$eval('.app-bloc', (l) => l.map((b) => b.querySelector('.app-bloc-nom').textContent + ':' + (b.querySelector('.app-compte:not([hidden])')?.textContent || '')));
+  comprova('app: comptadors de pendents (notícies en revisió, actes ocults, sol·licituds noves)', comptes.includes('Notícies:1 en revisió') && comptes.includes('Agenda:1 ocult')
+    && comptes.includes('Sol·licituds d’adhesió:1 nova'), comptes.join(' | '));
+  comprova('app: sense desbordament a 390 px i sense l’avís d’error d’abans d’entrar', (await desbordament(pg)) <= 0 && !(await pg.textContent('#avisos')));
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/app-inici.png`, fullPage: true });
+  // Agenda: llista, pestanyes, + Nou, formulari amb foto comprimida, borrador, publicar
+  await pg.click('a.app-bloc[href="#/agenda"]'); await pg.waitForSelector('.app-pestanyes');
+  const ll = await pg.evaluate(() => ({ inici: document.querySelector('.app-inici')?.textContent, nou: document.querySelector('.app-nou')?.textContent,
+    tabs: [...document.querySelectorAll('.app-pestanya')].map((b) => b.childNodes[0].textContent + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join() }));
+  comprova('app Agenda: «← Inici», «+ Nou acte» i pestanyes Publicades · Ocultes', ll.inici === '← Inici' && ll.nou === '+ Nou acte' && ll.tabs === 'Publicades*,Ocultes', JSON.stringify(ll));
+  await pg.click('.app-pestanya[data-p="ocultes"]');
+  comprova('app Agenda: a «Ocultes» hi ha l’acte ocult', (await pg.textContent('#app-llista')).includes('Acte ocult'));
+  await pg.click('.app-nou'); await pg.waitForSelector('#f-titol');
+  await pg.fill('#f-titol', 'Xerrada a Verges'); await pg.fill('#f-data', '2026-12-12'); await pg.fill('#f-lloc', 'Verges');
+  await pg.waitForTimeout(800);
+  comprova('app: borrador automàtic al dispositiu mentre s’escriu', await pg.evaluate(() => /Xerrada a Verges/.test(localStorage.getItem('defensem.app.esborrany.agenda.nou') || '')));
+  await pg.reload({ waitUntil: 'networkidle' }); await pg.waitForSelector('#f-titol');
+  comprova('app: en tornar-hi, es recupera el borrador', (await pg.inputValue('#f-titol')) === 'Xerrada a Verges' && /recuperat l’esborrany/.test(await pg.textContent('#vista')));
+  // foto gran (3000 × 2000) → es comprimeix abans de pujar-la
+  const png = await pg.evaluate(async () => { const c = document.createElement('canvas'); c.width = 3000; c.height = 2000; const x = c.getContext('2d');
+    for (let i = 0; i < 400; i++) { x.fillStyle = `hsl(${i * 7},70%,50%)`; x.fillRect(Math.random() * 3000, Math.random() * 2000, 300, 200); }
+    const b = await new Promise((ok) => c.toBlob(ok, 'image/png')); return Array.from(new Uint8Array(await b.arrayBuffer())); });
+  await pg.setInputFiles('#f-cartell', { name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+  comprova('app: la foto es prepara comprimida', await espera(pg, () => /Foto preparada/.test(document.getElementById('avisos').textContent)) && !!(await pg.$('.app-foto-prev img')));
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/app-form.png`, fullPage: true });
+  await pg.click('.app-accions button:has-text("Vista prèvia")');
+  comprova('app: vista prèvia', /Xerrada a Verges/.test(await pg.textContent('.app-previ')));
+  await pg.click('.app-accions button:has-text("Publica")');
+  await espera(pg, () => /Publicat/.test(document.getElementById('avisos').textContent));
+  const acte = BD.actes.find((a) => a.titol === 'Xerrada a Verges') || {};
+  comprova('app: «Publica» crea l’acte publicat amb el cartell pujat', acte.publicada === true && acte.data === '2026-12-12' && acte.lloc === 'Verges' && /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(acte.cartell || ''), JSON.stringify(acte));
+  const p = pujades[pujades.length - 1] || {};
+  comprova('app: la foto pujada és un JPEG reduït a 1600 px com a màxim (era de 3000 × 2000) i més lleuger', JSON.stringify(p.mides) === '[1600,1067]'
+    && p.mida < png.length, JSON.stringify({ mides: p.mides, pujada: p.mida, original: png.length }));
+  comprova('app: el borrador s’esborra en desar', await pg.evaluate(() => localStorage.getItem('defensem.app.esborrany.agenda.nou') === null));
+  await pg.waitForSelector('.app-accions button:has-text("Oculta")');
+  await pg.click('.app-accions button:has-text("Oculta")');
+  comprova('app: «Oculta» la retira de la web', await espera(pg, () => /Ocultat/.test(document.getElementById('avisos').textContent)) && acte.publicada === false);
+  await pg.evaluate(() => { window.confirm = () => true; });
+  await pg.waitForSelector('.app-accions button:has-text("Esborra")');
+  await pg.click('.app-accions button:has-text("Esborra")');
+  comprova('app: «Esborra» amb confirmació', await espera(pg, () => /^#\/agenda(\?|$)/.test(location.hash)) && !BD.actes.some((a) => a.titol === 'Xerrada a Verges'));
+  // Notícies: l'editor veu «En revisió» i pot publicar o retornar amb nota
+  await pg.goto(ORIGEN + '/app/#/noticies?p=revisio'); await pg.waitForSelector('.app-pestanyes');
+  const tabsN = await pg.$$eval('.app-pestanya', (l) => l.map((b) => b.childNodes[0].textContent + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join());
+  comprova('app Notícies: pestanyes Esborranys · En revisió · Publicades', tabsN === 'Esborranys,En revisió*,Publicades', tabsN);
+  await pg.click('#app-llista .app-targeta'); await pg.waitForSelector('#f-titol');
+  await pg.click('.app-accions button:has-text("Retorna a l’autor")'); await pg.click('button:has-text("Confirma el retorn")');
+  comprova('app: retornar sense nota no es pot', /Escriu què cal corregir/.test(await pg.textContent('#avisos')));
+  await pg.fill('#f-nota', 'Falta la font.'); await pg.click('button:has-text("Confirma el retorn")');
+  const pend = BD.publicacions.find((x) => x.titol === 'Pendent del Carles');
+  comprova('app: «Retorna a l’autor» amb la nota', await espera(pg, () => /Retornada/.test(document.getElementById('avisos').textContent)) && pend.estat === 'retornat' && pend.nota_revisio === 'Falta la font.');
+  // Sol·licituds: Accepta → formulari d'entitat ple → en desar queda acceptada
+  await pg.goto(ORIGEN + '/app/#/sollicituds'); await pg.waitForSelector('#app-llista .app-targeta');
+  await pg.click('#app-llista .app-targeta'); await pg.click('a:has-text("Accepta i crea l’entitat")'); await pg.waitForSelector('#f-nom');
+  comprova('app: «Accepta» omple l’entitat amb la sol·licitud', (await pg.inputValue('#f-nom')) === 'Entitat nova' && (await pg.inputValue('#f-tipus')) === 'collectiu');
+  await pg.click('.app-accions button:has-text("Desa")');
+  await espera(pg, () => /Desat/.test(document.getElementById('avisos').textContent));
+  const ent = BD.entitats.find((x) => x.nom === 'Entitat nova') || {};
+  comprova('app: l’entitat es crea oculta amb l’Instagram normalitzat i la sol·licitud queda acceptada', ent.publicada !== true && ent.instagram === 'https://www.instagram.com/nova/'
+    && BD.sollicituds_entitats[0].estat === 'acceptada', JSON.stringify(ent));
+  // Perfil i tancar la sessió
+  await pg.goto(ORIGEN + '/app/#/perfil'); await pg.waitForSelector('button:has-text("Tanca la sessió")');
+  comprova('app: el perfil mostra el rol', /Editor/.test(await pg.textContent('.app-dades')));
+  await pg.click('button:has-text("Tanca la sessió")');
+  comprova('app: «Tanca la sessió» torna a l’accés i esborra els borradors', await espera(pg, () => !!document.getElementById('a-email'))
+    && await pg.evaluate(() => !Object.keys(localStorage).some((k) => k.startsWith('defensem.app.esborrany.'))));
+  comprova('app (editor): cap error (a part del 400 esperat de la contrasenya incorrecta)', pg.errors.filter((e) => !/status of 400/.test(e)).length === 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+{
+  const pg = await pagina(MOBIL, true);
+  await entraApp(pg, 'col@ex.cat');
+  comprova('app (col·laborador): només Notícies, Documents i El meu perfil', (await blocs(pg)).join() === 'Notícies,Documents,El meu perfil', (await blocs(pg)).join());
+  await pg.click('a.app-bloc[href="#/noticies"]'); await pg.click('.app-nou'); await pg.waitForSelector('#f-titol');
+  const bt = await pg.$$eval('.app-accions button', (l) => l.map((b) => b.textContent).join());
+  comprova('app (col·laborador): pot desar i enviar a revisió, però no publicar', bt === 'Vista prèvia,Desa,Envia a revisió', bt);
+  await pg.fill('#f-titol', 'Notícia del Carles'); await pg.click('.app-accions button:has-text("Envia a revisió")');
+  const n = await espera(pg, () => /revisió/.test(document.getElementById('avisos').textContent)) && BD.publicacions.find((x) => x.titol === 'Notícia del Carles');
+  comprova('app (col·laborador): la notícia queda en revisió', n && n.estat === 'pendent' && n.autor_id === U.C, JSON.stringify(n));
+  await pg.goto(ORIGEN + '/app/#/agenda'); await pg.waitForSelector('h1');
+  comprova('app (col·laborador): no entra a Agenda', /No hi tens accés/.test(await pg.textContent('#vista')));
+  await pg.context().close();
+}
+{
+  const pg = await pagina(ESCRIPTORI, true);
+  await entraApp(pg, 'admin@ex.cat');
+  comprova('app (admin): també Usuaris', (await blocs(pg)).includes('Usuaris'));
+  await pg.click('a.app-bloc[href="#/usuaris"]'); await pg.waitForSelector('.app-pestanyes');
+  comprova('app Usuaris: «+ Convida» i pestanyes Actius · Desactivats', (await pg.textContent('.app-nou')) === '+ Convida'
+    && (await pg.$$eval('.app-pestanya', (l) => l.map((b) => b.childNodes[0].textContent).join())) === 'Actius,Desactivats');
+  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/app-usuaris-1280.png`, fullPage: true });
+  comprova('app (admin): cap error ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+{
+  // L'agenda pública es llegeix de Supabase (només publicats) quan la taula existeix
+  BD = dadesInicials();
+  BD.actes.push({ id: randomUUID(), titol: 'Acte de Supabase', data: '2099-05-01', hora: '18:30:00', data_fi: null, quan: '', lloc: 'Albons', descripcio: 'Text.', organitza: 'Mobilitzem (@mobilitzem_la_llera).', cartell: null, publicada: true },
+    { id: randomUUID(), titol: 'No publicat', data: '2099-06-01', hora: null, data_fi: null, quan: '', lloc: '', descripcio: '', organitza: '', cartell: null, publicada: false },
+    { id: randomUUID(), titol: 'Passat', data: '2020-01-01', hora: null, data_fi: null, quan: '1 de gener del 2020', lloc: '', descripcio: '', organitza: '', cartell: '/img/agenda/assemblea-general-oberta.webp', publicada: true });
+  // la taula d'actes és pública només per als publicats
+  const pg = await pagina(MOBIL, true);
+  await pg.route(SB + '/rest/v1/actes*', (rt) => rt.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+    body: JSON.stringify(BD.actes.filter((a) => a.publicada).sort((a, b) => a.data.localeCompare(b.data))) }));
+  await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
+  const ag = await pg.evaluate(() => ({ propers: [...document.querySelectorAll('#actes > li h3')].map((h) => h.textContent), passats: [...document.querySelectorAll('#actes-fets > li h3')].map((h) => h.textContent),
+    quan: document.querySelector('#actes time')?.textContent, ig: document.querySelector('#actes .org a')?.href, obert: document.getElementById('actes-anteriors').open,
+    cartell: document.querySelector('#actes-fets img')?.getAttribute('src') }));
+  comprova('agenda pública des de Supabase: propers a dalt, passats a «Actes anteriors» (tancat), sense els ocults', ag.propers.join() === 'Acte de Supabase' && ag.passats.join() === 'Passat' && !ag.obert
+    && /1 de maig del 2099 · 18\.30 h/i.test(ag.quan) && ag.ig === 'https://www.instagram.com/mobilitzem_la_llera/' && ag.cartell === '/img/agenda/assemblea-general-oberta-petit.webp', JSON.stringify(ag));
   await pg.context().close();
 }
 
