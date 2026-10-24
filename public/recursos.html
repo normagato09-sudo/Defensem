@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
 <title>Recursos · Defensem l’Empordanet</title>
-<meta name="description" content="Entitats que donen suport a la defensa de l’Empordanet, formulari d’adhesió i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
+<meta name="description" content="Entitats que donen suport a la defensa de l’Empordanet i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/img/icona-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <meta property="og:url" content="https://defensem.vercel.app/recursos.html">
 <meta property="og:site_name" content="Defensem l’Empordanet">
 <meta property="og:title" content="Recursos · Defensem l’Empordanet">
-<meta property="og:description" content="Entitats que donen suport a la defensa de l’Empordanet, formulari d’adhesió i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
+<meta property="og:description" content="Entitats que donen suport a la defensa de l’Empordanet i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
 <meta property="og:locale" content="ca_ES">
 <meta property="og:image" content="https://defensem.vercel.app/img/og-defensem.jpg">
 <meta property="og:image:width" content="1200">
@@ -48,51 +48,6 @@
 <h2>Entitats</h2>
 <p class="intro">Associacions, col·lectius i entitats que donen suport a la defensa de l’Empordanet o hi col·laboren.</p>
 <div class="ent-llista" id="ent-llista"><p class="carrega">Carregant…</p></div>
-
-<section class="adhesio" id="adhesio" aria-labelledby="adh-titol">
-<h2 id="adh-titol">La teva entitat vol adherir-s’hi?</h2>
-<p>Si formeu part d’una associació, un col·lectiu o una entitat que vol donar suport a la defensa de l’Empordanet, envieu-nos la sol·licitud. La revisarem abans de publicar res.</p>
-<p><button class="btn adh-obre" type="button" id="adh-obre" aria-expanded="false" aria-controls="adh-form">La teva entitat vol adherir-s’hi?</button></p>
-<form id="adh-form" class="form-public" hidden novalidate>
-<div id="adh-msg" class="msg-public" role="status" aria-live="polite" tabindex="-1"></div>
-<fieldset><legend>L’entitat</legend>
-<div class="graella-public">
-<div class="camp-public"><label for="adh-nom">Nom de l’entitat <span aria-hidden="true">*</span></label><input id="adh-nom" name="nom_entitat" type="text" maxlength="200" required autocomplete="organization"></div>
-<div class="camp-public"><label for="adh-tipus">Tipus <span aria-hidden="true">*</span></label><select id="adh-tipus" name="tipus" required><option value="">Tria’n un</option>
-<option value="associacio">Associació</option>
-<option value="collectiu">Col·lectiu</option>
-<option value="entitat_veinal">Entitat veïnal</option>
-<option value="fundacio">Fundació</option>
-<option value="cooperativa">Cooperativa</option>
-<option value="sindicat">Sindicat o organització professional</option>
-<option value="observatori">Observatori</option>
-<option value="xarxa">Xarxa d’entitats</option>
-<option value="altres">Altres</option>
-</select></div>
-<div class="camp-public"><label for="adh-municipi">Municipi <span aria-hidden="true">*</span></label><input id="adh-municipi" name="municipi" type="text" maxlength="100" required autocomplete="address-level2"></div>
-<div class="camp-public"><label for="adh-web">Web</label><input id="adh-web" name="web" type="url" maxlength="300" placeholder="https://" inputmode="url"></div>
-<div class="camp-public"><label for="adh-ig">Instagram</label><input id="adh-ig" name="instagram" type="text" maxlength="100" placeholder="@nom_entitat"></div>
-</div>
-<div class="camp-public"><label for="adh-desc">Breu descripció de l’entitat</label><textarea id="adh-desc" name="descripcio" maxlength="600" aria-describedby="adh-desc-ajuda"></textarea><span class="ajuda" id="adh-desc-ajuda">Què feu i on. Màxim 600 caràcters. Si l’entitat es publica, farem servir aquest text com a base.</span></div>
-</fieldset>
-<fieldset><legend>Persona de contacte</legend>
-<p class="ajuda">Aquestes dades no es publiquen: només serveixen perquè us puguem respondre.</p>
-<div class="graella-public">
-<div class="camp-public"><label for="adh-persona">Nom i cognoms <span aria-hidden="true">*</span></label><input id="adh-persona" name="persona_contacte" type="text" maxlength="120" required autocomplete="name"></div>
-<div class="camp-public"><label for="adh-email">Correu electrònic <span aria-hidden="true">*</span></label><input id="adh-email" name="email" type="email" maxlength="254" required autocomplete="email"></div>
-<div class="camp-public"><label for="adh-tel">Telèfon</label><input id="adh-tel" name="telefon" type="tel" maxlength="20" autocomplete="tel"></div>
-</div>
-<div class="camp-public"><label for="adh-missatge">Missatge</label><textarea id="adh-missatge" name="missatge" maxlength="2000"></textarea></div>
-</fieldset>
-<div class="parany" aria-hidden="true"><label for="adh-lloc">No omplis aquest camp</label><input id="adh-lloc" name="lloc" type="text" tabindex="-1" autocomplete="off"></div>
-<div class="info-rgpd">
-<p><strong>Informació bàsica sobre protecció de dades.</strong> Responsable: Associació Defensem l’Empordanet. Finalitat: gestionar la sol·licitud d’adhesió de l’entitat i, si s’accepta, publicar-ne el nom, el tipus, el municipi, la descripció i els enllaços que ens doneu. Les dades de la persona de contacte no es publiquen. Base jurídica: el vostre consentiment. Destinataris: no se cedeixen; Supabase les allotja com a encarregat del tractament. Drets: accés, rectificació, supressió i altres, escrivint a <a href="mailto:defensemlempordanet@gmail.com">defensemlempordanet@gmail.com</a>. Més informació a la <a href="/privacitat.html">política de privacitat</a>.</p>
-</div>
-<label class="consent" for="adh-consent"><input id="adh-consent" name="consentiment" type="checkbox" required> <span>He llegit la informació sobre protecció de dades i accepto que es tractin aquestes dades per gestionar la sol·licitud. <span aria-hidden="true">*</span></span></label>
-<p class="ajuda">Els camps amb * són obligatoris.</p>
-<button class="btn" type="submit" id="adh-envia">Envia la sol·licitud</button>
-</form>
-</section>
 </div>
 </section>
 

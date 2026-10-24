@@ -65,10 +65,12 @@ create policy ent_delete on public.entitats for delete to authenticated
   using (public.rol_actual() in ('admin','editor'));
 
 -- ---------- 6. SOL·LICITUDS D'ADHESIÓ D'ENTITATS ----------
--- Formulari públic «La teva entitat vol adherir-s'hi?». Qualsevol pot enviar-ne (sense llegir res);
--- només admin i editor les veuen i en canvien l'estat; només admin les esborra.
--- Antispam a la base de dades: límit per correu i límit global per hora (el navegador hi afegeix
--- un camp parany i un temps mínim d'emplenament).
+-- TANCADES (octubre 2026): el formulari públic «La teva entitat vol adherir-s'hi?» s'ha retirat i les entitats
+-- només s'afegeixen des de l'app. La taula i les dades es conserven per si es recupera més endavant, però
+-- ningú no hi pot inserir des de la web (sense permís d'inserció i amb una política restrictiva que ho nega).
+-- Només admin i editor veuen les que ja hi ha (Supabase > Table Editor) i en canvien l'estat; només admin les esborra.
+-- Si es tornés a obrir: grant insert (…) a anon/authenticated, política sol_insert with check (consentiment)
+-- i esborrar la política sol_tancades. El trigger antispam (límit per correu i per hora) es manté.
 create table if not exists public.sollicituds_entitats (
   id               uuid primary key default gen_random_uuid(),
   nom_entitat      text not null check (char_length(nom_entitat) between 1 and 200),
@@ -107,16 +109,15 @@ drop trigger if exists gestionar_sollicitud_t on public.sollicituds_entitats;
 create trigger gestionar_sollicitud_t before insert on public.sollicituds_entitats
   for each row execute function public.gestionar_sollicitud();
 
--- Inserció sense lectura (el navegador envia amb «Prefer: return=minimal»). De les existents, només l'estat es pot canviar.
+-- Sense inserció des de la web. De les existents, només l'estat es pot canviar.
 revoke all on public.sollicituds_entitats from anon, authenticated;
-grant insert (nom_entitat, tipus, municipi, descripcio, web, instagram, persona_contacte, email, telefon, missatge, consentiment)
-  on public.sollicituds_entitats to anon, authenticated;
 grant select, delete on public.sollicituds_entitats to authenticated;
 grant update (estat) on public.sollicituds_entitats to authenticated;
 
 drop policy if exists sol_insert on public.sollicituds_entitats;
-create policy sol_insert on public.sollicituds_entitats for insert to anon, authenticated
-  with check (consentiment);
+drop policy if exists sol_tancades on public.sollicituds_entitats;
+create policy sol_tancades on public.sollicituds_entitats as restrictive for insert to anon, authenticated
+  with check (false);
 drop policy if exists sol_select on public.sollicituds_entitats;
 create policy sol_select on public.sollicituds_entitats for select to authenticated
   using (public.rol_actual() in ('admin','editor'));

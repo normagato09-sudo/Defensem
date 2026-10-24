@@ -168,7 +168,6 @@
     agenda: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5M8 14h3M13 14h3M8 17h3',
     entitats: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5',
     eines: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14',
-    sollicituds: 'M4 4h16v12h-5l-3 3-3-3H4zM8 9h8M8 12h5',
     usuaris: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7M18 4l2 2-2 2',
     perfil: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
     documents: 'M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'
@@ -267,16 +266,6 @@
         { k: 'ordre', t: 'Ordre (les més petites, primer)', tipus: 'number', defecte: 10 }
       ]
     },
-    sollicituds: {
-      titol: 'Sol·licituds d’adhesió', rols: EDITA, nou: null, taula: 'sollicituds_entitats', camps: '*', ordre: ['created_at', false],
-      pestanyes: [['noves', 'Noves', function (r) { return r.estat === 'nova'; }], ['revisades', 'Revisades', function (r) { return r.estat !== 'nova'; }]],
-      comptador: function () { return { q: sb.from('sollicituds_entitats').select('id', { count: 'exact', head: true }).eq('estat', 'nova'), t: ['nova', 'noves'] }; },
-      targeta: function (r) {
-        var E = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Rebutjada' };
-        return [el('span', { class: 'app-estat ' + ({ nova: 'pendent', acceptada: 'publicat', descartada: 'arxivat' }[r.estat] || '') }, [E[r.estat] || r.estat]),
-          el('h3', null, [r.nom_entitat]), el('p', { class: 'app-meta' }, [r.municipi + ' · ' + dataCurta(r.created_at)])];
-      }
-    },
     usuaris: {
       titol: 'Usuaris', rols: ['admin'], nou: '+ Convida', taula: 'profiles', camps: 'id,email,nom,rol,actiu,created_at', ordre: ['created_at', true],
       pestanyes: [['actius', 'Actius', function (r) { return r.actiu; }], ['desactivats', 'Desactivats', function (r) { return !r.actiu; }]],
@@ -286,7 +275,7 @@
       }
     }
   };
-  var ORDRE_BLOCS = ['noticies', 'agenda', 'entitats', 'eines', 'sollicituds', 'usuaris'];
+  var ORDRE_BLOCS = ['noticies', 'agenda', 'entitats', 'eines', 'usuaris'];
 
   // ------------------------------------------------------------------ Inici
   async function vInici(t) {
@@ -425,26 +414,19 @@
 
   // ------------------------------------------------------------------ vista d'edició (comuna)
   async function vEdita(t, clau, id) {
-    var B = BLOCS[clau], fila = null, sol = null;
-    var params = new URLSearchParams((location.hash.split('?')[1] || ''));
+    var B = BLOCS[clau], fila = null;
     if (id !== 'nou') {
       if (!S.esUuid(id)) { pinta(t, [tornaInici(), el('h1', null, ['No l’hem trobat.'])]); return; }
       var r = await sb.from(B.taula).select(B.camps).eq('id', id).maybeSingle();
       if (r.error) throw r.error;
       if (!r.data) { pinta(t, [tornaInici(), el('h1', null, ['No l’hem trobat.']), el('p', null, ['Potser ja no existeix o no hi tens accés.'])]); return; }
       fila = r.data;
-    } else if (clau === 'entitats' && S.esUuid(params.get('sol'))) {
-      var rs = await sb.from('sollicituds_entitats').select('*').eq('id', params.get('sol')).maybeSingle();
-      if (!rs.error) sol = rs.data;
     }
-    if (clau === 'sollicituds') return vSollicitud(t, fila);
     if (clau === 'usuaris') return fila ? vUsuari(t, fila) : vConvida(t);
 
     var editora = pot(EDITA);
     var editable = clau !== 'noticies' || !fila || editora || (fila.autor_id === jo.id && (fila.estat === 'esborrany' || fila.estat === 'retornat'));
-    var inicial = fila || (sol ? { nom: sol.nom_entitat, tipus: sol.tipus, municipi: sol.municipi, descripcio: sol.descripcio,
-      web: /^https:\/\//i.test(sol.web || '') ? sol.web : '', instagram: sol.instagram || '' } : {});
-    var F = formulari(B.formulari, inicial, editable);
+    var F = formulari(B.formulari, fila || {}, editable);
     var kEsb = esbClau(clau, fila && fila.id);
     var esb = editable ? esbLlegeix(kEsb) : null;
     var avisEsb = null;
@@ -476,7 +458,6 @@
         if (!res) { if (pujada) esborraFitxer(pujada); return false; }
         if (F.foto && fila && F.foto.actual() && F.foto.actual() !== dades[F.foto.k]) esborraFitxer(F.foto.actual());
         esbEsborra(kEsb);
-        if (sol && sol.estat !== 'acceptada') await sb.from('sollicituds_entitats').update({ estat: 'acceptada' }).eq('id', sol.id);
         avis(missatge || 'Desat.');
         var nouId = Array.isArray(res) ? res[0].id : res.id;
         if (!fila) location.hash = '#/' + clau + '/' + nouId; else encamina();
@@ -532,7 +513,6 @@
       fila && clau === 'noticies' ? el('p', null, [el('span', { class: 'app-estat ' + fila.estat }, [ESTATS[fila.estat]])]) : null,
       fila && clau === 'noticies' && fila.estat === 'retornat' && fila.nota_revisio ? el('p', { class: 'app-nota' }, ['Nota de revisió: ' + fila.nota_revisio]) : null,
       !editable ? el('p', { class: 'app-avis-esb' }, ['Ara no la pots modificar (està ' + (ESTATS[fila.estat] || '').toLowerCase() + '). Només la pots consultar.']) : null,
-      sol ? el('p', { class: 'app-avis-esb' }, ['Dades de la sol·licitud de ' + sol.persona_contacte + '. Revisa-les: en desar, la sol·licitud queda acceptada.']) : null,
       avisEsb, form, el('div', { class: 'app-accions' }, [bPrevi].concat(botons)), retorn, previ
     ]);
   }
@@ -553,29 +533,7 @@
     return c;
   }
 
-  // ------------------------------------------------------------------ sol·licituds, usuaris i perfil
-  function vSollicitud(t, s) {
-    var dades = [['Tipus', TIPUS_ENT[s.tipus] || s.tipus], ['Municipi', s.municipi], ['Descripció', s.descripcio], ['Web', s.web], ['Instagram', s.instagram],
-      ['Contacte', s.persona_contacte], ['Correu', el('a', { href: 'mailto:' + s.email }, [s.email])], ['Telèfon', s.telefon], ['Missatge', s.missatge], ['Rebuda', dataCurta(s.created_at)]]
-      .filter(function (x) { return x[1]; });
-    pinta(t, [
-      el('a', { href: '#/sollicituds', class: 'app-inici' }, ['← Sol·licituds']),
-      el('h1', null, [s.nom_entitat]),
-      el('dl', { class: 'app-dades' }, dades.reduce(function (a, x) { return a.concat([el('dt', null, [x[0]]), el('dd', null, [x[1]])]); }, [])),
-      el('p', { class: 'app-meta' }, ['Les dades de contacte són privades: no les publiquis ni les comparteixis.']),
-      el('div', { class: 'app-accions' }, [
-        s.estat !== 'acceptada' ? el('a', { href: '#/entitats/nou?sol=' + s.id, class: 'app-btn v gran' }, ['Accepta i crea l’entitat']) : null,
-        s.estat !== 'descartada' ? boto('Rebutja', 'o gran', async function () {
-          if (!confirma('Rebutjar la sol·licitud de «' + s.nom_entitat + '»? No es publicarà res.')) return;
-          if (await escriu(sb.from('sollicituds_entitats').update({ estat: 'descartada' }).eq('id', s.id))) { avis('Sol·licitud rebutjada.'); location.hash = '#/sollicituds'; }
-        }) : null,
-        jo.rol === 'admin' ? boto('Esborra', 'perill gran', async function () {
-          if (!confirma('Esborrar la sol·licitud de «' + s.nom_entitat + '» i les seves dades de contacte? No es pot desfer.')) return;
-          if (await escriu(sb.from('sollicituds_entitats').delete().eq('id', s.id))) { avis('Esborrat.'); location.hash = '#/sollicituds'; }
-        }) : null
-      ])
-    ]);
-  }
+  // ------------------------------------------------------------------ usuaris i perfil
   function vUsuari(t, u) {
     var soc = u.id === jo.id;
     var sel = el('select', { id: 'f-rol', disabled: soc, value: u.rol }, Object.keys(ROLS).map(function (k) { return el('option', { value: k }, [ROLS[k]]); }));

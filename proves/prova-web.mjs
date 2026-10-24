@@ -144,15 +144,12 @@ async function supabaseFals(route) {
   if (p === '/auth/v1/recover') return json(200, {});
   if (p.startsWith('/rest/v1/')) {
     const taula = p.slice('/rest/v1/'.length), u = quiEs(h);
-    // Sol·licituds d'adhesió: qualsevol pot inserir-ne (sense llegir-les).
     if (taula === 'missatges_contacte' && m === 'POST') {
       BD.missatges_contacte.push({ id: randomUUID(), estat: 'nou', created_at: new Date().toISOString(), ...JSON.parse(req.postData()) });
       return route.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' } });
     }
-    if (taula === 'sollicituds_entitats' && m === 'POST') {
-      BD.sollicituds_entitats.push({ id: randomUUID(), estat: 'nova', created_at: new Date().toISOString(), ...JSON.parse(req.postData()) });
-      return route.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' } });
-    }
+    // Sol·licituds d'adhesió: tancades (la taula es conserva, però ningú no hi insereix des de la web).
+    if (taula === 'sollicituds_entitats' && m === 'POST') return json(403, { code: '42501', message: 'permission denied for table sollicituds_entitats' });
     const vis = visibles(taula, u);
     if (vis === null) return json(401, { code: '42501', message: 'permission denied for table ' + taula });
     if (m === 'GET' || m === 'HEAD') {
@@ -360,8 +357,8 @@ const SECCIONS = [
   comprova('Actualitat: notícies amb missatge buit i sense «Carrega’n més» si no cal', /Encara no hi ha notícies publicades/.test(await pg.textContent('#news')) && await pg.$eval('#news-mes', (n) => n.hidden));
   comprova('Actualitat: els actes passats, a «Actes anteriors», tancat', await pg.$eval('#actes-anteriors', (d) => !d.open && d.querySelector('summary').textContent === 'Actes anteriors'));
   await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
-  comprova('Recursos: blocs Entitats (amb l’adhesió) i Eines', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#entitats,#eines'
-    && !!(await pg.$('#entitats #adh-form')) && !!(await pg.$('#eines #eines-llista')));
+  comprova('Recursos: blocs Entitats (sense formulari d’adhesió) i Eines', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#entitats,#eines'
+    && !(await pg.$('#adhesio, #adh-form, form')) && !!(await pg.$('#eines #eines-llista')));
   comprova('Recursos: sense cercador ni filtres', !(await pg.$('#ent-filtres, #ent-cerca, #ent-tipus, #ent-municipi, #eines-filtre, .filtre-btn, input[type=search]')));
   await pg.goto(ORIGEN + '/contacte.html', { waitUntil: 'networkidle' });
   comprova('Contacte: «Què pots fer» i, a sota, el correu i Instagram (ocult sense URL); sense formulari', !!(await pg.$('main a[href="mailto:defensemlempordanet@gmail.com"]'))
@@ -879,8 +876,8 @@ for (const [vp, nom, tactil] of [[ESCRIPTORI, '1280 px', false], [MOBIL, '390 px
 console.log('\n8. Menú i botons segons el rol');
 const ESPERAT = {
   'col@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Documents'],
-  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents'],
-  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents', 'Usuaris'],
+  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Eines', 'Documents'],
+  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Eines', 'Documents', 'Usuaris'],
   'consulta@ex.cat': ['Inici', 'Documents']
 };
 const ROL = { 'col@ex.cat': 'Col·laborador de notícies', 'editor@ex.cat': 'Editor', 'admin@ex.cat': 'Administrador', 'consulta@ex.cat': 'Usuari de consulta' };
@@ -1427,50 +1424,24 @@ for (const vp of [MOBIL, { width: 360, height: 640 }, ESCRIPTORI]) {
 
 console.log('\n16. Entitats i Eines');
 {
-  // Sense Supabase: estat buit, un sol botó i el formulari amagat fins que es demana.
+  // Sense Supabase: estat buit, només el missatge (ni botó ni formulari d'adhesió).
   const pg = await pagina(MOBIL, false);
   await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
-  const e = await pg.evaluate(() => ({ text: document.querySelector('#ent-llista .buit p')?.textContent,
-    botons: [...document.querySelectorAll('button')].filter((b) => b.offsetParent && /adherir/.test(b.textContent)).length,
-    form: document.getElementById('adh-form').hidden, filtres: !document.getElementById('ent-filtres') }));
-  comprova('entitats sense dades: «Aviat hi trobareu les entitats adherides» i un sol botó d’adhesió', e.text === 'Aviat hi trobareu les entitats adherides.' && e.botons === 1 && e.form && e.filtres, JSON.stringify(e));
-  await pg.click('#ent-llista .adh-obre');
-  comprova('el botó obre el formulari i marca aria-expanded', await pg.evaluate(() => !document.getElementById('adh-form').hidden
-    && document.querySelector('#ent-llista .adh-obre').getAttribute('aria-expanded') === 'true'));
-  comprova('formulari: consentiment RGPD obligatori, enllaç a la privacitat i camp parany ocult', await pg.evaluate(() => {
-    const p = document.getElementById('adh-lloc'), r = p.getBoundingClientRect();
-    return document.getElementById('adh-consent').required && !!document.querySelector('.info-rgpd a[href="/privacitat.html"]') && p.tabIndex === -1 && r.right <= 0;
-  }));
-  comprova('formulari sense desbordament a 390 px', (await desbordament(pg)) <= 0);
-  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/entitats-form-390.png`, fullPage: true });
+  const e = await pg.evaluate(() => ({ text: document.querySelector('#ent-llista .buit')?.textContent,
+    adhesio: [...document.querySelectorAll('button, a')].filter((b) => /adherir|adhesi/i.test(b.textContent)).length + document.querySelectorAll('#adhesio, form, .adh-obre').length,
+    filtres: !document.getElementById('ent-filtres') }));
+  comprova('entitats sense dades: només «Aviat hi trobareu les entitats adherides.», sense botó ni formulari d’adhesió', e.text === 'Aviat hi trobareu les entitats adherides.' && e.adhesio === 0 && e.filtres, JSON.stringify(e));
+  comprova('entitats buides sense desbordament a 390 px ni errors', (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
   await pg.context().close();
 }
 {
-  // Amb Supabase i cap entitat publicada: el formulari envia la sol·licitud.
+  // Amb Supabase i cap entitat publicada: estat buit i cap enviament a sollicituds_entitats.
   BD = dadesInicials(); peticions = [];
   BD.entitats.push({ id: randomUUID(), nom: 'No publicada', tipus: 'associacio', municipi: 'Albons', descripcio: '', publicada: false });
   const pg = await pagina(ESCRIPTORI, true);
   await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
   comprova('una entitat no publicada no es mostra', (await pg.textContent('#ent-llista')).includes('Aviat hi trobareu') && peticions.some((p) => p.url.includes('publicada=eq.true')));
-  await pg.click('#ent-llista .adh-obre');
-  await pg.fill('#adh-nom', 'Associació de prova'); await pg.selectOption('#adh-tipus', 'entitat_veinal'); await pg.fill('#adh-municipi', 'Albons');
-  await pg.fill('#adh-persona', 'Persona Prova'); await pg.fill('#adh-email', 'prova@ex.cat'); await pg.fill('#adh-ig', 'https://www.instagram.com/prova_ent/');
-  await pg.click('#adh-envia');
-  comprova('sense consentiment no s’envia', (await pg.textContent('#adh-msg')).includes('protecció de dades') && BD.sollicituds_entitats.length === 0);
-  await pg.check('#adh-consent');
-  await pg.waitForTimeout(3100);
-  await pg.click('#adh-envia');
-  await espera(pg, () => /Gràcies/.test(document.getElementById('adh-msg').textContent));
-  const s = BD.sollicituds_entitats[0] || {};
-  comprova('la sol·licitud arriba amb les dades i el consentiment', BD.sollicituds_entitats.length === 1 && s.nom_entitat === 'Associació de prova' && s.tipus === 'entitat_veinal'
-    && s.consentiment === true && s.instagram === '@prova_ent' && !('lloc' in s), JSON.stringify(s));
-  comprova('després d’enviar es buida el formulari', (await pg.inputValue('#adh-nom')) === '' && !(await pg.isChecked('#adh-consent')));
-  // Parany: si s'omple, no s'envia res però es mostra el mateix missatge.
-  await pg.fill('#adh-nom', 'Robot'); await pg.selectOption('#adh-tipus', 'altres'); await pg.fill('#adh-municipi', 'X'); await pg.fill('#adh-persona', 'R');
-  await pg.fill('#adh-email', 'robot@ex.cat'); await pg.check('#adh-consent');
-  await pg.$eval('#adh-lloc', (i) => { i.value = 'http://spam'; });
-  await pg.click('#adh-envia');
-  comprova('amb el camp parany ple no s’envia res', BD.sollicituds_entitats.length === 1);
+  comprova('la pàgina no fa cap petició a sollicituds_entitats', !peticions.some((p) => p.url.includes('sollicituds_entitats')));
   comprova('entitats amb Supabase: cap error', pg.errors.length === 0, JSON.stringify(pg.errors));
   await pg.context().close();
 }
@@ -1486,11 +1457,11 @@ console.log('\n16. Entitats i Eines');
     const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.ent-card').length, filtres: !!document.querySelector('#ent-filtres, #ent-cerca, #ent-tipus, #ent-municipi, input[type=search]'),
       noms: [...document.querySelectorAll('.ent-card h3')].map((h) => h.textContent).join(),
       enllacos: [...document.querySelectorAll('.ent-card a')].map((a) => a.href + '|' + a.target + '|' + a.rel).join(' ; '), logo: document.querySelector('.ent-logo')?.alt,
-      capOcult: document.querySelector('.adhesio h2').offsetParent !== null,
+      adhesio: !!document.querySelector('#adhesio, .adh-obre, form'),
       visita: [...document.querySelectorAll('.ent-card a.btn')].map((a) => a.textContent + '|' + a.target).join() }));
     comprova(`entitats @${vp.width}px: les dues publicades, per ordre alfabètic, sense cercador ni filtres`, d.n === 2 && !d.filtres && d.noms === 'Associació Veïnal B,Col·lectiu Àrids', JSON.stringify(d));
     comprova(`entitats @${vp.width}px: enllaços en pestanya nova amb noopener i cap enllaç javascript:`, !/javascript/.test(d.enllacos) && d.enllacos.split(' ; ').length === 2 && d.enllacos.split(' ; ').every((x) => /\|_blank\|noopener/.test(x)), d.enllacos);
-    comprova(`entitats @${vp.width}px: logo amb text alternatiu i secció d’adhesió visible`, d.logo === 'Logo de Col·lectiu Àrids' && d.capOcult);
+    comprova(`entitats @${vp.width}px: logo amb text alternatiu i sense formulari d’adhesió`, d.logo === 'Logo de Col·lectiu Àrids' && !d.adhesio);
     comprova(`entitats @${vp.width}px: botó «Visita la web» en pestanya nova (només si hi ha web vàlida)`, d.visita === 'Visita la web|_blank', d.visita);
     comprova(`entitats @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
     if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/entitats-${vp.width}.png`, fullPage: true });
@@ -1527,42 +1498,31 @@ console.log('\n16. Entitats i Eines');
   }
 }
 {
-  // Tauler: l'editor crea una entitat a partir d'una sol·licitud i la publica.
+  // Tauler: l'editor crea una entitat des de zero i la publica. Les sol·licituds d'adhesió ja no hi són.
   BD = dadesInicials(); peticions = [];
-  const SOL = { id: randomUUID(), nom_entitat: 'Entitat sol·licitant', tipus: 'fundacio', municipi: 'Ultramort', descripcio: 'Desc', web: 'https://ent.exemple.cat',
-    instagram: '@ent_ex', persona_contacte: 'Pere', email: 'pere@ex.cat', telefon: null, missatge: 'Hola', consentiment: true, estat: 'nova', created_at: new Date().toISOString() };
-  BD.sollicituds_entitats.push(SOL);
+  BD.sollicituds_entitats.push({ id: randomUUID(), nom_entitat: 'Antiga', tipus: 'fundacio', municipi: 'Ultramort', descripcio: '', web: null, instagram: null,
+    persona_contacte: 'Pere', email: 'pere@ex.cat', telefon: null, missatge: '', consentiment: true, estat: 'nova', created_at: new Date().toISOString() });
   const pg = await pagina(ESCRIPTORI, true);
   await pg.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
   await pg.fill('#email', 'editor@ex.cat'); await pg.fill('#contrasenya', PW); await pg.click('#f-login button[type=submit]');
   await pg.waitForURL(/panel/);
-  await pg.goto(ORIGEN + '/area-privada/panel.html#/sollicituds', { waitUntil: 'networkidle' });
-  await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Sol·licituds d’adhesió');
-  comprova('tauler: l’editor veu la sol·licitud amb el contacte', (await pg.textContent('#vista')).includes('pere@ex.cat'));
-  await pg.click('a:has-text("Accepta i crea l’entitat")');
-  await espera(pg, () => document.getElementById('e-nom')?.value === 'Entitat sol·licitant');
-  comprova('tauler: el formulari d’entitat s’omple amb la sol·licitud', await pg.evaluate(() => document.getElementById('e-tipus').value === 'fundacio'
-    && document.getElementById('e-ig').value === 'https://www.instagram.com/ent_ex/' && document.querySelector('#menu a[aria-current=page]')?.textContent === 'Entitats'));
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats', { waitUntil: 'networkidle' });
+  await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Entitats');
+  comprova('tauler: Entitats no avisa de sol·licituds ni les consulta', !/sol·licitud/i.test(await pg.textContent('#vista')) && !peticions.some((p) => p.url.includes('sollicituds_entitats')));
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/entitat/nova');
+  await espera(pg, () => !!document.getElementById('e-nom'));
+  await pg.fill('#e-nom', 'Entitat nova'); await pg.selectOption('#e-tipus', 'fundacio'); await pg.fill('#e-mun', 'Ultramort'); await pg.fill('#e-ig', '@ent_ex');
   await pg.check('#e-pub');
   await pg.click('#vista button[type=submit]');
   await espera(pg, () => /^#\/entitat\/[0-9a-f-]{36}$/.test(location.hash));
   const ent = BD.entitats[0] || {};
-  comprova('tauler: l’entitat es crea publicada i la sol·licitud queda acceptada', ent.nom === 'Entitat sol·licitant' && ent.publicada === true && SOL.estat === 'acceptada', JSON.stringify({ ent, estat: SOL.estat }));
+  comprova('tauler: l’entitat es crea publicada amb l’Instagram normalitzat', ent.nom === 'Entitat nova' && ent.publicada === true && ent.instagram === 'https://www.instagram.com/ent_ex/', JSON.stringify(ent));
   await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
+  await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Entitats' && !!document.querySelector('#vista .item'));  await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
   await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Entitats' && !!document.querySelector('#vista .item'));
   await pg.click('#vista .item button:has-text("Despublica")');
   await espera(pg, () => !!document.querySelector('#vista .item button') && /Publica/.test(document.querySelector('#vista .item button').textContent));
   comprova('tauler: «Despublica» retira l’entitat de la web', ent.publicada === false);
-  // Rebutjar una sol·licitud
-  const SOL2 = { ...SOL, id: randomUUID(), nom_entitat: 'Una altra', estat: 'nova' };
-  BD.sollicituds_entitats.push(SOL2);
-  await pg.goto(ORIGEN + '/area-privada/panel.html#/sollicituds');
-  await espera(pg, () => !!document.querySelector('#vista button[aria-label="Rebutja la sol·licitud de Una altra"]'));
-  await pg.evaluate(() => { window.confirm = () => true; });  // accepta les confirmacions d'aquí endavant
-  await pg.click('#vista button[aria-label="Rebutja la sol·licitud de Una altra"]');
-  await espera(pg, () => /rebutjada/.test(document.getElementById('avisos').textContent));
-  comprova('tauler: «Rebutja» marca la sol·licitud com a rebutjada', SOL2.estat === 'descartada');
-  comprova('tauler: la sol·licitud acceptada ja no ofereix «Accepta»', !(await pg.$('#vista a[aria-label^="Accepta la sol·licitud de Entitat sol·licitant"]')));
   // L'editor també esborra entitats
   await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
   await espera(pg, () => !!document.querySelector('#vista .item button[aria-label^="Elimina"]'));
@@ -1618,19 +1578,18 @@ const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textConte
 {
   BD = dadesInicials(); peticions = []; pujades = [];
   BD.actes.push({ id: randomUUID(), titol: 'Acte ocult', data: '2026-12-01', hora: null, data_fi: null, quan: '', lloc: 'Albons', descripcio: '', organitza: '', cartell: null, publicada: false, updated_at: new Date().toISOString() });
-  BD.sollicituds_entitats.push({ id: randomUUID(), nom_entitat: 'Entitat nova', tipus: 'collectiu', municipi: 'Verges', descripcio: 'd', web: null, instagram: '@nova', persona_contacte: 'Pere', email: 'p@ex.cat', telefon: null, missatge: '', consentiment: true, estat: 'nova', created_at: new Date().toISOString() });
   const pg = await pagina(MOBIL, true);
   await pg.goto(ORIGEN + '/app/', { waitUntil: 'networkidle' });
   comprova('app: sense sessió, pantalla d’accés', !!(await pg.$('#a-email')) && !(await pg.$('.app-blocs')));
   await pg.fill('#a-email', 'editor@ex.cat'); await pg.fill('#a-pw', 'dolenta-123'); await pg.click('form button[type=submit]');
   comprova('app: contrasenya incorrecta → missatge clar', await espera(pg, () => /Correu o contrasenya incorrectes/.test(document.getElementById('avisos').textContent)));
   await pg.fill('#a-pw', PW); await pg.click('form button[type=submit]'); await pg.waitForSelector('.app-blocs');
-  comprova('app (editor): blocs Notícies, Agenda, Entitats, Eines, Sol·licituds, Documents i El meu perfil (sense Usuaris)',
-    (await blocs(pg)).join() === 'Notícies,Agenda,Entitats,Eines,Sol·licituds d’adhesió,Documents,El meu perfil', (await blocs(pg)).join());
-  await espera(pg, () => [...document.querySelectorAll('.app-compte')].filter((c) => !c.hidden).length >= 3);
+  comprova('app (editor): blocs Notícies, Agenda, Entitats, Eines, Documents i El meu perfil (sense Sol·licituds ni Usuaris)',
+    (await blocs(pg)).join() === 'Notícies,Agenda,Entitats,Eines,Documents,El meu perfil', (await blocs(pg)).join());
+  await espera(pg, () => [...document.querySelectorAll('.app-compte')].filter((c) => !c.hidden).length >= 2);
   const comptes = await pg.$$eval('.app-bloc', (l) => l.map((b) => b.querySelector('.app-bloc-nom').textContent + ':' + (b.querySelector('.app-compte:not([hidden])')?.textContent || '')));
-  comprova('app: comptadors de pendents (notícies en revisió, actes ocults, sol·licituds noves)', comptes.includes('Notícies:1 en revisió') && comptes.includes('Agenda:1 ocult')
-    && comptes.includes('Sol·licituds d’adhesió:1 nova'), comptes.join(' | '));
+  comprova('app: comptadors de pendents (notícies en revisió, actes ocults) i cap de sol·licituds', comptes.includes('Notícies:1 en revisió') && comptes.includes('Agenda:1 ocult')
+    && !comptes.some((c) => /Sol·licitud/.test(c)) && !peticions.some((p) => p.url.includes('sollicituds_entitats')), comptes.join(' | '));
   comprova('app: sense desbordament a 390 px i sense l’avís d’error d’abans d’entrar', (await desbordament(pg)) <= 0 && !(await pg.textContent('#avisos')));
   if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/app-inici.png`, fullPage: true });
   // Agenda: llista, pestanyes, + Nou, formulari amb foto comprimida, borrador, publicar
@@ -1680,15 +1639,16 @@ const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textConte
   await pg.fill('#f-nota', 'Falta la font.'); await pg.click('button:has-text("Confirma el retorn")');
   const pend = BD.publicacions.find((x) => x.titol === 'Pendent del Carles');
   comprova('app: «Retorna a l’autor» amb la nota', await espera(pg, () => /Retornada/.test(document.getElementById('avisos').textContent)) && pend.estat === 'retornat' && pend.nota_revisio === 'Falta la font.');
-  // Sol·licituds: Accepta → formulari d'entitat ple → en desar queda acceptada
-  await pg.goto(ORIGEN + '/app/#/sollicituds'); await pg.waitForSelector('#app-llista .app-targeta');
-  await pg.click('#app-llista .app-targeta'); await pg.click('a:has-text("Accepta i crea l’entitat")'); await pg.waitForSelector('#f-nom');
-  comprova('app: «Accepta» omple l’entitat amb la sol·licitud', (await pg.inputValue('#f-nom')) === 'Entitat nova' && (await pg.inputValue('#f-tipus')) === 'collectiu');
+  // Sol·licituds: el bloc ja no existeix; les entitats es creen des de «+ Nova entitat»
+  await pg.goto(ORIGEN + '/app/#/sollicituds'); await pg.waitForSelector('#vista h1');
+  comprova('app: #/sollicituds ja no és cap secció', (await pg.textContent('#vista h1')) === 'No hem trobat aquesta secció.');
+  await pg.goto(ORIGEN + '/app/#/entitats'); await pg.waitForSelector('.app-nou');
+  await pg.click('.app-nou'); await pg.waitForSelector('#f-nom');
+  await pg.fill('#f-nom', 'Entitat nova'); await pg.selectOption('#f-tipus', 'collectiu'); await pg.fill('#f-instagram', '@nova');
   await pg.click('.app-accions button:has-text("Desa")');
   await espera(pg, () => /Desat/.test(document.getElementById('avisos').textContent));
   const ent = BD.entitats.find((x) => x.nom === 'Entitat nova') || {};
-  comprova('app: l’entitat es crea oculta amb l’Instagram normalitzat i la sol·licitud queda acceptada', ent.publicada !== true && ent.instagram === 'https://www.instagram.com/nova/'
-    && BD.sollicituds_entitats[0].estat === 'acceptada', JSON.stringify(ent));
+  comprova('app: l’entitat es crea oculta amb l’Instagram normalitzat', ent.publicada !== true && ent.instagram === 'https://www.instagram.com/nova/', JSON.stringify(ent));
   // Perfil i tancar la sessió
   await pg.goto(ORIGEN + '/app/#/perfil'); await pg.waitForSelector('button:has-text("Tanca la sessió")');
   comprova('app: el perfil mostra el rol', /Editor/.test(await pg.textContent('.app-dades')));

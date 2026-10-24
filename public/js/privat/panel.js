@@ -1,5 +1,5 @@
 /* Tauler de l'àrea privada (rutes per hash: #/inici, #/nova, #/editar/<id>, #/meves, #/revisio,
-   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/eines, #/eina/<id|nova>,
+   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>, #/eines, #/eina/<id|nova>,
    #/documents, #/usuaris).
    El rol es llegeix SEMPRE de la taula profiles. El menú només s'hi adapta per comoditat:
    qui decideix què es pot fer són les polítiques RLS i els triggers de la base de dades. */
@@ -17,7 +17,6 @@
     xarxa: 'Xarxa d’entitats', altres: 'Altres' };
   // Mateixa llista que el check de supabase/schema.sql i que js/eines.js.
   var CAT_EINA = { urbanisme: 'Urbanisme', energia: 'Energia', paisatge: 'Paisatge', medi_natural: 'Medi natural', altres: 'Altres' };
-  var ESTATS_SOL = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Rebutjada' };
   var MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
   var SENSE_PERMIS = 'No tens permís per fer aquesta acció.';
   var jo = null, torn = 0, sb = P.client();
@@ -30,7 +29,6 @@
     { r: 'totes', t: 'Totes les publicacions', rols: EDITA, f: vTotes },
     { r: 'entitats', t: 'Entitats', rols: EDITA, f: vEntitats },
     { r: 'entitat', t: 'Entitat', rols: EDITA, f: vEntitat, pare: 'entitats' },
-    { r: 'sollicituds', t: 'Sol·licituds d’adhesió', rols: EDITA, f: vSollicituds },
     { r: 'eines', t: 'Eines', rols: EDITA, f: vEines },
     { r: 'eina', t: 'Eina', rols: EDITA, f: vEina, pare: 'eines' },
     { r: 'documents', t: 'Documents', rols: TOTS, f: vDocuments },
@@ -424,7 +422,6 @@
   async function vEntitats(t) {
     var r = await sb.from('entitats').select('id,nom,tipus,municipi,publicada,logo,updated_at').order('nom');
     if (r.error) throw r.error;
-    var pend = await sb.from('sollicituds_entitats').select('id', { count: 'exact', head: true }).eq('estat', 'nova');
     var items = (r.data || []).map(function (e) {
       return el('li', { class: 'item' }, [
         el('h3', null, [e.nom]),
@@ -448,28 +445,21 @@
       el('h1', null, ['Entitats']),
       el('p', null, ['Entitats que es mostren a la pàgina pública ', el('a', { href: '/recursos.html#entitats', target: '_blank', rel: 'noopener' }, ['Entitats']),
         '. Només hi surten les publicades.']),
-      !pend.error && pend.count ? el('p', { class: 'msg' }, ['Hi ha ', el('strong', null, [String(pend.count)]),
-        pend.count === 1 ? ' sol·licitud d’adhesió nova. ' : ' sol·licituds d’adhesió noves. ', enllacRuta('Revisa-les', 'sollicituds')]) : null,
       el('p', { class: 'destacat' }, [enllacRuta('Afegeix una entitat', 'entitat/nova', 'btn')]),
       items.length ? el('ul', { class: 'llista' }, items) : buit('Encara no hi ha cap entitat.')
     ]);
   }
 
-  async function vEntitat(t, id, deSol) {
-    var e = null, sol = null;
+  async function vEntitat(t, id) {
+    var e = null;
     if (id && id !== 'nova') {
       if (!S.esUuid(id)) { pinta(t, [el('h1', null, ['No hem trobat aquesta entitat.'])]); return; }
       var r = await sb.from('entitats').select('*').eq('id', id).maybeSingle();
       if (r.error) throw r.error;
       if (!r.data) { pinta(t, [el('h1', null, ['No hem trobat aquesta entitat.']), el('p', null, [enllacRuta('Torna a Entitats', 'entitats')])]); return; }
       e = r.data;
-    } else if (deSol && S.esUuid(deSol)) {
-      var rs = await sb.from('sollicituds_entitats').select('*').eq('id', deSol).maybeSingle();
-      if (rs.error) throw rs.error;
-      sol = rs.data;
     }
-    var ini = e || (sol ? { nom: sol.nom_entitat, tipus: sol.tipus, municipi: sol.municipi, descripcio: sol.descripcio,
-      web: /^https:\/\//i.test(sol.web || '') ? sol.web : '', instagram: urlInstagram(sol.instagram) || '' } : {});
+    var ini = e || {};
     var logoActual = e ? e.logo : null, fitxerNou = null, treure = false;
 
     var fNom = el('input', { id: 'e-nom', type: 'text', maxlength: 200, required: true, value: ini.nom || '' });
@@ -524,7 +514,6 @@
         var res = e ? await escriu(sb.from('entitats').update(dades).eq('id', e.id)) : await escriu(sb.from('entitats').insert(dades));
         if (!res) { if (pujada) esborraImatge(pujada); return; }
         if (logoActual && logoActual !== logo) esborraImatge(logoActual);
-        if (sol && sol.estat !== 'acceptada') await sb.from('sollicituds_entitats').update({ estat: 'acceptada' }).eq('id', sol.id);
         avis(dades.publicada ? 'Desat. L’entitat ja es veu a la web.' : 'Desat. L’entitat encara no és pública.');
         if (!e) location.hash = '#/entitat/' + res[0].id; else refresca();
       } catch (err) {
@@ -554,47 +543,8 @@
       el('p', { class: 'kicker' }, ['Entitat']),
       el('h1', null, [e ? e.nom : 'Nova entitat']),
       e ? el('p', null, ['Estat: ', estatEnt(e.publicada)]) : null,
-      sol ? el('p', { class: 'msg' }, ['Dades omplertes a partir de la sol·licitud de ' + sol.persona_contacte + '. Revisa-les abans de publicar: en desar, la sol·licitud es marca com a acceptada.']) : null,
       form
     ])) pintaLogo();
-  }
-
-  async function vSollicituds(t) {
-    var r = await sb.from('sollicituds_entitats').select('*').order('created_at', { ascending: false });
-    if (r.error) throw r.error;
-    var items = (r.data || []).map(function (s) {
-      var web = /^https?:\/\//i.test(s.web || '') ? S.enllac(s.web) : '';
-      var dades = [
-        ['Tipus', TIPUS_ENT[s.tipus] || s.tipus], ['Municipi', s.municipi], ['Descripció', s.descripcio],
-        ['Web', web ? el('a', { href: web, target: '_blank', rel: 'noopener noreferrer' }, [s.web]) : s.web],
-        ['Instagram', s.instagram], ['Contacte', s.persona_contacte],
-        ['Correu', el('a', { href: 'mailto:' + s.email }, [s.email])], ['Telèfon', s.telefon], ['Missatge', s.missatge]
-      ].filter(function (x) { return x[1]; });
-      return el('li', { class: 'item' }, [
-        el('h3', null, [s.nom_entitat]),
-        el('div', { class: 'meta' }, [el('span', { class: 'estat ' + ({ nova: 'pendent', acceptada: 'publicat', descartada: 'arxivat' }[s.estat] || '') }, [ESTATS_SOL[s.estat] || s.estat]),
-          el('span', null, ['Rebuda el ' + data(s.created_at)])]),
-        el('dl', { class: 'dades-sol' }, dades.reduce(function (a, x) { return a.concat([el('dt', null, [x[0]]), el('dd', null, [x[1]])]); }, [])),
-        el('div', { class: 'accions' }, [
-          s.estat !== 'acceptada' ? el('a', { href: '#/entitat/nova/' + s.id, class: 'btn v petit', 'aria-label': 'Accepta la sol·licitud de ' + s.nom_entitat + ' i crea l’entitat' }, ['Accepta i crea l’entitat']) : null,
-          s.estat !== 'descartada' ? boto('Rebutja', 'o', async function () {
-            if (!window.confirm('Rebutjar la sol·licitud de «' + s.nom_entitat + '»? No es publicarà res.')) return;
-            var ok = await escriu(sb.from('sollicituds_entitats').update({ estat: 'descartada' }).eq('id', s.id));
-            if (ok) { avis('Sol·licitud rebutjada.'); refresca(); }
-          }, { 'aria-label': 'Rebutja la sol·licitud de ' + s.nom_entitat }) : null,
-          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
-            if (!window.confirm('Segur que vols eliminar la sol·licitud de «' + s.nom_entitat + '»? S’esborraran també les dades de contacte.')) return;
-            var d = await escriu(sb.from('sollicituds_entitats').delete().eq('id', s.id));
-            if (d) { avis('Sol·licitud eliminada.'); refresca(); }
-          }, { 'aria-label': 'Elimina la sol·licitud de ' + s.nom_entitat }) : null
-        ])
-      ]);
-    });
-    pinta(t, [
-      el('h1', null, ['Sol·licituds d’adhesió']),
-      el('p', null, ['Enviades des del formulari de la pàgina Entitats, de la més nova a la més antiga. «Accepta» obre el formulari de l’entitat amb les dades omplertes: revisa-les i desa (no es publica fins que marquis «Publicada»). Les dades de contacte són privades: no les publiquis ni les comparteixis. Esborra les sol·licituds resoltes quan ja no calguin (com a màxim, un any després).']),
-      items.length ? el('ul', { class: 'llista' }, items) : buit('No hi ha cap sol·licitud.')
-    ]);
   }
 
   // ---------- Eines (admin i editor) ----------

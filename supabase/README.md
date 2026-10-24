@@ -56,24 +56,24 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 *(Opcional)* Para enviar invitaciones a mucha gente con fiabilidad, configura un SMTP propio en *Project Settings → Authentication → SMTP Settings*. El correo por defecto de Supabase tiene límites muy bajos (unos pocos correos por hora) y está pensado solo para pruebas.
 
-## Entitats y formulario de adhesión (octubre 2026)
+## Entitats (octubre 2026)
 
 `schema.sql` añade dos tablas. **Vuelve a ejecutar `schema.sql` entero** en *SQL Editor* (es idempotente) para crearlas:
 
 - `entitats`: el índice público de `/recursos.html#entitats`. Lectura pública **solo** de las filas con `publicada = true` (RLS). Solo Administrador y Editor crean, editan, publican y eliminan (panel → *Entitats*). El logo se sube al bucket `portades`.
-- `sollicituds_entitats`: el formulario «La teva entitat vol adherir-s'hi?». Cualquiera puede insertar (sin poder leer nada); solo Administrador y Editor las ven y cambian su estado (panel → *Sol·licituds d'adhesió*), y las aceptan (se abre la ficha de la entidad con los datos ya rellenados) o rechazan. Antispam: casilla de consentimiento obligatoria, campo trampa y tiempo mínimo en el navegador, y en la base de datos un máximo de 3 solicitudes por correo y día y de 20 por hora en total.
+- `sollicituds_entitats`: las solicitudes del antiguo formulario «La teva entitat vol adherir-s'hi?». **Formulario retirado (octubre 2026)**: las entitats solo se añaden desde la app. La tabla y sus datos se conservan por si se recupera, pero nadie puede insertar desde la web (sin permiso de inserción y con la política restrictiva `sol_tancades`). Si ya tenías la base de datos en marcha, ejecuta `supabase/sollicituds-tancades.sql` (no borra nada y se puede ejecutar varias veces). Las que ya hay solo las ven Administrador y Editor en *Table Editor*.
 
 - `eines`: los visores de `/recursos.html#eines` (nombre, organismo, descripción, URL `https://`, categoría, orden y publicada). Lectura pública **solo** de las publicadas; solo Administrador y Editor crean, editan, ordenan, publican y eliminan (panel → *Eines*).
 
-**Si ya tienes la base de datos en marcha**, en lugar de volver a ejecutar `schema.sql` entero puedes ejecutar solo `supabase/entitats-i-eines.sql`: crea o completa Entitats, las solicitudes de adhesión y Eines (tablas, permisos, políticas RLS y validaciones), corrige las validaciones de web, correo y URL, y añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir) si no existe. Se puede ejecutar varias veces sin errores ni duplicados. Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
+**Si ya tienes la base de datos en marcha**, en lugar de volver a ejecutar `schema.sql` entero puedes ejecutar solo `supabase/entitats-i-eines.sql`: crea o completa Entitats, la tabla (cerrada) de solicitudes de adhesión y Eines (tablas, permisos, políticas RLS y validaciones), corrige las validaciones de web, correo y URL, y añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir) si no existe. Se puede ejecutar varias veces sin errores ni duplicados. Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
 
 **Formulario de contacto: retirado (octubre 2026).** La página Contacte ya no tiene formulario ni la zona privada la sección de mensajes. La tabla `missatges_contacte` (si la creaste con `supabase/contacte.sql`) se conserva con lo que haya; se puede consultar en *Table Editor* y, cuando ya no haga falta, vaciarla o eliminarla a mano.
 
-Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
+Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides».
 
 ## App de la zona privada (`/app`, octubre 2026)
 
-La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Entitats, Eines, Sol·licituds d'adhesió, Usuaris —solo admin—, Documents y El meu perfil), listas por estado, formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).
+La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Entitats, Eines, Usuaris —solo admin—, Documents y El meu perfil), listas por estado, formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).
 
 Para la **Agenda** hay que ejecutar `supabase/app.sql` (crea la tabla `actes` y copia en ella los tres actos que había en la web; se puede repetir). Mientras no exista la tabla, la web sigue mostrando la agenda escrita en el HTML.
 
@@ -81,8 +81,8 @@ Para la **Agenda** hay que ejecutar `supabase/app.sql` (crea la tabla `actes` y 
 
 | Rol | Puede |
 |---|---|
-| Administrador | Todo (también eliminar sol·licituds d'adhesió): usuarios y roles, activar/desactivar cuentas, publicar, archivar, eliminar, documentos y permisos. No puede quitarse a sí mismo el rol de admin ni desactivarse, y nunca puede quedar el sistema sin un admin activo. |
-| Editor | Ver todas las publicaciones, editarlas, publicarlas, devolverlas con nota y archivarlas. Crear, editar, publicar, despublicar y eliminar **entitats** y **eines**, y aceptar o rechazar las **sol·licituds d'adhesió** (no las elimina). No elimina ni gestiona usuarios ni documentos. Ve el nombre de los autores, no su correo. |
+| Administrador | Todo: usuarios y roles, activar/desactivar cuentas, publicar, archivar, eliminar, documentos y permisos. No puede quitarse a sí mismo el rol de admin ni desactivarse, y nunca puede quedar el sistema sin un admin activo. |
+| Editor | Ver todas las publicaciones, editarlas, publicarlas, devolverlas con nota y archivarlas. Crear, editar, publicar, despublicar y eliminar **entitats** y **eines**. No elimina ni gestiona usuarios ni documentos. Ve el nombre de los autores, no su correo. |
 | Col·laborador de notícies | Crear borradores propios y enviarlos a revisión. Solo edita sus textos en estado «Esborrany» o «Retornat». No puede publicar. |
 | Usuari de consulta | Ver los documentos internos a los que el admin le dé acceso. |
 

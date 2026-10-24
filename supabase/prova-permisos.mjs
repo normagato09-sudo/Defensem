@@ -295,38 +295,33 @@ comprova('editor esborra entitats', await afecta(E, 'delete from entitats where 
 const ENT3 = await novaEnt(E, { nom: 'Per esborrar' });
 comprova('admin esborra entitats', await afecta(A, 'delete from entitats where id = $1', [ENT3]) === 1);
 
-console.log('\nSol·licituds d\'adhesió');
-const sol = (u, camps = {}) => afecta(u, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ($1,$2,$3,$4,$5,$6)`, [camps.nom || 'Associació X', camps.tipus || 'associacio', camps.municipi || 'Albons',
-  camps.persona || 'Persona', camps.email || 'contacte@ex.cat', camps.consentiment === undefined ? true : camps.consentiment]);
-comprova('anònim envia una sol·licitud', await sol(null) === 1);
-comprova('anònim envia una sol·licitud amb web i Instagram', await afecta(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment, web, instagram)
-  values ('Amb web','xarxa','Albons','P','web@ex.cat', true, 'https://www.exemple.cat', '@nom')`) === 1);
+console.log('\nSol·licituds d\'adhesió (tancades: la taula i les dades es conserven)');
+const INS_SOL = `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
+  values ('Associació X','associacio','Albons','Persona','contacte@ex.cat', true)`;
+comprova('anònim NO pot enviar sol·licituds', await falla(null, INS_SOL));
+comprova('usuari de l\'àrea privada NO pot enviar sol·licituds', await falla(E, INS_SOL) && await falla(A, INS_SOL));
+// Una base de dades amb el formulari obert (com abans) queda tancada amb sollicituds-tancades.sql, sense perdre dades.
+await su(`grant insert (nom_entitat, tipus, municipi, descripcio, web, instagram, persona_contacte, email, telefon, missatge, consentiment)
+  on sollicituds_entitats to anon, authenticated`);
+await su('drop policy if exists sol_tancades on sollicituds_entitats');
+await su('create policy sol_insert on sollicituds_entitats for insert to anon, authenticated with check (consentiment)');
+comprova('(abans) el formulari obert acceptava sol·licituds', await afecta(null, INS_SOL) === 1);
+const TANCA = readFileSync(new URL('./sollicituds-tancades.sql', import.meta.url), 'utf8');
+await db.exec(TANCA); await db.exec(TANCA);
+comprova('sollicituds-tancades.sql s\'executa dues vegades sense errors i les tanca', await falla(null, INS_SOL) && await falla(E, INS_SOL));
+await db.exec(ESQUEMA);
+comprova('tornar a executar schema.sql no les reobre', await falla(null, INS_SOL));
+comprova('les sol·licituds rebudes es conserven', (await su('select count(*)::int n from sollicituds_entitats'))[0].n === 1);
 comprova('anònim NO llegeix sol·licituds', await falla(null, 'select * from sollicituds_entitats'));
-comprova('sense consentiment es rebutja', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ('x','associacio','Albons','P','a@ex.cat', false)`));
-comprova('correu no vàlid rebutjat', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ('x','associacio','Albons','P','no-es-correu', true)`));
-comprova('anònim NO pot fixar l\'estat', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment, estat)
-  values ('x','associacio','Albons','P','b@ex.cat', true, 'acceptada')`));
-comprova('el correu es desa en minúscules', (await su("select email from sollicituds_entitats where nom_entitat = 'Associació X' limit 1"))[0].email === 'contacte@ex.cat');
-await sol(null, { email: 'Repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' });
-comprova('màxim 3 sol·licituds per correu i dia', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ('x','associacio','Albons','P','REPETIT@ex.cat', true)`));
 comprova('col·laborador NO llegeix sol·licituds', (await files(C, 'select id from sollicituds_entitats')).length === 0);
 comprova('consulta NO llegeix sol·licituds', (await files(Q, 'select id from sollicituds_entitats')).length === 0);
 const S1 = (await files(E, 'select id from sollicituds_entitats order by created_at limit 1'))[0]?.id;
-comprova('editor llegeix sol·licituds', !!S1);
+comprova('editor llegeix les sol·licituds rebudes', !!S1);
 comprova('editor canvia l\'estat', await afecta(E, "update sollicituds_entitats set estat = 'revisada' where id = $1", [S1]) === 1);
 comprova('editor NO modifica les dades enviades', await falla(E, "update sollicituds_entitats set email = 'x@ex.cat' where id = $1", [S1]));
 comprova('col·laborador NO canvia l\'estat', await bloquejat(C, "update sollicituds_entitats set estat = 'acceptada' where id = $1", [S1]));
 comprova('editor NO esborra sol·licituds', await bloquejat(E, 'delete from sollicituds_entitats where id = $1', [S1]));
 comprova('admin esborra sol·licituds', await afecta(A, 'delete from sollicituds_entitats where id = $1', [S1]) === 1);
-for (let i = 0; (await su("select count(*)::int n from sollicituds_entitats where created_at > now() - interval '1 hour'"))[0].n < 20; i++)
-  await su(`insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ('x','associacio','Albons','P',$1, true)`, ['massiu' + i + '@ex.cat']);
-comprova('límit global de 20 sol·licituds per hora', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
-  values ('x','associacio','Albons','P','nou@ex.cat', true)`));
 
 console.log('\nEines');
 const novaEina = (u, camps = {}) => com(u, 'insert into eines (nom, url, categoria, ordre, publicada) values ($1,$2,$3,$4,$5) returning id',

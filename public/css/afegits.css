@@ -115,12 +115,6 @@ footer .small a{color:var(--color-fons)}
    Pàgines de llistat: fan servir l'amplada completa (.doc es queda a 800 px per als textos legals). */
 .doc.ent,.doc.eines{max-width:1080px}
 .doc.ent .intro,.doc.eines .intro{margin:0 0 8px}
-/* Camps de formulari de la web pública (sempre clars, mai els colors del sistema) */
-.camp-public{margin:0 0 16px;min-width:0}
-.camp-public label,.form-public legend{display:block;font-weight:700;margin-bottom:6px}
-.camp-public input,.camp-public select,.camp-public textarea{width:100%;min-height:48px;padding:10px 12px;border:2px solid var(--color-text);border-radius:0;background:#fff;color:var(--color-text);font:400 1rem/1.5 var(--font-defensem)}
-.camp-public textarea{min-height:110px;resize:vertical}
-.camp-public input:focus-visible,.camp-public select:focus-visible,.camp-public textarea:focus-visible,.consent input:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:2px}
 .ajuda{display:block;font-size:.9rem;color:var(--color-text-suau);margin-top:4px}
 .ent-filtres{display:grid;grid-template-columns:2fr 1fr 1fr;gap:0 16px;margin-top:28px;padding:16px 16px 0;background:var(--color-fons-fosc);border:2px solid var(--color-text)}
 .ent-filtres[hidden]{display:none}
@@ -139,26 +133,6 @@ footer .small a{color:var(--color-fons)}
 .ent-enllacos .btn{min-height:44px;padding:9px 16px;font-size:.85rem;color:#fff}
 .ent-buit{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
 .ent-buit p{margin:0}
-/* Formulari d'adhesió */
-.adhesio{margin-top:clamp(40px,7vw,72px);padding-top:clamp(28px,5vw,40px);border-top:2px solid var(--color-text)}
-.adhesio h2{margin-top:0}
-.adhesio.nomes-form{margin-top:16px;padding-top:0;border-top:0}
-.adhesio.nomes-form>h2,.adhesio.nomes-form>p{display:none}
-.form-public{max-width:800px;margin-top:20px;padding:clamp(18px,4vw,28px);background:var(--color-fons);border:2px solid var(--color-text);box-shadow:8px 8px 0 var(--color-defensem-verd)}
-.form-public[hidden]{display:none}
-.form-public fieldset{border:0;padding:0;margin:0 0 12px;min-width:0}
-.form-public legend{font:800 1.15rem var(--font-defensem);color:var(--color-verd-text);margin-bottom:12px;padding:0}
-.graella-public{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:0 16px}
-.parany{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
-.info-rgpd{background:var(--color-fons-fosc);border-left:5px solid var(--color-defensem-verd);padding:12px 14px;font-size:.88rem;line-height:1.55;margin:4px 0 14px}
-.info-rgpd p{margin:0;max-width:none}
-.info-rgpd a{color:var(--color-verd-text);font-weight:700}
-.consent{display:flex;gap:12px;align-items:flex-start;font-size:.95rem;cursor:pointer}
-.consent input{flex:none;width:22px;height:22px;margin-top:2px;accent-color:var(--color-verd-fosc)}
-.msg-public{border-left:5px solid var(--color-defensem-verd);background:var(--color-fons-fosc);padding:12px 14px;margin:0 0 16px;font-weight:600}
-.msg-public.error{border-left-color:var(--color-defensem-vermell)}
-.msg-public:empty{display:none}
-.msg-public:focus{outline:none}
 /* Eines */
 .eines-filtre{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
 .eines-filtre[hidden]{display:none}
