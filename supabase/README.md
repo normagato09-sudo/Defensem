@@ -67,6 +67,8 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 **Si ya tienes la base de datos en marcha**, en lugar de volver a ejecutar `schema.sql` entero puedes ejecutar solo `supabase/entitats-i-eines.sql`: crea o completa Entitats, las solicitudes de adhesión y Eines (tablas, permisos, políticas RLS y validaciones), corrige las validaciones de web, correo y URL, y añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir) si no existe. Se puede ejecutar varias veces sin errores ni duplicados. Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
 
+**Formulario de contacto (`/contacte.html`).** Guarda los mensajes en la tabla `missatges_contacte`: cualquiera puede enviar (sin leer nada); Administrador y Editor los leen y los marcan como leídos o respondidos (panel → *Missatges de contacte*); solo Administrador los elimina. Para crearla basta con ejecutar `supabase/contacte.sql` (no toca nada más y se puede repetir).
+
 Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 
 ## Roles

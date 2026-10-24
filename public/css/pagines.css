@@ -1,0 +1,96 @@
+/* Web en pàgines (octubre 2026): capçalera i peu comuns (/js/marc.js), capçalera pròpia de cada pàgina interior,
+   portada-resum i elements compartits. Va DESPRÉS de site.css i afegits.css i només fa servir les variables
+   de la Bíblia d'estils (fons #f1f0ee, verd #298d3b, vermell #da1415). */
+
+/* ---------- Capçalera comuna ---------- */
+header.cap .bar{gap:16px}
+header.cap nav{margin-left:auto}
+header.cap nav ul{gap:20px}
+header.cap nav a{font-size:.92rem}
+header.cap nav a[aria-current=page]{color:var(--color-defensem-vermell);text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:8px}
+.btn-peticio{flex:none;min-height:44px;padding:9px 16px;font-size:.82rem;white-space:nowrap}
+/* Menú hamburguesa fins a 1060 px: amb set enllaços i el botó de la petició, no hi caben en una fila. */
+@media(max-width:1060px){
+  header.cap #mb{display:block;flex:none}
+  header.cap nav{display:none;position:absolute;left:0;right:0;top:100%;margin:0;background:var(--color-fons);border-bottom:2px solid var(--color-text);padding:10px clamp(16px,4vw,32px) 20px;box-shadow:0 12px 24px rgba(30,30,28,.12)}
+  header.cap nav.open{display:block}
+  header.cap nav ul{flex-direction:column;align-items:stretch;gap:0}
+  header.cap nav li a{display:block;padding:12px 0;font-size:1.1rem;border-bottom:1px solid var(--color-fons-fosc)}
+  header.cap nav a[aria-current=page]{text-decoration:none;box-shadow:inset 4px 0 0 var(--color-defensem-vermell);padding-left:12px}
+  .btn-peticio{margin-left:auto}
+}
+@media(max-width:520px){
+  header.cap .bar{gap:8px}
+  header.cap .logo{font-size:.95rem;line-height:1.05}
+  header.cap .logo b{display:block}
+  .btn-peticio{padding:8px 10px;font-size:.72rem;letter-spacing:.02em}
+  header.cap #mb{padding:8px 10px;font-size:.8rem}
+}
+
+/* ---------- Capçalera pròpia de cada pàgina interior ---------- */
+.cap-pagina{position:relative;overflow:hidden;background:var(--color-fons-fosc);border-bottom:2px solid var(--color-text);padding:clamp(36px,6vw,64px) 0 clamp(30px,5vw,52px)}
+.cap-pagina .w{position:relative;z-index:1}
+.cap-pagina .kicker{margin-bottom:4px}
+body:not(.privat) .cap-pagina h1{font-family:var(--font-titular);font-weight:400;text-transform:uppercase;letter-spacing:.01em;line-height:1.02;font-size:clamp(2.4rem,8vw,4.4rem);color:var(--color-defensem-vermell);margin:0;overflow-wrap:anywhere}
+.cap-pagina h1 span{color:inherit}
+.cap-pagina .frase{font-size:clamp(1.05rem,2.2vw,1.25rem);line-height:1.5;max-width:56ch;margin:14px 0 0}
+/* Il·lustració suau: els molins del cartell, molt clars, a la dreta (només en pantalles amples). */
+@media(min-width:900px){
+  .cap-pagina::after{content:"";position:absolute;right:-40px;bottom:-6px;width:520px;height:232px;background:url(/img/molins-solars.webp) right bottom/contain no-repeat;opacity:.14;pointer-events:none}
+  .cap-pagina .frase{max-width:46ch}
+}
+/* Cos de les pàgines que no fan servir <section class="s"> (Entitats, Eines) */
+.pagina-cos{padding:clamp(36px,6vw,64px) 0 clamp(52px,9vw,96px)}
+.pagina-cos .ent-filtres,.pagina-cos .eines-filtre{margin-top:0}
+/* Al projecte, la primera secció ja no fa franja (la capçalera ja és de color) */
+.cap-pagina + #el-projecte{background:transparent;border-top:0}
+
+/* ---------- Portada ---------- */
+/* QR petit de la petició sota el logo, només en escriptori (en mòbil ja hi ha el botó a tocar). El logo s'hi redueix
+   perquè la columna no passi de l'alçada del text i els molins es continuïn veient sencers. */
+.hero-lat{display:contents}
+.qr-peticio{display:none}
+@media(min-width:821px){
+  .hero-lat{display:flex;flex-direction:column;align-items:center;gap:12px;flex:none;width:clamp(260px,27vw,300px)}
+  .hero-lat .hero-logo{width:196px}
+  .qr-peticio{order:2;display:flex;align-items:center;gap:12px;align-self:stretch;padding:8px 12px 8px 8px;border:2px solid var(--color-defensem-verd);background:#fff}
+  .qr-peticio img{flex:none;display:block;width:96px;height:96px}
+  .qr-peticio p{margin:0;font-size:.85rem;line-height:1.4;color:var(--color-text-suau)}
+  .qr-peticio .qr-t{margin-bottom:4px;font:800 .9rem/1.2 var(--font-titular-verd);letter-spacing:.03em;text-transform:uppercase;color:var(--color-verd-text)}
+}
+section.resum{padding:clamp(40px,7vw,72px) 0}
+.resum-alt{background:var(--color-fons-fosc);border-block:2px solid var(--color-text)}
+.resum-cap{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+.mes-link{display:inline-flex;align-items:center;min-height:44px;font:700 .95rem var(--font-defensem);letter-spacing:.06em;text-transform:uppercase;color:var(--color-verd-text);text-decoration:none;border-bottom:2px solid var(--color-verd-text)}
+.mes-link:hover{color:var(--color-defensem-vermell);border-color:var(--color-defensem-vermell)}
+.resum .news{margin-top:24px}
+.propers-llista{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:24px}
+.propers-llista li{display:flex}
+.card.proper{flex:1;color:inherit;text-decoration:none;transition:box-shadow .15s}
+.card.proper:hover,.card.proper:focus-visible{box-shadow:6px 6px 0 var(--color-defensem-verd)}
+.card.proper .lloc{flex:none;font-weight:700;color:var(--color-text)}
+.propers .agenda-buit{margin-top:24px}
+.accessos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:20px}
+.accessos li{display:flex}
+.acces{flex:1;display:flex;flex-direction:column;gap:8px;padding:20px;border:2px solid var(--color-text);background:var(--color-fons);color:inherit;text-decoration:none;box-shadow:6px 6px 0 var(--color-defensem-verd);transition:transform .15s,box-shadow .15s}
+.acces:hover,.acces:focus-visible{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--color-defensem-vermell)}
+.acces h3{font-size:1.25rem;color:var(--color-defensem-vermell)}
+.acces p{margin:0;flex:1;font-size:.98rem;line-height:1.5;color:var(--color-text-suau)}
+.acces-fletxa{font:800 1.4rem/1 var(--font-defensem);color:var(--color-verd-text)}
+@media(prefers-reduced-motion:reduce){.acces,.card.proper{transition:none}.acces:hover,.acces:focus-visible{transform:none}}
+
+/* ---------- Notícies: paginació ---------- */
+.paginacio{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.paginacio[hidden]{display:none}
+.paginacio .pag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:6px 12px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .95rem var(--font-defensem);text-decoration:none}
+.paginacio .pag:hover{border-color:var(--color-defensem-verd);color:var(--color-verd-text)}
+.paginacio .pag[aria-current=page]{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+
+/* ---------- Contacte: formulari ---------- */
+.contacte-esq{min-width:0}
+.form-contacte{margin-top:28px;max-width:none}
+.form-contacte h2{font-size:1.5rem;margin:0 0 14px}
+
+/* Primera secció després de la capçalera de pàgina: menys aire a dalt i sense marge extra al primer bloc */
+.cap-pagina + section.s{padding-top:clamp(36px,6vw,64px)}
+.cap-pagina + section.s > .w > :first-child{margin-top:0}

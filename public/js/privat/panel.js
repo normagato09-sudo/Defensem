@@ -1,5 +1,5 @@
 /* Tauler de l'àrea privada (rutes per hash: #/inici, #/nova, #/editar/<id>, #/meves, #/revisio,
-   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/eines, #/eina/<id|nova>,
+   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/missatges, #/eines, #/eina/<id|nova>,
    #/documents, #/usuaris).
    El rol es llegeix SEMPRE de la taula profiles. El menú només s'hi adapta per comoditat:
    qui decideix què es pot fer són les polítiques RLS i els triggers de la base de dades. */
@@ -31,6 +31,7 @@
     { r: 'entitats', t: 'Entitats', rols: EDITA, f: vEntitats },
     { r: 'entitat', t: 'Entitat', rols: EDITA, f: vEntitat, pare: 'entitats' },
     { r: 'sollicituds', t: 'Sol·licituds d’adhesió', rols: EDITA, f: vSollicituds },
+    { r: 'missatges', t: 'Missatges de contacte', rols: EDITA, f: vMissatges },
     { r: 'eines', t: 'Eines', rols: EDITA, f: vEines },
     { r: 'eina', t: 'Eina', rols: EDITA, f: vEina, pare: 'eines' },
     { r: 'documents', t: 'Documents', rols: TOTS, f: vDocuments },
@@ -594,6 +595,42 @@
       el('h1', null, ['Sol·licituds d’adhesió']),
       el('p', null, ['Enviades des del formulari de la pàgina Entitats, de la més nova a la més antiga. «Accepta» obre el formulari de l’entitat amb les dades omplertes: revisa-les i desa (no es publica fins que marquis «Publicada»). Les dades de contacte són privades: no les publiquis ni les comparteixis. Esborra les sol·licituds resoltes quan ja no calguin (com a màxim, un any després).']),
       items.length ? el('ul', { class: 'llista' }, items) : buit('No hi ha cap sol·licitud.')
+    ]);
+  }
+
+  // ---------- Missatges del formulari de contacte (admin i editor) ----------
+  var ESTATS_MSG = { nou: 'Nou', llegit: 'Llegit', respost: 'Respost' };
+  async function vMissatges(t) {
+    var r = await sb.from('missatges_contacte').select('*').order('created_at', { ascending: false });
+    if (r.error) throw r.error;
+    var items = (r.data || []).map(function (m) {
+      function marca(estat, text) {
+        return m.estat === estat ? null : boto(text, 'o fosc', async function () {
+          var ok = await escriu(sb.from('missatges_contacte').update({ estat: estat }).eq('id', m.id));
+          if (ok) { avis('Missatge marcat com a ' + ESTATS_MSG[estat].toLowerCase() + '.'); refresca(); }
+        }, { 'aria-label': text + ': missatge de ' + m.nom });
+      }
+      return el('li', { class: 'item' }, [
+        el('h3', null, [m.nom]),
+        el('div', { class: 'meta' }, [el('span', { class: 'estat ' + ({ nou: 'pendent', respost: 'publicat' }[m.estat] || '') }, [ESTATS_MSG[m.estat] || m.estat]),
+          el('span', null, ['Rebut el ' + data(m.created_at)])]),
+        el('dl', { class: 'dades-sol' }, [el('dt', null, ['Correu']), el('dd', null, [el('a', { href: 'mailto:' + m.email }, [m.email])]),
+          el('dt', null, ['Missatge']), el('dd', null, [m.missatge])]),
+        el('div', { class: 'accions' }, [
+          el('a', { href: 'mailto:' + m.email + '?subject=' + encodeURIComponent('Defensem l’Empordanet'), class: 'btn v petit' }, ['Respon per correu']),
+          marca('llegit', 'Marca com a llegit'), marca('respost', 'Marca com a respost'),
+          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
+            if (!window.confirm('Segur que vols eliminar el missatge de «' + m.nom + '»?')) return;
+            var d = await escriu(sb.from('missatges_contacte').delete().eq('id', m.id));
+            if (d) { avis('Missatge eliminat.'); refresca(); }
+          }, { 'aria-label': 'Elimina el missatge de ' + m.nom }) : null
+        ])
+      ]);
+    });
+    pinta(t, [
+      el('h1', null, ['Missatges de contacte']),
+      el('p', null, ['Enviats des del formulari de la pàgina Contacte, del més nou al més antic. Són dades personals: no les comparteixis. Esborra els missatges quan ja no calguin (com a màxim, un any després de respondre’ls).']),
+      items.length ? el('ul', { class: 'llista' }, items) : buit('No hi ha cap missatge.')
     ]);
   }
 

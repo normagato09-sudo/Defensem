@@ -351,6 +351,27 @@ comprova('col·laborador NO esborra eines', await bloquejat(C, 'delete from eine
 comprova('editor esborra eines', await afecta(E, 'delete from eines where id = $1', [EI1]) === 1);
 comprova('admin esborra eines', await afecta(A, 'delete from eines where id = $1', [EI2]) === 1);
 
+console.log('\nMissatges de contacte');
+const msg = (u, email = 'm@ex.cat', extra = {}) => afecta(u, 'insert into missatges_contacte (nom, email, missatge, consentiment) values ($1,$2,$3,$4)',
+  [extra.nom || 'Nom', email, extra.missatge || 'Hola', extra.consentiment === undefined ? true : extra.consentiment]);
+comprova('anònim envia un missatge', await msg(null) === 1);
+comprova('anònim NO llegeix missatges', await falla(null, 'select * from missatges_contacte'));
+comprova('sense consentiment es rebutja', await falla(null, 'insert into missatges_contacte (nom, email, missatge, consentiment) values ($1,$2,$3,false)', ['N', 'n@ex.cat', 'x']));
+comprova('correu no vàlid rebutjat', await falla(null, 'insert into missatges_contacte (nom, email, missatge, consentiment) values ($1,$2,$3,true)', ['N', 'no correu', 'x']));
+comprova('missatge buit rebutjat', await falla(null, "insert into missatges_contacte (nom, email, missatge, consentiment) values ('N','b@ex.cat','',true)"));
+comprova('anònim NO pot fixar l\'estat', await falla(null, "insert into missatges_contacte (nom, email, missatge, consentiment, estat) values ('N','c@ex.cat','x',true,'respost')"));
+await msg(null, 'Rep@ex.cat'); await msg(null, 'rep@ex.cat'); await msg(null, 'rep@ex.cat');
+comprova('màxim 3 missatges per correu i dia', await falla(null, "insert into missatges_contacte (nom, email, missatge, consentiment) values ('N','REP@ex.cat','x',true)"));
+comprova('col·laborador NO llegeix missatges', (await files(C, 'select id from missatges_contacte')).length === 0);
+comprova('consulta NO llegeix missatges', (await files(Q, 'select id from missatges_contacte')).length === 0);
+const M1 = (await files(E, 'select id from missatges_contacte order by created_at limit 1'))[0]?.id;
+comprova('editor llegeix missatges', !!M1);
+comprova('editor marca com a respost', await afecta(E, "update missatges_contacte set estat = 'respost' where id = $1", [M1]) === 1);
+comprova('editor NO modifica el missatge', await falla(E, "update missatges_contacte set missatge = 'x' where id = $1", [M1]));
+comprova('col·laborador NO canvia l\'estat', await bloquejat(C, "update missatges_contacte set estat = 'llegit' where id = $1", [M1]));
+comprova('editor NO esborra missatges', await bloquejat(E, 'delete from missatges_contacte where id = $1', [M1]));
+comprova('admin esborra missatges', await afecta(A, 'delete from missatges_contacte where id = $1', [M1]) === 1);
+
 console.log('\nIdempotència amb dades');
 await db.exec(ESQUEMA);
 comprova('tornar a executar l\'esquema no perd dades', (await su('select count(*)::int n from profiles'))[0].n === 7 && !!(await pub(P1)));
