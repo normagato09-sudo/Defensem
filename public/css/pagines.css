@@ -86,17 +86,20 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 .acces-fletxa{font:800 1.4rem/1 var(--font-defensem);color:var(--color-verd-text)}
 @media(prefers-reduced-motion:reduce){.acces,.card.proper{transition:none}.acces:hover,.acces:focus-visible{transform:none}}
 
-/* ---------- Notícies: paginació ---------- */
-.paginacio{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
-.paginacio[hidden]{display:none}
-.paginacio .pag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:6px 12px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .95rem var(--font-defensem);text-decoration:none}
-.paginacio .pag:hover{border-color:var(--color-defensem-verd);color:var(--color-verd-text)}
-.paginacio .pag[aria-current=page]{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
-
-/* ---------- Contacte: formulari ---------- */
-.contacte-esq{min-width:0}
-.form-contacte{margin-top:28px;max-width:none}
-.form-contacte h2{font-size:1.5rem;margin:0 0 14px}
+/* ---------- Notícies: targetes compactes i «Carrega'n més» ---------- */
+.news-compactes{grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:20px;margin-top:24px}
+.card-compacta .im{aspect-ratio:16/9}
+.card-compacta .tx{padding:14px 16px 16px;gap:6px}
+.card-compacta h3{font-size:1.12rem;line-height:1.25}
+.card-compacta h3 a{text-decoration:none;color:inherit}
+.card-compacta h3 a::after{content:"";position:absolute;inset:0}
+.card-compacta{position:relative}
+.card-compacta h3 a:hover{text-decoration:underline;text-underline-offset:3px}
+.card-compacta:focus-within{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
+.card-compacta h3 a:focus-visible{outline:none}
+.card .resum-2{flex:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.95rem;line-height:1.45}
+.mes-noticies{margin:28px 0 0;text-align:center}
+.mes-noticies .btn[hidden]{display:none}
 
 /* Primera secció després de la capçalera de pàgina: menys aire a dalt i sense marge extra al primer bloc */
 .cap-pagina + section.s{padding-top:clamp(36px,6vw,64px)}
@@ -113,3 +116,12 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 #eines{border-top:2px solid var(--color-text)}
 .subnav + section.s{padding-top:clamp(36px,6vw,64px)}
 section#entitats .ent-filtres{margin-top:24px}
+
+/* ---------- Contacte: primer «Què pots fer» i, a sota, el correu i Instagram, discrets ---------- */
+.cap-pagina + #actua{background:transparent;border-top:0}
+section.contacte-discret{padding:clamp(28px,4vw,40px) 0 clamp(40px,6vw,64px)}
+.contacte-discret .contacte{margin:0;display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-start}
+.contacte-discret .contacte .cond{font-size:.8rem}
+.contacte-discret .contacte a{font-size:1rem;font-weight:600}
+.contacte-discret .ig{font-size:1rem}
+.contacte-discret .ig svg{width:36px;height:36px;padding:8px}

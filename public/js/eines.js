@@ -8,7 +8,7 @@
   // Mateixa llista que el check de supabase/schema.sql.
   var CATEGORIES = { urbanisme: 'Urbanisme', energia: 'Energia', paisatge: 'Paisatge', medi_natural: 'Medi natural', altres: 'Altres' };
   var BUIT = 'Aviat hi trobareu eines per analitzar el territori.';
-  var llista = document.getElementById('eines-llista'), filtre = document.getElementById('eines-filtre');
+  var llista = document.getElementById('eines-llista');
   if (!llista) return;
 
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
@@ -37,24 +37,8 @@
   function pinta(totes) {
     var eines = totes.filter(function (e) { return e && e.nom && CATEGORIES[e.categoria] && segura(e.url); });
     if (!eines.length) { missatge(BUIT); return; }
-    var actiu = '';
-    function mostra() {
-      llista.textContent = '';
-      eines.filter(function (e) { return !actiu || e.categoria === actiu; }).forEach(function (e) { llista.appendChild(targeta(e)); });
-      Array.prototype.forEach.call(filtre.querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.value === actiu)); });
-    }
-    var presents = {};
-    eines.forEach(function (e) { presents[e.categoria] = 1; });
-    var cats = Object.keys(CATEGORIES).filter(function (k) { return presents[k]; });
-    if (cats.length > 1) {
-      [''].concat(cats).forEach(function (k) {
-        var b = el('button', 'filtre-btn', k ? CATEGORIES[k] : 'Totes'); b.type = 'button'; b.value = k;
-        b.addEventListener('click', function () { actiu = k; mostra(); });
-        filtre.appendChild(b);
-      });
-      filtre.hidden = false;
-    }
-    mostra();
+    llista.textContent = '';
+    eines.forEach(function (e) { llista.appendChild(targeta(e)); });
   }
 
   if (!cfg) { missatge(BUIT); return; }

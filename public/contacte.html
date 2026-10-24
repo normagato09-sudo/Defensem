@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="only light">
 <meta name="supported-color-schemes" content="light">
 <title>Contacte · Defensem l’Empordanet</title>
-<meta name="description" content="Parla amb nosaltres: escriu-nos, segueix-nos a Instagram o fes-te’n soci o sòcia de l’associació Defensem l’Empordanet.">
+<meta name="description" content="Què pots fer per defensar l’Empordanet: fes-te’n soci o sòcia, comparteix-ho, vine als actes i segueix-nos a Instagram. Correu de contacte de l’associació.">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/img/icona-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <meta property="og:url" content="https://defensem.vercel.app/contacte.html">
 <meta property="og:site_name" content="Defensem l’Empordanet">
 <meta property="og:title" content="Contacte · Defensem l’Empordanet">
-<meta property="og:description" content="Parla amb nosaltres: escriu-nos, segueix-nos a Instagram o fes-te’n soci o sòcia de l’associació Defensem l’Empordanet.">
+<meta property="og:description" content="Què pots fer per defensar l’Empordanet: fes-te’n soci o sòcia, comparteix-ho, vine als actes i segueix-nos a Instagram. Correu de contacte de l’associació.">
 <meta property="og:locale" content="ca_ES">
 <meta property="og:image" content="https://defensem.vercel.app/img/og-defensem.jpg">
 <meta property="og:image:width" content="1200">
@@ -41,39 +41,6 @@
 <p class="frase">Fes-te’n soci o sòcia de l’associació i ajuda’ns a defensar el territori.</p>
 </div>
 </section>
-<section class="s" id="contacte">
-<div class="w">
-<div class="contacte-cols">
-<div class="contacte-esq">
-<ul class="contacte">
-<li><span class="cond">Correu electrònic</span><a href="mailto:defensemlempordanet@gmail.com">defensemlempordanet@gmail.com</a></li>
-<!-- INSTAGRAM: l’adreça es configura a /js/config.js. Mentre estigui buida, la icona no es mostra. -->
-<li id="ig-contacte" hidden><span class="cond">Instagram</span></li>
-</ul>
-<form id="ct-form" class="form-public form-contacte" novalidate>
-<h2 id="ct-titol">Escriu-nos</h2>
-<div id="ct-msg" class="msg-public" role="status" aria-live="polite" tabindex="-1"></div>
-<div class="camp-public"><label for="ct-nom">Nom <span aria-hidden="true">*</span></label><input id="ct-nom" name="nom" type="text" maxlength="120" required autocomplete="name"></div>
-<div class="camp-public"><label for="ct-email">Correu electrònic <span aria-hidden="true">*</span></label><input id="ct-email" name="email" type="email" maxlength="254" required autocomplete="email"></div>
-<div class="camp-public"><label for="ct-missatge">Missatge <span aria-hidden="true">*</span></label><textarea id="ct-missatge" name="missatge" maxlength="4000" required></textarea></div>
-<div class="parany" aria-hidden="true"><label for="ct-lloc">No omplis aquest camp</label><input id="ct-lloc" name="lloc" type="text" tabindex="-1" autocomplete="off"></div>
-<div class="info-rgpd">
-<p><strong>Informació bàsica sobre protecció de dades.</strong> Responsable: Associació Defensem l’Empordanet. Finalitat: respondre el teu missatge. Base jurídica: el teu consentiment. Destinataris: no se cedeixen; Supabase les allotja com a encarregat del tractament. Drets: accés, rectificació, supressió i altres, escrivint a <a href="mailto:defensemlempordanet@gmail.com">defensemlempordanet@gmail.com</a>. Més informació a la <a href="/privacitat.html">política de privacitat</a>.</p>
-</div>
-<label class="consent" for="ct-consent"><input id="ct-consent" name="consentiment" type="checkbox" required> <span>He llegit la informació sobre protecció de dades i accepto que es tractin aquestes dades per respondre el meu missatge. <span aria-hidden="true">*</span></span></label>
-<p class="ajuda">Els camps amb * són obligatoris.</p>
-<button class="btn" type="submit" id="ct-envia">Envia el missatge</button>
-</form>
-</div>
-<aside class="crida" aria-labelledby="crida-t">
-<h3 id="crida-t">L’Empordanet ens necessita</h3>
-<p>Fes-te’n soci o sòcia de l’associació i ajuda’ns a defensar el territori.</p>
-<a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform" target="_blank" rel="noopener noreferrer" aria-label="Fes-te’n soci o sòcia (s’obre en una pestanya nova, formulari de Google)">Fes-te’n soci o sòcia</a>
-</aside>
-</div>
-</div>
-</section>
-
 <section class="s" id="actua">
 <div class="w">
 <p class="kicker">Suma-t’hi</p>
@@ -86,12 +53,20 @@
 </ul>
 </div>
 </section>
+
+<section class="s contacte-discret" id="contacte" aria-label="Correu i Instagram">
+<div class="w">
+<ul class="contacte">
+<li><span class="cond">Correu electrònic</span><a href="mailto:defensemlempordanet@gmail.com">defensemlempordanet@gmail.com</a></li>
+<!-- INSTAGRAM: l’adreça es configura a /js/config.js. Mentre estigui buida, la icona no es mostra. -->
+<li id="ig-contacte" hidden><span class="cond">Instagram</span></li>
+</ul>
+</div>
+</section>
 </main>
 <script src="/js/marc.js" data-part="peu"></script>
 <script src="/js/config.js"></script>
-<script src="/js/segur.js" defer></script>
 <script src="/js/social.js" defer></script>
-<script src="/js/contacte.js" defer></script>
 <script src="/js/menu.js" defer></script>
 </body>
 </html>

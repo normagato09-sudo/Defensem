@@ -1,7 +1,6 @@
 /* Entitats adherides (/recursos.html#entitats).
    - Llegeix de la taula «entitats» de Supabase NOMÉS les publicades (ho garanteix la política RLS; el filtre
      publicada=eq.true només evita demanar res més). Sense Supabase configurat, es mostra l'estat buit.
-   - Filtres per tipus i per municipi i cercador (sense accents ni majúscules).
    - Formulari «La teva entitat vol adherir-s'hi?»: desa a «sollicituds_entitats» (només inserció, sense lectura).
      Antispam: camp parany ocult, temps mínim d'emplenament i, a la base de dades, límits per correu i per hora. */
 (function () {
@@ -13,15 +12,11 @@
     xarxa: 'Xarxa d’entitats', altres: 'Altres' };
   var BUIT = 'Aviat hi trobareu les entitats adherides.';
 
-  var llista = document.getElementById('ent-llista'), filtres = document.getElementById('ent-filtres');
-  var recompte = document.getElementById('ent-recompte');
-  var fCerca = document.getElementById('ent-cerca'), fTipus = document.getElementById('ent-tipus'), fMun = document.getElementById('ent-municipi');
+  var llista = document.getElementById('ent-llista');
   var form = document.getElementById('adh-form'), msg = document.getElementById('adh-msg'), envia = document.getElementById('adh-envia');
   var totes = [];
 
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
-  function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
-  function opcio(v, t) { var o = el('option', null, t); o.value = v; return o; }
 
   function estatBuit() {
     llista.textContent = '';
@@ -75,31 +70,12 @@
     return c;
   }
 
-  function aplica() {
-    var q = norm(fCerca.value), t = fTipus.value, m = fMun.value;
-    var res = totes.filter(function (e) {
-      if (t && e.tipus !== t) return false;
-      if (m && e.municipi !== m) return false;
-      return !q || norm(e.nom + ' ' + e.municipi + ' ' + e.descripcio + ' ' + (TIPUS[e.tipus] || '')).indexOf(q) !== -1;
-    });
-    llista.textContent = '';
-    if (!res.length) llista.appendChild(el('p', 'buit', 'Cap entitat no coincideix amb la cerca.'));
-    else res.forEach(function (e) { llista.appendChild(targeta(e)); });
-    recompte.textContent = res.length === totes.length ? totes.length + (totes.length === 1 ? ' entitat' : ' entitats')
-      : res.length + ' de ' + totes.length + ' entitats';
-  }
-
   function pinta(l) {
     totes = l.filter(function (e) { return e && typeof e.nom === 'string' && e.nom; })
       .sort(function (a, b) { return a.nom.localeCompare(b.nom, 'ca'); });
     if (!totes.length) { estatBuit(); return; }
-    var tipus = {}, muns = {};
-    totes.forEach(function (e) { tipus[e.tipus] = 1; if (e.municipi) muns[e.municipi] = 1; });
-    Object.keys(TIPUS).forEach(function (k) { if (tipus[k]) fTipus.appendChild(opcio(k, TIPUS[k])); });
-    Object.keys(muns).sort(function (a, b) { return a.localeCompare(b, 'ca'); }).forEach(function (k) { fMun.appendChild(opcio(k, k)); });
-    filtres.hidden = false;
-    [fCerca, fTipus, fMun].forEach(function (x) { x.addEventListener('input', aplica); });
-    aplica();
+    llista.textContent = '';
+    totes.forEach(function (e) { llista.appendChild(targeta(e)); });
   }
 
   if (!cfg) estatBuit();

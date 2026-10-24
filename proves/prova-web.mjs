@@ -340,15 +340,18 @@ const SECCIONS = [
   comprova('Actualitat: blocs Notícies i Agenda, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#noticies,#agenda'
     && (await pg.textContent('#noticies h2')) === 'Notícies i comunicats' && (await pg.textContent('#agenda h2')) === 'Agenda d’actes');
   comprova('Actualitat: la llista d’actes', (await pg.$$('#actes .acte, #actes-fets .acte')).length === 3);
-  comprova('Actualitat: notícies amb missatge buit i sense paginació si no cal', /Encara no hi ha notícies publicades/.test(await pg.textContent('#news')) && await pg.$eval('#paginacio', (n) => n.hidden));
+  comprova('Actualitat: notícies amb missatge buit i sense «Carrega’n més» si no cal', /Encara no hi ha notícies publicades/.test(await pg.textContent('#news')) && await pg.$eval('#news-mes', (n) => n.hidden));
+  comprova('Actualitat: els actes passats, a «Actes anteriors», tancat', await pg.$eval('#actes-anteriors', (d) => !d.open && d.querySelector('summary').textContent === 'Actes anteriors'));
   await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
   comprova('Recursos: blocs Entitats (amb l’adhesió) i Eines', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#entitats,#eines'
     && !!(await pg.$('#entitats #adh-form')) && !!(await pg.$('#eines #eines-llista')));
+  comprova('Recursos: sense cercador ni filtres', !(await pg.$('#ent-filtres, #ent-cerca, #ent-tipus, #ent-municipi, #eines-filtre, .filtre-btn, input[type=search]')));
   await pg.goto(ORIGEN + '/contacte.html', { waitUntil: 'networkidle' });
-  comprova('Contacte: correu, formulari, Instagram (ocult sense URL) i «Què pots fer»', !!(await pg.$('main a[href="mailto:defensemlempordanet@gmail.com"]')) && !!(await pg.$('#ct-form'))
-    && await pg.$eval('#ig-contacte', (e) => e.hidden) && (await pg.$$('#actua .accions li')).length === 4);
+  comprova('Contacte: «Què pots fer» i, a sota, el correu i Instagram (ocult sense URL); sense formulari', !!(await pg.$('main a[href="mailto:defensemlempordanet@gmail.com"]'))
+    && !(await pg.$('main form, #ct-form, script[src*="contacte.js"]')) && await pg.$eval('#ig-contacte', (e) => e.hidden) && (await pg.$$('#actua .accions li')).length === 4
+    && await pg.evaluate(() => { const a = document.getElementById('actua'), c = document.getElementById('contacte'); return !!(a.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }));
   const forms = await pg.$$eval('main a[href*="docs.google.com/forms"]', (l) => l.map((a) => ({ href: a.href, target: a.target, rel: a.rel })));
-  comprova('Contacte: els enllaços al formulari de Google són el mateix i s’obren a part', forms.length === 2 && forms.every((f) => f.href === FORM && f.target === '_blank' && /noopener/.test(f.rel)), JSON.stringify(forms));
+  comprova('Contacte: l’enllaç al formulari de Google és el de sempre i s’obre a part', forms.length === 1 && forms.every((f) => f.href === FORM && f.target === '_blank' && /noopener/.test(f.rel)), JSON.stringify(forms));
   comprova('Contacte: «Veure l’agenda» porta a l’agenda d’Actualitat', !!(await pg.$('#actua a[href="/actualitat.html#agenda"]')));
 
   console.log('\n3e. Enllaços antics (pàgines i àncores) → pàgina nova');
@@ -677,10 +680,11 @@ console.log('\n6. Amb Supabase simulat: notícies públiques');
   await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
   const pub = BD.publicacions.find((p) => p.estat === 'publicat');
   comprova('mostra només la publicada, amb etiqueta Comunicat', (await pg.$$('#news .card')).length === 1 && (await pg.textContent('#news .etiq')) === 'Comunicat');
-  comprova('enllaç «Llegeix-ne més» a /noticia.html?id=', (await pg.getAttribute('#news a.mes', 'href')) === '/noticia.html?id=' + pub.id);
-  comprova('«Llegeix-ne més» diu als lectors de pantalla a quina notícia porta', (await pg.getAttribute('#news a.mes', 'aria-label')) === 'Llegeix-ne més: Comunicat publicat'
-    && (await pg.textContent('#news a.mes')) === 'Llegeix-ne més');
-  comprova('la portada apunta al bucket públic', (await pg.getAttribute('#news .card img', 'src') || '').startsWith(SB + '/storage/v1/object/public/portades/' + U.E));
+  comprova('el títol enllaça a /noticia.html?id= i tota la targeta és clicable', (await pg.getAttribute('#news h3 a', 'href')) === '/noticia.html?id=' + pub.id
+    && (await pg.textContent('#news h3 a')) === 'Comunicat publicat');
+  await pg.waitForTimeout(300);
+  comprova('la imatge ve del bucket públic', /^https:\/\/prova\.supabase\.co\/storage\/v1\/object\/public\/portades\//.test(await pg.getAttribute('#news .card img', 'src') || '')
+    && (await pg.getAttribute('#news .card img', 'src')).includes(U.E));
   const q = peticions.find((x) => x.url.startsWith('/rest/v1/publicacions_publiques'));
   comprova('consulta la vista pública (mai la taula)', !!q && !peticions.some((x) => x.url.startsWith('/rest/v1/publicacions?')));
   await pg.goto(ORIGEN + '/noticia.html?id=' + pub.id, { waitUntil: 'networkidle' });
@@ -694,21 +698,31 @@ console.log('\n6. Amb Supabase simulat: notícies públiques');
   await pg.context().close();
 }
 
-console.log('\n6a. Notícies: totes per pàgines a /actualitat.html');
+console.log('\n6a. Notícies: les 6 més recents i «Carrega’n més» (6 més cada vegada)');
 {
   const desades = BD.publicacions;
   const ara = Date.now();
-  BD.publicacions = desades.concat(Array.from({ length: 11 }, (_, i) => ({ id: randomUUID(), tipus: 'noticia', titol: 'Notícia ' + (i + 1), resum: 'r', contingut: '<p>t</p>', imatge: null,
+  BD.publicacions = desades.concat(Array.from({ length: 13 }, (_, i) => ({ id: randomUUID(), tipus: 'noticia', titol: 'Notícia ' + (i + 1), resum: 'Un resum prou llarg per ocupar més de dues línies en una targeta compacta i comprovar que es retalla amb punts suspensius al final del text.', contingut: '<p>t</p>', imatge: i === 0 ? U.E + '/foto.jpg' : null,
     estat: 'publicat', nota_revisio: null, autor_id: U.E, created_at: '', updated_at: '', published_at: new Date(ara - (i + 1) * 864e5).toISOString() })));
-  const pg = await pagina(ESCRIPTORI, true);
-  await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
-  const p1 = await pg.evaluate(() => ({ n: document.querySelectorAll('#news .card').length, pags: [...document.querySelectorAll('#paginacio a')].map((a) => a.textContent + (a.getAttribute('aria-current') ? '*' : '')).join(), vis: !document.getElementById('paginacio').hidden }));
-  comprova('notícies, pàgina 1: 9 notícies i paginació 1-2', p1.n === 9 && p1.vis && p1.pags === '1*,2,Següents →', JSON.stringify(p1));
-  await pg.click('#paginacio a:text-is("2")'); await pg.waitForLoadState('networkidle');
-  const p2 = await pg.evaluate(() => ({ url: location.search, hash: location.hash, n: document.querySelectorAll('#news .card').length, pags: [...document.querySelectorAll('#paginacio a')].map((a) => a.textContent + (a.getAttribute('aria-current') ? '*' : '')).join() }));
-  comprova('notícies, pàgina 2: les 3 restants i «Anteriors»', p2.url === '?pagina=2' && p2.hash === '#noticies' && p2.n === 3 && p2.pags === '← Anteriors,1,2*', JSON.stringify(p2));
-  comprova('notícies paginades: sense desbordament ni errors', (await desbordament(pg)) <= 0 && pg.errors.filter((e) => !/storage\/v1/.test(e)).length === 0, JSON.stringify(pg.errors));
-  await pg.context().close();
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    peticions = [];
+    const pg = await pagina(vp, true);
+    await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
+    const p1 = await pg.evaluate(() => { const c = document.querySelector('#news .card'), img = document.querySelector('#news img'), p = document.querySelectorAll('#news .resum-2')[1];
+      return { n: document.querySelectorAll('#news .card').length, mes: !document.getElementById('news-mes').hidden, text: document.getElementById('news-mes').textContent,
+        img: img && [img.loading, img.decoding, img.getAttribute('width') === '640' && img.getAttribute('height') === '360'].join('|'),
+        linies: p ? Math.round(p.getBoundingClientRect().height / parseFloat(getComputedStyle(p).lineHeight)) : 0, enllac: c.querySelector('h3 a')?.getAttribute('href') }; });
+    comprova(`notícies @${vp.width}px: 6 targetes compactes i «Carrega’n més»`, p1.n === 6 && p1.mes && p1.text === 'Carrega’n més' && p1.linies === 2 && /^\/noticia\.html\?id=/.test(p1.enllac), JSON.stringify(p1));
+    comprova(`notícies @${vp.width}px: imatges lazy i reduïdes`, p1.img === 'lazy|async|true', p1.img);
+    comprova(`notícies @${vp.width}px: es demanen només 6 a Supabase`, peticions.filter((p) => p.url.startsWith('/rest/v1/publicacions_publiques')).every((p) => /limit=6&offset=0/.test(p.url)));
+    await pg.click('#news-mes'); await pg.waitForFunction(() => document.querySelectorAll('#news .card').length === 12, null, { timeout: 8000 }).catch(() => {});
+    comprova(`notícies @${vp.width}px: «Carrega’n més» n’afegeix 6 (offset=6)`, (await pg.$$('#news .card')).length === 12 && peticions.some((p) => /limit=6&offset=6/.test(p.url))
+      && await pg.$eval('#news-mes', (b) => !b.hidden));
+    await pg.click('#news-mes'); await pg.waitForFunction(() => document.querySelectorAll('#news .card').length === 14, null, { timeout: 8000 }).catch(() => {});
+    comprova(`notícies @${vp.width}px: quan no en queden, el botó desapareix`, (await pg.$$('#news .card')).length === 14 && await pg.$eval('#news-mes', (b) => b.hidden));
+    comprova(`notícies @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.filter((e) => !/storage\/v1/.test(e)).length === 0, JSON.stringify(pg.errors));
+    await pg.context().close();
+  }
   BD.publicacions = desades;
 }
 
@@ -848,8 +862,8 @@ for (const [vp, nom, tactil] of [[ESCRIPTORI, '1280 px', false], [MOBIL, '390 px
 console.log('\n8. Menú i botons segons el rol');
 const ESPERAT = {
   'col@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Documents'],
-  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Missatges de contacte', 'Eines', 'Documents'],
-  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Missatges de contacte', 'Eines', 'Documents', 'Usuaris'],
+  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents'],
+  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents', 'Usuaris'],
   'consulta@ex.cat': ['Inici', 'Documents']
 };
 const ROL = { 'col@ex.cat': 'Col·laborador de notícies', 'editor@ex.cat': 'Editor', 'admin@ex.cat': 'Administrador', 'consulta@ex.cat': 'Usuari de consulta' };
@@ -1394,47 +1408,6 @@ for (const vp of [MOBIL, { width: 360, height: 640 }, ESCRIPTORI]) {
   await pg.context().close();
 }
 
-console.log('\n15b. Formulari de contacte i «Missatges de contacte» a l’àrea privada');
-{
-  BD = dadesInicials();
-  const pg = await pagina(MOBIL, true);
-  await pg.goto(ORIGEN + '/contacte.html', { waitUntil: 'networkidle' });
-  comprova('contacte: consentiment obligatori, enllaç a la privacitat i camp parany ocult', await pg.evaluate(() => {
-    const p = document.getElementById('ct-lloc'), r = p.getBoundingClientRect();
-    return document.getElementById('ct-consent').required && !!document.querySelector('#ct-form .info-rgpd a[href="/privacitat.html"]') && p.tabIndex === -1 && r.right <= 0;
-  }));
-  await pg.fill('#ct-nom', 'Maria'); await pg.fill('#ct-email', 'Maria@Ex.cat'); await pg.fill('#ct-missatge', 'Hola, vull col·laborar.');
-  await pg.click('#ct-envia');
-  comprova('contacte: sense consentiment no s’envia', /protecció de dades/.test(await pg.textContent('#ct-msg')) && BD.missatges_contacte.length === 0);
-  await pg.check('#ct-consent'); await pg.waitForTimeout(3100);
-  await pg.click('#ct-envia');
-  await espera(pg, () => /Gràcies/.test(document.getElementById('ct-msg').textContent));
-  const m = BD.missatges_contacte[0] || {};
-  comprova('contacte: el missatge arriba amb nom, correu, text i consentiment (i res més)', BD.missatges_contacte.length === 1 && m.nom === 'Maria' && m.missatge === 'Hola, vull col·laborar.'
-    && m.consentiment === true && !('lloc' in m), JSON.stringify(m));
-  comprova('contacte: el formulari es buida', (await pg.inputValue('#ct-nom')) === '' && !(await pg.isChecked('#ct-consent')));
-  await pg.fill('#ct-nom', 'Robot'); await pg.fill('#ct-email', 'r@ex.cat'); await pg.fill('#ct-missatge', 'spam'); await pg.check('#ct-consent');
-  await pg.$eval('#ct-lloc', (i) => { i.value = 'http://spam'; });
-  await pg.click('#ct-envia');
-  comprova('contacte: amb el camp parany ple no s’envia res', BD.missatges_contacte.length === 1);
-  comprova('contacte: sense errors ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
-  await pg.context().close();
-  const pp = await pagina(ESCRIPTORI, true);
-  await pp.goto(ORIGEN + '/area-privada/', { waitUntil: 'networkidle' });
-  await pp.fill('#email', 'editor@ex.cat'); await pp.fill('#contrasenya', PW); await pp.click('#f-login button[type=submit]');
-  await pp.waitForURL(/panel/);
-  await pp.goto(ORIGEN + '/area-privada/panel.html#/missatges');
-  await espera(pp, () => document.querySelector('#vista h1')?.textContent === 'Missatges de contacte' && !!document.querySelector('#vista .item'));
-  comprova('panell: l’editor veu el missatge amb el correu i «Respon per correu»', /Hola, vull col·laborar/.test(await pp.textContent('#vista'))
-    && (await pp.getAttribute('#vista .item a.btn', 'href') || '').startsWith('mailto:'));
-  comprova('panell: l’editor no veu «Elimina» als missatges', !(await pp.$('#vista .item button[aria-label^="Elimina"]')));
-  await pp.click('#vista button:has-text("Marca com a respost")');
-  await espera(pp, () => /respost/.test(document.getElementById('avisos').textContent));
-  comprova('panell: «Marca com a respost» canvia l’estat', BD.missatges_contacte[0].estat === 'respost');
-  comprova('panell missatges: cap error', pp.errors.length === 0, JSON.stringify(pp.errors));
-  await pp.context().close();
-}
-
 console.log('\n16. Entitats i Eines');
 {
   // Sense Supabase: estat buit, un sol botó i el formulari amagat fins que es demana.
@@ -1442,7 +1415,7 @@ console.log('\n16. Entitats i Eines');
   await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
   const e = await pg.evaluate(() => ({ text: document.querySelector('#ent-llista .buit p')?.textContent,
     botons: [...document.querySelectorAll('button')].filter((b) => b.offsetParent && /adherir/.test(b.textContent)).length,
-    form: document.getElementById('adh-form').hidden, filtres: document.getElementById('ent-filtres').hidden }));
+    form: document.getElementById('adh-form').hidden, filtres: !document.getElementById('ent-filtres') }));
   comprova('entitats sense dades: «Aviat hi trobareu les entitats adherides» i un sol botó d’adhesió', e.text === 'Aviat hi trobareu les entitats adherides.' && e.botons === 1 && e.form && e.filtres, JSON.stringify(e));
   await pg.click('#ent-llista .adh-obre');
   comprova('el botó obre el formulari i marca aria-expanded', await pg.evaluate(() => !document.getElementById('adh-form').hidden
@@ -1493,23 +1466,15 @@ console.log('\n16. Entitats i Eines');
   for (const vp of [MOBIL, ESCRIPTORI]) {
     const pg = await pagina(vp, true);
     await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
-    const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.ent-card').length, filtres: !document.getElementById('ent-filtres').hidden,
-      tipus: [...document.querySelectorAll('#ent-tipus option')].map((o) => o.value).join(), muns: [...document.querySelectorAll('#ent-municipi option')].map((o) => o.value).join(),
+    const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.ent-card').length, filtres: !!document.querySelector('#ent-filtres, #ent-cerca, #ent-tipus, #ent-municipi, input[type=search]'),
+      noms: [...document.querySelectorAll('.ent-card h3')].map((h) => h.textContent).join(),
       enllacos: [...document.querySelectorAll('.ent-card a')].map((a) => a.href + '|' + a.target + '|' + a.rel).join(' ; '), logo: document.querySelector('.ent-logo')?.alt,
       capOcult: document.querySelector('.adhesio h2').offsetParent !== null,
       visita: [...document.querySelectorAll('.ent-card a.btn')].map((a) => a.textContent + '|' + a.target).join() }));
-    comprova(`entitats @${vp.width}px: dues targetes publicades, filtres de tipus i municipi`, d.n === 2 && d.filtres && d.tipus === ',collectiu,entitat_veinal' && d.muns === ',Albons,la Tallada d’Empordà', JSON.stringify(d));
+    comprova(`entitats @${vp.width}px: les dues publicades, per ordre alfabètic, sense cercador ni filtres`, d.n === 2 && !d.filtres && d.noms === 'Associació Veïnal B,Col·lectiu Àrids', JSON.stringify(d));
     comprova(`entitats @${vp.width}px: enllaços en pestanya nova amb noopener i cap enllaç javascript:`, !/javascript/.test(d.enllacos) && d.enllacos.split(' ; ').length === 2 && d.enllacos.split(' ; ').every((x) => /\|_blank\|noopener/.test(x)), d.enllacos);
     comprova(`entitats @${vp.width}px: logo amb text alternatiu i secció d’adhesió visible`, d.logo === 'Logo de Col·lectiu Àrids' && d.capOcult);
     comprova(`entitats @${vp.width}px: botó «Visita la web» en pestanya nova (només si hi ha web vàlida)`, d.visita === 'Visita la web|_blank', d.visita);
-    await pg.selectOption('#ent-municipi', 'Albons');
-    comprova(`entitats @${vp.width}px: el filtre de municipi deixa una entitat`, (await pg.$$('.ent-card')).length === 1 && /1 de 2/.test(await pg.textContent('#ent-recompte')));
-    await pg.selectOption('#ent-municipi', '');
-    await pg.fill('#ent-cerca', 'arids');
-    comprova(`entitats @${vp.width}px: la cerca no distingeix accents`, (await pg.$$eval('.ent-card h3', (l) => l.map((h) => h.textContent))).join() === 'Col·lectiu Àrids');
-    await pg.fill('#ent-cerca', 'zzz');
-    comprova(`entitats @${vp.width}px: missatge si no hi ha coincidències`, /Cap entitat/.test(await pg.textContent('#ent-llista')));
-    await pg.fill('#ent-cerca', '');
     comprova(`entitats @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
     if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/entitats-${vp.width}.png`, fullPage: true });
     await pg.context().close();
@@ -1535,12 +1500,10 @@ console.log('\n16. Entitats i Eines');
     pg = await pagina(vp, true);
     await pg.goto(ORIGEN + '/recursos.html', { waitUntil: 'networkidle' });
     const d = await pg.evaluate(() => ({ noms: [...document.querySelectorAll('.eina h3')].map((h) => h.textContent).join(),
-      filtres: [...document.querySelectorAll('.filtre-btn')].map((b) => b.textContent).join(),
+      filtres: document.querySelectorAll('.filtre-btn, #eines-filtre').length,
       a: [...document.querySelectorAll('.eina a')].map((a) => a.target + '|' + a.rel).join() }));
     comprova(`eines @${vp.width}px: només les publicades, en l’ordre desat, en pestanya nova amb noopener`, d.noms === 'Visor A,Visor B' && d.a === '_blank|noopener noreferrer,_blank|noopener noreferrer', JSON.stringify(d));
-    comprova(`eines @${vp.width}px: filtres de les categories presents`, d.filtres === 'Totes,Urbanisme,Energia', d.filtres);
-    await pg.click('.filtre-btn:has-text("Energia")');
-    comprova(`eines @${vp.width}px: el filtre funciona`, (await pg.$$eval('.eina h3', (l) => l.map((h) => h.textContent))).join() === 'Visor B');
+    comprova(`eines @${vp.width}px: sense filtres de categoria`, d.filtres === 0);
     comprova(`eines @${vp.width}px: sense errors ni desbordament`, pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
     if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/eines-${vp.width}.png`, fullPage: true });
     await pg.context().close();
