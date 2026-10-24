@@ -1,0 +1,13 @@
+/* Fora molins! com a app independent (/joc, s'obre des d'Instagram). Va després de site.css i joc.css.
+   Pantalla completa sense desplaçament: logo petit a dalt i l'escenari ocupant tot l'espai que queda
+   (data-encaixa: joc.js hi ajusta la franja de paisatge visible). Sense capçalera, menú ni peu de la web. */
+html,body.fm-app-cos{height:100%;overflow:hidden;overscroll-behavior:none}
+body.fm-app-cos{margin:0;background:var(--color-fons);color-scheme:only light}
+.fm-app{height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.fm-app-logo{flex:none;display:block;line-height:0;margin:0 0 6px}
+.fm-app-logo img{display:block;width:auto;height:clamp(44px,8vh,72px)}
+.fm-app-logo:focus-visible{outline:3px solid var(--color-defensem-verd);outline-offset:3px}
+.fm-marc{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+.fm-app .fm-escenari{width:100%;margin:0 auto}
+@media(max-width:620px){.fm-app .fm-escenari{border-width:2px;border-radius:6px}}

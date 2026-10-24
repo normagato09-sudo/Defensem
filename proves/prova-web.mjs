@@ -270,9 +270,9 @@ const SECCIONS = [
 {
   const pg = await pagina(ESCRIPTORI, false);
   await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
-  comprova('portada: el bloc principal (hero) i, a sota, el minijoc', JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))) === JSON.stringify(['hero', 'joc']),
+  comprova('portada: només el bloc principal (hero)', JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))) === JSON.stringify(['hero']),
     JSON.stringify(await pg.$$eval('main > *', (l) => l.map((s) => s.id || s.className))));
-  comprova('portada: cap altra secció (notícies, agenda, entitats, eines…)', !(await pg.$('#news, #propers, #actes, #ent-llista, #eines-llista, .accessos, #qui-som, #el-projecte, #preguntes, #contacte')));
+  comprova('portada: cap altra secció (notícies, agenda, entitats, eines…)', !(await pg.$('#news, #propers, #actes, #ent-llista, #eines-llista, .accessos, #qui-som, #el-projecte, #preguntes, #contacte, #joc, [data-fora-molins]')));
   comprova('menú: Inici, Qui som, Actualitat, Recursos i Contacte', (await textos(pg, '#nav a')).join() === 'Inici,Qui som,Actualitat,Recursos,Contacte');
   comprova('logo del hero en alta resolució (640 × 468, WebP)', await pg.$eval('.hero-logo', (p) => p.querySelector('source').srcset === '/img/logo-defensem-2x.webp'
     && p.querySelector('img').getAttribute('src') === '/img/logo-defensem-2x.png' && p.querySelector('img').getAttribute('width') === '640' && p.querySelector('img').getAttribute('height') === '468'
@@ -360,8 +360,16 @@ const SECCIONS = [
     const u = new URL(pg.url());
     comprova(`${antic} → ${nou}`, u.pathname + u.hash === nou, u.pathname + u.hash);
   }
-  await pg.goto(ORIGEN + '/#joc');
-  comprova('/#joc es queda a la portada (el minijoc hi és)', new URL(pg.url()).pathname === '/' && new URL(pg.url()).hash === '#joc');
+  await pg.goto(ORIGEN + '/#joc'); await pg.waitForURL('**/joc', { timeout: 5000 }).catch(() => {});
+  comprova('/#joc (enllaç antic) → /joc, l’app del joc', new URL(pg.url()).pathname === '/joc');
+  {
+    const { readdir } = await import('node:fs/promises');
+    const amb = [];
+    for (const f of (await readdir(ARREL)).filter((x) => x.endsWith('.html'))) if (/data-fora-molins|fora-molins\/joc\.(js|css)/.test(await readFile(join(ARREL, f), 'utf8'))) amb.push(f);
+    comprova('el joc no és a cap pàgina de la web, només a joc.html', amb.join() === 'joc.html', amb.join());
+    const menu = await readFile(join(ARREL, 'js/marc.js'), 'utf8'), mapa = await readFile(join(ARREL, 'sitemap.xml'), 'utf8');
+    comprova('/joc no surt al menú ni al sitemap.xml', !/\/joc/.test(menu) && !/\/joc/.test(mapa));
+  }
   await pg.goto(ORIGEN + '/#inici');
   comprova('/#inici (salt al contingut) no redirigeix', new URL(pg.url()).pathname === '/');
   const ap = await fetch(ORIGEN + '/area-privada/');
@@ -1236,9 +1244,9 @@ const espiaMans = () => {
     return orig.call(this, im, ...r);
   };
 };
-// Posició a la pantalla d'un molí (inversa de aLogica a joc.js: H = 1200; en estret la vista va de 150 a 1290).
-const aPantalla = (pg, l) => pg.$eval('.fm-tela', (c, l) => { const r = c.getBoundingClientRect(), e = c.closest('.fm-escenari').classList.contains('fm-estret');
-  const x0 = e ? 150 : 0, x1 = e ? 1290 : 1440; return { x: r.left + (l.x - x0) / (x1 - x0) * r.width, y: r.top + (l.y - 40 * l.s) / 1200 * r.height, k: c.width / (x1 - x0), x0 }; }, l);
+// Posició a la pantalla d'un molí (inversa de aLogica a joc.js: H = 1200; la franja visible del paisatge, vista.x0–x1, la diu el joc).
+const aPantalla = (pg, l) => pg.$eval('.fm-tela', (c, l) => { const r = c.getBoundingClientRect(), v = window.__foraMolins.vista();
+  const x0 = v.x0, x1 = v.x1; return { x: r.left + (l.x - x0) / (x1 - x0) * r.width, y: r.top + (l.y - 40 * l.s) / 1200 * r.height, k: c.width / (x1 - x0), x0 }; }, l);
 const espera = (pg, fn, arg, ms = 8000) => pg.waitForFunction(fn, arg, { timeout: ms }).then(() => true, () => false);
 for (const vp of [MOBIL, ESCRIPTORI]) {
   const nom = `@${vp.width}px`;
@@ -1247,8 +1255,8 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   const recursos = [];
   // Només el logo de la pantalla final (90 kB) es baixa d'entrada: joc.js li posa el src en arrencar.
   pg.on('request', (r) => { if (/\/fora-molins\/(assets|sons)\//.test(r.url()) && !/\/assets\/logo\.webp/.test(r.url())) recursos.push(r.url()); });
-  await pg.goto(ORIGEN + '/?debug', { waitUntil: 'networkidle' });
-  comprova(`joc ${nom}: és a la portada, just sota el bloc principal`, await pg.evaluate(() => document.querySelector('.hero').nextElementSibling.id === 'joc'));
+  await pg.goto(ORIGEN + '/joc?debug', { waitUntil: 'networkidle' });
+  comprova(`joc ${nom}: és l’app de /joc`, await pg.evaluate(() => document.querySelector('main#joc[data-fora-molins][data-encaixa]') !== null));
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   const llest = await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
   comprova(`joc ${nom}: carrega el manifest i els gràfics i el botó diu «Juga»`, llest && (await pg.textContent('[data-juga]')) === 'Juga' && recursos.some((u) => u.includes('manifest.json')));
@@ -1302,8 +1310,8 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
       label: a.getAttribute('aria-label'), punts: f.querySelector('[data-f-punts]').textContent, aturats: f.querySelector('[data-f-aturats]').textContent, focus: document.activeElement.textContent,
       rec: localStorage.getItem('defensem.foramolins.punts'), joc: String(window.__foraMolins.joc.punts), anunci: document.querySelector('[data-anunci]').textContent }; });
   comprova(`joc ${nom}: la pantalla final té el logo`, fi.logo && fi.alt === 'Defensem l’Empordanet · Aturem el Plater', JSON.stringify(fi));
-  comprova(`joc ${nom}: i el botó «Fes-te’n soci o sòcia» al formulari, en pestanya nova`, fi.text === 'Fes-te’n soci o sòcia' && fi.target === '_blank' && /noopener/.test(fi.rel)
-    && fi.href === 'https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform' && fi.label.startsWith('Fes-te’n soci o sòcia'), JSON.stringify(fi));
+  comprova(`joc ${nom}: i el botó «Signa la petició» al formulari, en pestanya nova`, fi.text === 'Signa la petició' && fi.target === '_blank' && /noopener/.test(fi.rel)
+    && fi.href === 'https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform' && fi.label.startsWith('Signa la petició'), JSON.stringify(fi));
   comprova(`joc ${nom}: punts, molins aturats, rècord desat i resum per a lectors de pantalla`, fi.punts === fi.joc && fi.aturats === '2' && fi.rec === fi.joc && fi.anunci.startsWith('Fi de la partida. Has fet ' + fi.joc), JSON.stringify(fi));
   comprova(`joc ${nom}: el focus va a «Torna a jugar»`, fi.focus === 'Torna a jugar', fi.focus);
   comprova(`joc ${nom}: pantalla final sense desbordament`, (await desbordament(pg)) <= 0);
@@ -1324,7 +1332,7 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
 }
 {
   const pg = await pagina(ESCRIPTORI, false);
-  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
+  await pg.goto(ORIGEN + '/joc', { waitUntil: 'networkidle' });
   comprova('joc: sense ?debug no s’exposa cap objecte de depuració', (await pg.evaluate(() => typeof window.__foraMolins)) === 'undefined');
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   comprova('joc: també s’hi juga sense ?debug (el botó passa a «Juga» i arrenca)', await espera(pg, () => document.querySelector('[data-juga]').textContent === 'Juga')
@@ -1335,74 +1343,54 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   // Si no troba els gràfics, el botó ofereix tornar-ho a provar (la guia «Si alguna cosa falla»).
   const pg = await pagina(ESCRIPTORI, false);
   await pg.route('**/fora-molins/assets/manifest.json*', (r) => r.fulfill({ status: 500, body: 'x' }));
-  await pg.goto(ORIGEN + '/', { waitUntil: 'networkidle' });
+  await pg.goto(ORIGEN + '/joc', { waitUntil: 'networkidle' });
   await pg.$eval('#joc', (e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
   comprova('joc: sense manifest, el botó diu «Torna-ho a provar»', await espera(pg, () => document.querySelector('[data-juga]').textContent === 'Torna-ho a provar'));
   await pg.context().close();
 }
 
-console.log('\n15c. Pàgina del joc /joc (pantalla completa, per obrir des d’Instagram)');
-const TEXT_JOC = 'He jugat al joc de Defensem l’Empordanet! Prova-ho: https://defensem.vercel.app/joc';
+console.log('\n15c. /joc: el joc com a app independent (per obrir des d’Instagram)');
 {
   const a = await fetch(ORIGEN + '/joc'), b = await fetch(ORIGEN + '/joc.html');
   comprova('/joc funciona sense .html (rewrite de vercel.json) i és la mateixa pàgina', a.status === 200 && (await a.text()) === (await b.text()));
-  const html = await (await fetch(ORIGEN + '/joc')).text(), portada = await (await fetch(ORIGEN + '/')).text();
-  comprova('/joc i la portada fan servir el mateix codi del joc (joc.js i joc.css), sense copiar-lo', ['/fora-molins/joc.js', '/fora-molins/joc.css'].every((x) => html.includes(x) && portada.includes(x))
-    && !/<script>(?!<\/)/.test(html));
-  const meta = (k) => (html.match(new RegExp(`<meta property="${k}" content="([^"]+)"`)) || [])[1];
-  comprova('/joc: Open Graph propi (títol, descripció, imatge 1200 × 630 i URL)', /Fora molins!/.test(meta('og:title')) && !!meta('og:description')
-    && meta('og:image') === 'https://defensem.vercel.app/img/og-joc.jpg' && meta('og:url') === 'https://defensem.vercel.app/joc', JSON.stringify([meta('og:title'), meta('og:image')]));
-  const og = await fetch(ORIGEN + '/img/og-joc.jpg');
-  comprova('la imatge og-joc.jpg existeix', og.status === 200 && og.headers.get('content-type') === 'image/jpeg');
+  const html = await (await fetch(ORIGEN + '/joc')).text();
+  const meta = (k, attr = 'property') => (html.match(new RegExp(`<meta ${attr}="${k}" content="([^"]+)"`)) || [])[1];
+  comprova('/joc: Open Graph propi (títol, descripció, imatge 1200 × 630, URL) i targeta gran', /Fora molins!/.test(meta('og:title')) && !!meta('og:description')
+    && meta('og:image') === 'https://defensem.vercel.app/img/og-joc.jpg' && meta('og:url') === 'https://defensem.vercel.app/joc' && meta('twitter:card', 'name') === 'summary_large_image');
+  comprova('/joc: noindex i mode clar forçat', meta('robots', 'name') === 'noindex' && meta('color-scheme', 'name') === 'only light');
+  comprova('/joc: sense capçalera, menú, peu ni bàner de la web', !/marc\.js|menu\.js|consentiment\.js|<header|<footer|<nav/.test(html));
   for (const [img, w, h] of [['/img/instagram/joc-post.png', 1080, 1350], ['/img/instagram/joc-historia.png', 1080, 1920], ['/img/og-joc.jpg', 1200, 630]]) {
     const pg = await pagina(MOBIL, false); await pg.goto(ORIGEN + img);
     const mida = await pg.evaluate(() => { const i = document.querySelector('img'); return [i.naturalWidth, i.naturalHeight].join('x'); });
     comprova(`${img}: ${w}×${h}`, mida === w + 'x' + h, mida); await pg.context().close();
   }
 }
-for (const vp of [MOBIL, ESCRIPTORI]) {
-  const nom = `@${vp.width}px`;
+for (const vp of [MOBIL, { width: 360, height: 640 }, ESCRIPTORI]) {
+  const nom = `@${vp.width}×${vp.height}`;
   const pg = await pagina(vp, false);
-  // Web Share API simulada: es desa què es comparteix.
-  await pg.addInitScript(() => { window.__compartit = []; navigator.share = (d) => { window.__compartit.push(d); return Promise.resolve(); }; });
   await pg.goto(ORIGEN + '/joc?debug', { waitUntil: 'networkidle' });
-  const c = await pg.evaluate(() => ({ menu: !!document.querySelector('#nav, #mb'), logo: document.querySelector('header .logo')?.getAttribute('href'),
-    pet: (() => { const a = document.querySelector('header .btn-peticio'); return a && [a.textContent, a.target, /docs\.google\.com\/forms/.test(a.href)].join('|'); })(),
-    titol: document.querySelector('main h1')?.textContent, esc: document.querySelector('.fm-escenari').getBoundingClientRect(), alt: innerHeight, ample: innerWidth }));
-  comprova(`/joc ${nom}: capçalera mínima (logo i «Signa la petició», sense menú)`, !c.menu && c.logo === '/' && c.pet === 'Signa la petició|_blank|true' && c.titol === 'Fora molins!', JSON.stringify(c));
-  comprova(`/joc ${nom}: el joc ocupa la pantalla i es veu sencer sense desplaçar`, c.esc.bottom <= c.alt && (vp === MOBIL ? c.esc.width >= c.ample - 20 : c.esc.height >= c.alt * 0.6)
-    && (await desbordament(pg)) <= 0, JSON.stringify(c.esc));
   const llest = await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
+  const c = await pg.evaluate(() => { const e = document.querySelector('.fm-escenari').getBoundingClientRect(), l = document.querySelector('.fm-app-logo img').getBoundingClientRect();
+    return { scroll: document.documentElement.scrollHeight - innerHeight, esc: [Math.round(e.top), Math.round(e.bottom), Math.round(e.width), Math.round(e.height)], alt: innerHeight, ample: innerWidth,
+      logo: [Math.round(l.top), Math.round(l.height)], h1: document.querySelector('h1')?.textContent, fons: getComputedStyle(document.body).backgroundColor }; });
+  comprova(`/joc ${nom}: pantalla completa sense desplaçament, logo petit a dalt`, llest && c.scroll <= 0 && c.esc[1] <= c.alt && c.logo[0] < 20 && c.logo[1] <= 72
+    && c.fons === 'rgb(241, 240, 238)' && /Fora molins!/.test(c.h1), JSON.stringify(c));
+  if (vp.width < 620) comprova(`/joc ${nom}: en vertical l’escenari omple l’amplada i gairebé tota l’alçada`, c.esc[2] >= c.ample - 20 && c.esc[3] >= c.alt * 0.8, JSON.stringify(c.esc));
+  else comprova(`/joc ${nom}: en escriptori l’escenari hi cap sencer`, c.esc[3] >= c.alt * 0.8 && c.esc[1] <= c.alt, JSON.stringify(c.esc));
   await pg.click('[data-juga]');
-  comprova(`/joc ${nom}: es juga`, llest && await espera(pg, () => window.__foraMolins.joc.fase === 'joc', null, 5000));
+  comprova(`/joc ${nom}: es juga i els molins brollen dins de la vista`, await espera(pg, () => window.__foraMolins.joc.fase === 'joc', null, 5000)
+    && await pg.evaluate(() => { for (let i = 0; i < 6; i++) window.__foraMolins.brota(); const m = window.__foraMolins.molins(); return m.length > 0; }));
   await pg.evaluate(() => { window.__foraMolins.joc.temps = 39.95; });
   comprova(`/joc ${nom}: en acabar surt la pantalla final`, await espera(pg, () => !document.querySelector('[data-final]').hidden, null, 4000));
   const f = await pg.evaluate(() => ({ punts: document.querySelector('[data-f-punts]').textContent,
     botons: [...document.querySelectorAll('[data-final] .fm-botons > *')].filter((e) => !e.hidden).map((e) => e.textContent.trim()),
-    signa: (() => { const a = document.querySelector('[data-final] a.fm-boto-signa'); return [a.target, a.rel, /docs\.google\.com\/forms/.test(a.href)].join('|'); })() }));
-  comprova(`/joc ${nom}: pantalla final amb la puntuació, «Torna a jugar», «Signa la petició» i «Comparteix»`, f.punts === '0' && f.botons.join() === 'Torna a jugar,Signa la petició,Comparteix'
-    && f.signa === '_blank|noopener noreferrer|true', JSON.stringify(f));
-  comprova(`/joc ${nom}: pantalla final sense desbordament`, (await desbordament(pg)) <= 0);
-  await pg.click('[data-comparteix]');
-  const comp = await pg.evaluate(() => window.__compartit);
-  comprova(`/joc ${nom}: «Comparteix» fa servir la Web Share API amb el text demanat`, comp.length === 1 && comp[0].text === 'He jugat al joc de Defensem l’Empordanet! Prova-ho: https://defensem.vercel.app/joc', JSON.stringify(comp));
+    signa: (() => { const a = document.querySelector('[data-final] a.fm-boto-signa'); return [a.target, a.rel, /docs\.google\.com\/forms/.test(a.href)].join('|'); })(),
+    campanya: document.querySelector('[data-final] a.fm-boto-sec')?.getAttribute('href'), scroll: document.documentElement.scrollHeight - innerHeight }));
+  comprova(`/joc ${nom}: pantalla final amb la puntuació, «Torna a jugar», «Signa la petició» i «Coneix la campanya»`, f.punts !== '' && f.botons.join() === 'Torna a jugar,Signa la petició,Coneix la campanya'
+    && f.signa === '_blank|noopener noreferrer|true' && f.campanya === '/' && f.scroll <= 0, JSON.stringify(f));
+  await pg.click('[data-torna]');
+  comprova(`/joc ${nom}: «Torna a jugar» en comença una altra`, await pg.evaluate(() => document.querySelector('[data-final]').hidden && window.__foraMolins.joc.fase === 'compte'));
   comprova(`/joc ${nom}: cap error ni recurs extern`, pg.errors.length === 0 && pg.externes.length === 0, JSON.stringify({ e: pg.errors, x: pg.externes }));
-  await pg.context().close();
-}
-{
-  // Sense Web Share API (navegadors d'escriptori, algunes apps): copia el text i l'enllaç.
-  const pg = await pagina(ESCRIPTORI, false, { permissions: ['clipboard-read', 'clipboard-write'] });
-  await pg.addInitScript(() => { try { delete Navigator.prototype.share; } catch (e) { /* res */ } });
-  await pg.goto(ORIGEN + '/joc?debug', { waitUntil: 'networkidle' });
-  await espera(pg, () => window.__foraMolins && window.__foraMolins.llest() && !document.querySelector('[data-juga]').disabled);
-  await pg.click('[data-juga]'); await espera(pg, () => window.__foraMolins.joc.fase === 'joc', null, 5000);
-  await pg.evaluate(() => { window.__foraMolins.joc.temps = 39.95; });
-  await espera(pg, () => !document.querySelector('[data-final]').hidden, null, 4000);
-  const visible = await pg.$eval('[data-comparteix]', (b) => !b.hidden && typeof navigator.share === 'undefined');
-  await pg.click('[data-comparteix]');
-  const ok2 = await espera(pg, () => document.querySelector('[data-comparteix]').textContent === 'Enllaç copiat!');
-  const copiat = await pg.evaluate(() => navigator.clipboard.readText());
-  comprova('/joc: sense Web Share API, «Comparteix» copia el text amb l’enllaç i ho diu', visible && ok2 && copiat === TEXT_JOC, JSON.stringify({ visible, ok2, copiat }));
   await pg.context().close();
 }
 

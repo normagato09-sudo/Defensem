@@ -113,25 +113,3 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 #eines{border-top:2px solid var(--color-text)}
 .subnav + section.s{padding-top:clamp(36px,6vw,64px)}
 section#entitats .ent-filtres{margin-top:24px}
-
-/* ---------- Pàgina del joc (/joc): pantalla completa, pensada per al mòbil (s'hi arriba des d'Instagram) ----------
-   Capçalera mínima (logo + «Signa la petició») que no és fixa, i l'escenari tan gran com hi càpiga sense desplaçar. */
-header.cap-minim{position:sticky}
-.cap-minim .bar{min-height:56px}
-.pagina-joc{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
-.pagina-joc main{flex:1;display:flex;flex-direction:column}
-.fm-complet{flex:1;padding:12px 0 20px}
-.fm-complet .w{display:flex;flex-direction:column;align-items:center}
-.fm-complet .fm-cap{justify-items:center;text-align:center;margin-bottom:10px}
-.fm h1.fm-titol{font-family:var(--fm-titular);font-weight:400;color:var(--fm-vermell);font-size:clamp(2rem,7vw,3rem);line-height:1;margin:0;text-transform:uppercase}
-.fm-complet .fm-intro{margin-top:2px;font-size:.98rem;line-height:1.45}
-/* Amplada màxima perquè l'escenari (proporció 6:5) quedi sencer dins de la pantalla, sota la capçalera i el títol */
-.fm-complet .fm-escenari{max-width:calc((100vh - 230px) * 1.2);max-width:calc((100dvh - 230px) * 1.2)}
-@media(max-width:620px){
-  .fm-complet{padding-top:8px}
-  .fm-complet .w{padding:0 8px}
-  .fm-complet .fm-escenari{max-width:none}
-  .fm-complet .fm-eyebrow{font-size:1.15rem}
-  .fm-complet .fm-intro{font-size:.9rem}
-}
-footer.peu-minim{background:none;padding:0;border-top:2px solid var(--color-text)}

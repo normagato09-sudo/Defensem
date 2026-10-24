@@ -61,10 +61,23 @@
   // En pantalles estretes es retalla una mica pels costats perquè tot es vegi més gran.
   var vista = { x0: 0, x1: W, k: 1, dpr: 1, cw: 0, ch: 0 };
   var cau = { cel: null, paisatge: null, ratxes: null, vinyeta: null };
+  // Amb data-encaixa (pàgina /joc, pantalla completa) l'escenari s'adapta a l'espai del seu contenidor: en un mòbil
+  // vertical es mostra una franja més estreta del paisatge (mínim 600 de 1440) perquè ompli l'alçada; en pantalles
+  // amples, l'amplada es limita perquè hi càpiga sencer. Tot (molins, bèsties, tocs) ja es calcula dins de vista.x0–x1.
+  var ENCAIXA = root.hasAttribute('data-encaixa');
   function redimensiona() {
-    var amplada = escenari.clientWidth || 600;
+    if (ENCAIXA) escenari.style.maxWidth = '';
+    var amplada = escenari.clientWidth || 600, disp = 0;
+    if (ENCAIXA) {
+      disp = escenari.parentElement.clientHeight || amplada;
+      if (amplada / disp > W / H) { amplada = Math.floor(disp * W / H); escenari.style.maxWidth = amplada + 'px'; }
+    }
     var estret = amplada < 620;
     vista.x0 = estret ? 150 : 0; vista.x1 = estret ? 1290 : W;
+    if (ENCAIXA) {
+      var ample = Math.max(600, Math.min(vista.x1 - vista.x0, Math.round(amplada / disp * H))), mig = (vista.x0 + vista.x1) / 2;
+      vista.x0 = mig - ample / 2; vista.x1 = mig + ample / 2;
+    }
     escenari.classList.toggle('fm-estret', estret);
     var vw = vista.x1 - vista.x0;
     escenari.style.aspectRatio = vw + ' / ' + H;
@@ -758,10 +771,10 @@
   }
 
   // ------------------------------------------------------------------ arrencada
-  if (/[?&]debug\b/.test(location.search)) window.__foraMolins = { joc: joc, molins: function () { return molins; }, besties: function () { return BESTIES; }, brota: function () { brota(); }, espanta: espanta, encerta: encerta, formaMoli: formaMoli, dibuixa: function (t) { dibuixa(t); }, atura: function () { atura(); }, llest: function () { return carregat; }, cau: function () { return cau; }, sons: function () { return { carregats: Object.keys(buf).sort(), estat: ac ? ac.state : 'sense' }; } };
+  if (/[?&]debug\b/.test(location.search)) window.__foraMolins = { joc: joc, molins: function () { return molins; }, besties: function () { return BESTIES; }, brota: function () { brota(); }, espanta: espanta, encerta: encerta, formaMoli: formaMoli, dibuixa: function (t) { dibuixa(t); }, atura: function () { atura(); }, llest: function () { return carregat; }, cau: function () { return cau; }, vista: function () { return { x0: vista.x0, x1: vista.x1 }; }, sons: function () { return { carregats: Object.keys(buf).sort(), estat: ac ? ac.state : 'sense' }; } };
   var imgLogo = root.querySelector('[data-logo]'); if (imgLogo) imgLogo.src = ASSETS + 'logo.webp?v=' + VERSIO;   // logotip de la plataforma a la pantalla final
   redimensiona();
-  if ('ResizeObserver' in window) new ResizeObserver(function () { redimensiona(); }).observe(escenari);
+  if ('ResizeObserver' in window) { var ro = new ResizeObserver(function () { redimensiona(); }); ro.observe(escenari); if (ENCAIXA) ro.observe(escenari.parentElement); }
   else window.addEventListener('resize', redimensiona);
   mostraRec();
   ui.juga.disabled = true; ui.juga.textContent = 'Carregant…';

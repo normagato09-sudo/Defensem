@@ -6,9 +6,7 @@
      <script src="/js/marc.js" data-part="peu"></script>           ← just després de </main>: peu
    S'executa en el moment (sense defer), així la capçalera es veu des del primer pintat, sense salts.
    El menú mòbil (botó «Menú») el gestiona /js/menu.js. La capçalera és fixa; la seva alçada real es desa a --alt-cap.
-   Els elements amb [data-peticio] de qualsevol pàgina reben l'enllaç de la petició.
-   Pàgina del joc (/joc): data-part="cap-minim" (només el logo i «Signa la petició») i data-part="peu-minim"
-   (només els enllaços legals), per deixar tota la pantalla al joc. */
+   Els elements amb [data-peticio] de qualsevol pàgina reben l'enllaç de la petició. */
 (function () {
   'use strict';
   // Enllaç de la petició (formulari de Google). És l'únic lloc on s'ha de canviar.
@@ -57,20 +55,6 @@
     var mesura = function () { arrel.style.setProperty('--alt-cap', capcalera.offsetHeight + 'px'); };
     mesura();
     if (window.ResizeObserver) new ResizeObserver(mesura).observe(capcalera); else window.addEventListener('resize', mesura);
-  } else if (part === 'cap-minim') {
-    script.insertAdjacentHTML('beforebegin',
-      '<a class="salta" href="#inici">Salta al contingut</a>' +
-      '<header class="cap cap-minim"><div class="w bar">' +
-        '<a class="logo" href="/">Defensem <b>l’Empordanet</b></a>' +
-        '<a class="btn btn-peticio" data-peticio>Signa la petició</a>' +
-      '</div></header>');
-    peticio(document.querySelector('header.cap [data-peticio]'));
-  } else if (part === 'peu-minim') {
-    script.insertAdjacentHTML('beforebegin',
-      '<footer class="peu-minim"><div class="peu-legal"><div class="w"><ul class="legal">' +
-        LEGALS.map(function (l) { return '<li><a href="' + l[0] + '">' + l[1] + '</a></li>'; }).join('') +
-      '</ul></div></div></footer>');
-    Array.prototype.forEach.call(document.querySelectorAll('[data-peticio]'), peticio);
   } else if (part === 'peu') {
     script.insertAdjacentHTML('beforebegin',
       '<footer><div class="w">' +
