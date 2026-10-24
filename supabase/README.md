@@ -65,9 +65,7 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 - `eines`: los visores de `/eines.html` (nombre, organismo, descripción, URL `https://`, categoría, orden y publicada). Lectura pública **solo** de las publicadas; solo Administrador y Editor crean, editan, ordenan, publican y eliminan (panel → *Eines*).
 
-Si ya ejecutaste el SQL de Entitats, para añadir Eines basta con `supabase/actualitzacio-eines.sql` (no toca nada de lo que ya existe, salvo permitir que el Editor elimine entidades).
-
-`supabase/contingut-inicial.sql` añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir), los tipos de entidad «Observatori» y «Xarxa d'entitats», y corrige el check del campo web (la versión anterior daba error con cualquier dirección). Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
+**Si ya tienes la base de datos en marcha**, en lugar de volver a ejecutar `schema.sql` entero puedes ejecutar solo `supabase/entitats-i-eines.sql`: crea o completa Entitats, las solicitudes de adhesión y Eines (tablas, permisos, políticas RLS y validaciones), corrige las validaciones de web, correo y URL, y añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir) si no existe. Se puede ejecutar varias veces sin errores ni duplicados. Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
 
 Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 

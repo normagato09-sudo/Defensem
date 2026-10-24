@@ -245,10 +245,10 @@ create table if not exists public.entitats (
   tipus       text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres')),
   municipi    text not null default '' check (char_length(municipi) <= 100),
   descripcio  text not null default '' check (char_length(descripcio) <= 600),
-  web         text check (web is null or (char_length(web) <= 300 and web ~ '^https://[^[:space:]]+$')),
+  web         text check (web is null or (char_length(web) <= 300 and web ~ '^https://\S+$')),
   instagram   text check (instagram is null or instagram ~ '^https://(www\.)?instagram\.com/[A-Za-z0-9._]{1,30}/?$'),
   logo        text check (logo is null or logo ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$'
-                      or (char_length(logo) <= 500 and logo ~ '^https://[^[:space:]]+$')),
+                      or (char_length(logo) <= 500 and logo ~ '^https://\S+$')),
   publicada   boolean not null default false,
   created_by  uuid references public.profiles(id) on delete set null,
   created_at  timestamptz not null default now(),
@@ -301,10 +301,10 @@ create table if not exists public.sollicituds_entitats (
   tipus            text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres')),
   municipi         text not null check (char_length(municipi) between 1 and 100),
   descripcio       text not null default '' check (char_length(descripcio) <= 600),
-  web              text check (web is null or (char_length(web) <= 300 and web ~ '^https?://[^[:space:]]+$')),
+  web              text check (web is null or (char_length(web) <= 300 and web ~ '^https?://\S+$')),
   instagram        text check (instagram is null or char_length(instagram) between 1 and 100),
   persona_contacte text not null check (char_length(persona_contacte) between 1 and 120),
-  email            text not null check (char_length(email) <= 254 and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
+  email            text not null check (char_length(email) <= 254 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   telefon          text check (telefon is null or telefon ~ '^[0-9 +().-]{6,20}$'),
   missatge         text not null default '' check (char_length(missatge) <= 2000),
   consentiment     boolean not null check (consentiment),
@@ -361,7 +361,7 @@ create table if not exists public.eines (
   nom         text not null check (char_length(nom) between 1 and 200),
   organisme   text not null default '' check (char_length(organisme) <= 200),
   descripcio  text not null default '' check (char_length(descripcio) <= 600),
-  url         text not null check (char_length(url) <= 500 and url ~ '^https://[^[:space:]]+$'),
+  url         text not null check (char_length(url) <= 500 and url ~ '^https://\S+$'),
   categoria   text not null check (categoria in ('urbanisme','energia','paisatge','medi_natural','altres')),
   ordre       integer not null default 0,
   publicada   boolean not null default false,
@@ -397,14 +397,21 @@ create policy eina_delete on public.eines for delete to authenticated
 
 -- ---------- 8. AMPLIACIONS (octubre 2026) ----------
 -- Per a bases de dades creades abans: «create table if not exists» no canvia les restriccions d'una taula existent.
--- Tipus nous d'entitat (observatori, xarxa d'entitats), logo com a adreça https:// provisional i correcció del
--- check del web (la versió anterior tenia una repetició {1,300} que Postgres no admet: qualsevol web donava error).
+-- Tipus nous d'entitat (observatori, xarxa d'entitats), logo com a adreça https:// provisional i correcció dels
+-- checks de web, correu i URL (versions anteriors: una repetició {1,300} que Postgres no admet i classes de caràcters POSIX
+-- que donaven error en alguns editors SQL). Les expressions fan servir \S i \s.
 alter table public.entitats drop constraint if exists entitats_web_check;
 alter table public.entitats add constraint entitats_web_check
-  check (web is null or (char_length(web) <= 300 and web ~ '^https://[^[:space:]]+$'));
+  check (web is null or (char_length(web) <= 300 and web ~ '^https://\S+$'));
 alter table public.sollicituds_entitats drop constraint if exists sollicituds_entitats_web_check;
 alter table public.sollicituds_entitats add constraint sollicituds_entitats_web_check
-  check (web is null or (char_length(web) <= 300 and web ~ '^https?://[^[:space:]]+$'));
+  check (web is null or (char_length(web) <= 300 and web ~ '^https?://\S+$'));
+alter table public.sollicituds_entitats drop constraint if exists sollicituds_entitats_email_check;
+alter table public.sollicituds_entitats add constraint sollicituds_entitats_email_check
+  check (char_length(email) <= 254 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$');
+alter table public.eines drop constraint if exists eines_url_check;
+alter table public.eines add constraint eines_url_check
+  check (char_length(url) <= 500 and url ~ '^https://\S+$');
 alter table public.entitats drop constraint if exists entitats_tipus_check;
 alter table public.entitats add constraint entitats_tipus_check
   check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres'));
@@ -414,4 +421,4 @@ alter table public.sollicituds_entitats add constraint sollicituds_entitats_tipu
 alter table public.entitats drop constraint if exists entitats_logo_check;
 alter table public.entitats add constraint entitats_logo_check
   check (logo is null or logo ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$'
-         or (char_length(logo) <= 500 and logo ~ '^https://[^[:space:]]+$'));
+         or (char_length(logo) <= 500 and logo ~ '^https://\S+$'));
