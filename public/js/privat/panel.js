@@ -1,5 +1,6 @@
 /* Tauler de l'àrea privada (rutes per hash: #/inici, #/nova, #/editar/<id>, #/meves, #/revisio,
-   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/documents, #/usuaris).
+   #/totes[/<estat>], #/entitats, #/entitat/<id|nova>[/<id de sol·licitud>], #/sollicituds, #/eines, #/eina/<id|nova>,
+   #/documents, #/usuaris).
    El rol es llegeix SEMPRE de la taula profiles. El menú només s'hi adapta per comoditat:
    qui decideix què es pot fer són les polítiques RLS i els triggers de la base de dades. */
 (function () {
@@ -13,7 +14,9 @@
   // Mateixa llista que el check de supabase/schema.sql i que js/entitats.js.
   var TIPUS_ENT = { associacio: 'Associació', collectiu: 'Col·lectiu', entitat_veinal: 'Entitat veïnal', fundacio: 'Fundació',
     cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', altres: 'Altres' };
-  var ESTATS_SOL = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Descartada' };
+  // Mateixa llista que el check de supabase/schema.sql i que js/eines.js.
+  var CAT_EINA = { urbanisme: 'Urbanisme', energia: 'Energia', paisatge: 'Paisatge', medi_natural: 'Medi natural', altres: 'Altres' };
+  var ESTATS_SOL = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Rebutjada' };
   var MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
   var SENSE_PERMIS = 'No tens permís per fer aquesta acció.';
   var jo = null, torn = 0, sb = P.client();
@@ -27,6 +30,8 @@
     { r: 'entitats', t: 'Entitats', rols: EDITA, f: vEntitats },
     { r: 'entitat', t: 'Entitat', rols: EDITA, f: vEntitat, pare: 'entitats' },
     { r: 'sollicituds', t: 'Sol·licituds d’adhesió', rols: EDITA, f: vSollicituds },
+    { r: 'eines', t: 'Eines', rols: EDITA, f: vEines },
+    { r: 'eina', t: 'Eina', rols: EDITA, f: vEina, pare: 'eines' },
     { r: 'documents', t: 'Documents', rols: TOTS, f: vDocuments },
     { r: 'usuaris', t: 'Usuaris', rols: ['admin'], f: vUsuaris }
   ];
@@ -406,7 +411,7 @@
   }
 
   // ---------- Entitats (admin i editor) ----------
-  function estatEnt(pub) { return el('span', { class: 'estat ' + (pub ? 'publicat' : 'pendent') }, [pub ? 'Publicada' : 'No publicada']); }
+  function estatEnt(pub) { return el('span', { class: 'estat ' + (pub ? 'publicat' : 'pendent') }, [pub ? 'Publicada' : 'No publicada']); }  // també per a les eines
   // «@nom», «nom» o una adreça d'Instagram → https://www.instagram.com/nom/ (o '' si no és vàlid).
   function urlInstagram(v) {
     v = (v || '').trim();
@@ -430,11 +435,11 @@
             var ok = await escriu(sb.from('entitats').update({ publicada: !e.publicada }).eq('id', e.id));
             if (ok) { avis(e.publicada ? 'Entitat retirada de la web.' : 'Entitat publicada. Ja es veu a la web.'); refresca(); }
           }, { 'aria-label': (e.publicada ? 'Despublica ' : 'Publica ') + e.nom }),
-          jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
+          boto('Elimina', 'o', async function () {
             if (!window.confirm('Segur que vols eliminar l’entitat «' + e.nom + '»? Aquesta acció no es pot desfer.')) return;
             var d = await escriu(sb.from('entitats').delete().eq('id', e.id));
             if (d) { esborraImatge(e.logo); avis('Entitat eliminada.'); refresca(); }
-          }, { 'aria-label': 'Elimina ' + e.nom }) : null
+          }, { 'aria-label': 'Elimina ' + e.nom })
         ])
       ]);
     });
@@ -556,12 +561,6 @@
     var r = await sb.from('sollicituds_entitats').select('*').order('created_at', { ascending: false });
     if (r.error) throw r.error;
     var items = (r.data || []).map(function (s) {
-      var sel = el('select', { 'aria-label': 'Estat de la sol·licitud de ' + s.nom_entitat, value: s.estat },
-        Object.keys(ESTATS_SOL).map(function (k) { return el('option', { value: k }, [ESTATS_SOL[k]]); }));
-      sel.addEventListener('change', async function () {
-        var ok = await escriu(sb.from('sollicituds_entitats').update({ estat: sel.value }).eq('id', s.id));
-        if (ok) { s.estat = sel.value; avis('Estat actualitzat: ' + ESTATS_SOL[s.estat] + '.'); } else sel.value = s.estat;
-      });
       var web = /^https?:\/\//i.test(s.web || '') ? S.enllac(s.web) : '';
       var dades = [
         ['Tipus', TIPUS_ENT[s.tipus] || s.tipus], ['Municipi', s.municipi], ['Descripció', s.descripcio],
@@ -575,8 +574,12 @@
           el('span', null, ['Rebuda el ' + data(s.created_at)])]),
         el('dl', { class: 'dades-sol' }, dades.reduce(function (a, x) { return a.concat([el('dt', null, [x[0]]), el('dd', null, [x[1]])]); }, [])),
         el('div', { class: 'accions' }, [
-          el('div', { class: 'camp camp-linia' }, [sel]),
-          enllacRuta('Crea l’entitat amb aquestes dades', 'entitat/nova/' + s.id, 'btn v petit'),
+          s.estat !== 'acceptada' ? el('a', { href: '#/entitat/nova/' + s.id, class: 'btn v petit', 'aria-label': 'Accepta la sol·licitud de ' + s.nom_entitat + ' i crea l’entitat' }, ['Accepta i crea l’entitat']) : null,
+          s.estat !== 'descartada' ? boto('Rebutja', 'o', async function () {
+            if (!window.confirm('Rebutjar la sol·licitud de «' + s.nom_entitat + '»? No es publicarà res.')) return;
+            var ok = await escriu(sb.from('sollicituds_entitats').update({ estat: 'descartada' }).eq('id', s.id));
+            if (ok) { avis('Sol·licitud rebutjada.'); refresca(); }
+          }, { 'aria-label': 'Rebutja la sol·licitud de ' + s.nom_entitat }) : null,
           jo.rol === 'admin' ? boto('Elimina', 'o', async function () {
             if (!window.confirm('Segur que vols eliminar la sol·licitud de «' + s.nom_entitat + '»? S’esborraran també les dades de contacte.')) return;
             var d = await escriu(sb.from('sollicituds_entitats').delete().eq('id', s.id));
@@ -587,8 +590,123 @@
     });
     pinta(t, [
       el('h1', null, ['Sol·licituds d’adhesió']),
-      el('p', null, ['Enviades des del formulari de la pàgina Entitats, de la més nova a la més antiga. Les dades de contacte són privades: no les publiquis ni les comparteixis. Esborra les sol·licituds resoltes quan ja no calguin (com a màxim, un any després).']),
+      el('p', null, ['Enviades des del formulari de la pàgina Entitats, de la més nova a la més antiga. «Accepta» obre el formulari de l’entitat amb les dades omplertes: revisa-les i desa (no es publica fins que marquis «Publicada»). Les dades de contacte són privades: no les publiquis ni les comparteixis. Esborra les sol·licituds resoltes quan ja no calguin (com a màxim, un any després).']),
       items.length ? el('ul', { class: 'llista' }, items) : buit('No hi ha cap sol·licitud.')
+    ]);
+  }
+
+  // ---------- Eines (admin i editor) ----------
+  async function totesEines() {
+    var r = await sb.from('eines').select('id,nom,organisme,categoria,ordre,publicada,updated_at').order('ordre').order('nom');
+    if (r.error) throw r.error;
+    return r.data || [];
+  }
+  // Desa l'ordre de la llista tal com es veu (10, 20, 30…). Només s'actualitzen les que canvien.
+  async function desaOrdre(llista) {
+    for (var i = 0; i < llista.length; i++) {
+      var nou = (i + 1) * 10;
+      if (llista[i].ordre === nou) continue;
+      if (!await escriu(sb.from('eines').update({ ordre: nou }).eq('id', llista[i].id))) return false;
+      llista[i].ordre = nou;
+    }
+    return true;
+  }
+
+  async function vEines(t) {
+    var eines = await totesEines();
+    function mou(i, d) {
+      return async function () {
+        var l = eines.slice(), x = l[i]; l[i] = l[i + d]; l[i + d] = x;
+        if (await desaOrdre(l)) { avis('Ordre desat.'); refresca(); }
+      };
+    }
+    var items = eines.map(function (e, i) {
+      return el('li', { class: 'item' }, [
+        el('h3', null, [e.nom]),
+        el('div', { class: 'meta' }, [estatEnt(e.publicada), el('span', null, [CAT_EINA[e.categoria] || e.categoria]),
+          e.organisme ? el('span', null, [e.organisme]) : null, el('span', null, ['Posició ' + (i + 1)])]),
+        el('div', { class: 'accions' }, [
+          boto('↑ Puja', 'o fosc', mou(i, -1), { disabled: i === 0, 'aria-label': 'Puja ' + e.nom }),
+          boto('↓ Baixa', 'o fosc', mou(i, 1), { disabled: i === eines.length - 1, 'aria-label': 'Baixa ' + e.nom }),
+          enllacRuta('Edita', 'eina/' + e.id, 'btn o fosc petit'),
+          boto(e.publicada ? 'Despublica' : 'Publica', e.publicada ? 'o' : 'v', async function () {
+            var ok = await escriu(sb.from('eines').update({ publicada: !e.publicada }).eq('id', e.id));
+            if (ok) { avis(e.publicada ? 'Eina retirada de la web.' : 'Eina publicada. Ja es veu a la web.'); refresca(); }
+          }, { 'aria-label': (e.publicada ? 'Despublica ' : 'Publica ') + e.nom }),
+          boto('Elimina', 'o', async function () {
+            if (!window.confirm('Segur que vols eliminar l’eina «' + e.nom + '»? Aquesta acció no es pot desfer.')) return;
+            var d = await escriu(sb.from('eines').delete().eq('id', e.id));
+            if (d) { avis('Eina eliminada.'); refresca(); }
+          }, { 'aria-label': 'Elimina ' + e.nom })
+        ])
+      ]);
+    });
+    pinta(t, [
+      el('h1', null, ['Eines']),
+      el('p', null, ['Visors i eines que es mostren a la pàgina pública ', el('a', { href: '/eines.html', target: '_blank', rel: 'noopener' }, ['Eines']),
+        ', en aquest ordre. Només hi surten les publicades.']),
+      el('p', { class: 'destacat' }, [enllacRuta('Afegeix una eina', 'eina/nova', 'btn')]),
+      items.length ? el('ul', { class: 'llista' }, items) : buit('Encara no hi ha cap eina.')
+    ]);
+  }
+
+  async function vEina(t, id) {
+    var e = null;
+    if (id && id !== 'nova') {
+      if (!S.esUuid(id)) { pinta(t, [el('h1', null, ['No hem trobat aquesta eina.'])]); return; }
+      var r = await sb.from('eines').select('*').eq('id', id).maybeSingle();
+      if (r.error) throw r.error;
+      if (!r.data) { pinta(t, [el('h1', null, ['No hem trobat aquesta eina.']), el('p', null, [enllacRuta('Torna a Eines', 'eines')])]); return; }
+      e = r.data;
+    }
+    var ordre = e ? e.ordre : 10;
+    if (!e) { var totes = await totesEines(); totes.forEach(function (x) { if (x.ordre >= ordre) ordre = x.ordre + 10; }); }
+
+    var fNom = el('input', { id: 'i-nom', type: 'text', maxlength: 200, required: true, value: e ? e.nom : '' });
+    var fOrg = el('input', { id: 'i-org', type: 'text', maxlength: 200, value: e ? e.organisme : '' });
+    var fDesc = el('textarea', { id: 'i-desc', maxlength: 600, 'aria-describedby': 'i-desc-ajuda', value: e ? e.descripcio : '' });
+    var fUrl = el('input', { id: 'i-url', type: 'url', required: true, maxlength: 500, placeholder: 'https://', 'aria-describedby': 'i-url-ajuda', value: e ? e.url : '' });
+    var fCat = el('select', { id: 'i-cat', value: e ? e.categoria : 'urbanisme' },
+      Object.keys(CAT_EINA).map(function (k) { return el('option', { value: k }, [CAT_EINA[k]]); }));
+    var fOrdre = el('input', { id: 'i-ordre', type: 'number', step: 1, 'aria-describedby': 'i-ordre-ajuda', value: String(ordre) });
+    var fPub = el('input', { id: 'i-pub', type: 'checkbox', checked: !!(e && e.publicada) });
+    var bDesa = el('button', { type: 'submit', class: 'btn' }, [e ? 'Desa els canvis' : 'Crea l’eina']);
+    var form = el('form', { novalidate: true, onsubmit: async function (ev) {
+      ev.preventDefault();
+      var nom = fNom.value.trim(), url = fUrl.value.trim(), ord = parseInt(fOrdre.value, 10);
+      if (!nom) { avis('El nom és obligatori.', 'error'); fNom.focus(); return; }
+      if (!/^https:\/\/\S+$/i.test(url) || !S.enllac(url)) { avis('L’URL ha de començar per https://', 'error'); fUrl.focus(); return; }
+      if (isNaN(ord)) { avis('L’ordre ha de ser un número.', 'error'); fOrdre.focus(); return; }
+      bDesa.disabled = true;
+      try {
+        var dades = { nom: nom, organisme: fOrg.value.trim(), descripcio: fDesc.value.trim(), url: url, categoria: fCat.value, ordre: ord, publicada: fPub.checked };
+        var res = e ? await escriu(sb.from('eines').update(dades).eq('id', e.id)) : await escriu(sb.from('eines').insert(dades));
+        if (!res) return;
+        avis(dades.publicada ? 'Desat. L’eina ja es veu a la web.' : 'Desat. L’eina encara no és pública.');
+        if (!e) location.hash = '#/eina/' + res[0].id; else refresca();
+      } catch (err) { falla(err); } finally { bDesa.disabled = false; }
+    } }, [
+      el('div', { class: 'graella-form' }, [
+        el('div', { class: 'camp' }, [el('label', { for: 'i-nom' }, ['Nom']), fNom]),
+        el('div', { class: 'camp' }, [el('label', { for: 'i-org' }, ['Organisme']), fOrg])
+      ]),
+      el('div', { class: 'camp' }, [el('label', { for: 'i-desc' }, ['Descripció']), fDesc,
+        el('span', { class: 'ajuda', id: 'i-desc-ajuda' }, ['Què s’hi pot consultar. Es mostra a la targeta pública. Màxim 600 caràcters.'])]),
+      el('div', { class: 'camp' }, [el('label', { for: 'i-url' }, ['URL']), fUrl,
+        el('span', { class: 'ajuda', id: 'i-url-ajuda' }, ['Ha de començar per https://. Comprova abans que s’obre i que és la pàgina oficial.'])]),
+      el('div', { class: 'graella-form' }, [
+        el('div', { class: 'camp' }, [el('label', { for: 'i-cat' }, ['Categoria']), fCat]),
+        el('div', { class: 'camp' }, [el('label', { for: 'i-ordre' }, ['Ordre']), fOrdre,
+          el('span', { class: 'ajuda', id: 'i-ordre-ajuda' }, ['Les més petites surten primer. També es pot canviar amb Puja/Baixa a la llista.'])])
+      ]),
+      el('div', { class: 'camp' }, [el('label', { class: 'check' }, [fPub, ' Publicada (es veu a la web pública)'])]),
+      el('div', { class: 'accions' }, [bDesa, enllacRuta('Torna a Eines', 'eines', 'btn o fosc petit')])
+    ]);
+    pinta(t, [
+      el('p', { class: 'kicker' }, ['Eina']),
+      el('h1', null, [e ? e.nom : 'Nova eina']),
+      e ? el('p', null, ['Estat: ', estatEnt(e.publicada)]) : null,
+      form
     ]);
   }
 

@@ -60,8 +60,12 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 `schema.sql` añade dos tablas. **Vuelve a ejecutar `schema.sql` entero** en *SQL Editor* (es idempotente) para crearlas:
 
-- `entitats`: el índice público de `/entitats.html`. Lectura pública **solo** de las filas con `publicada = true` (RLS). Solo Administrador y Editor crean, editan y publican (panel → *Entitats*); solo Administrador elimina. El logo se sube al bucket `portades`.
-- `sollicituds_entitats`: el formulario «La teva entitat vol adherir-s'hi?». Cualquiera puede insertar (sin poder leer nada); solo Administrador y Editor las ven y cambian su estado (panel → *Sol·licituds d'adhesió*), y desde ahí se puede crear la entidad con los datos ya rellenados. Antispam: casilla de consentimiento obligatoria, campo trampa y tiempo mínimo en el navegador, y en la base de datos un máximo de 3 solicitudes por correo y día y de 20 por hora en total.
+- `entitats`: el índice público de `/entitats.html`. Lectura pública **solo** de las filas con `publicada = true` (RLS). Solo Administrador y Editor crean, editan, publican y eliminan (panel → *Entitats*). El logo se sube al bucket `portades`.
+- `sollicituds_entitats`: el formulario «La teva entitat vol adherir-s'hi?». Cualquiera puede insertar (sin poder leer nada); solo Administrador y Editor las ven y cambian su estado (panel → *Sol·licituds d'adhesió*), y las aceptan (se abre la ficha de la entidad con los datos ya rellenados) o rechazan. Antispam: casilla de consentimiento obligatoria, campo trampa y tiempo mínimo en el navegador, y en la base de datos un máximo de 3 solicitudes por correo y día y de 20 por hora en total.
+
+- `eines`: los visores de `/eines.html` (nombre, organismo, descripción, URL `https://`, categoría, orden y publicada). Lectura pública **solo** de las publicadas; solo Administrador y Editor crean, editan, ordenan, publican y eliminan (panel → *Eines*).
+
+Si ya ejecutaste el SQL de Entitats, para añadir Eines basta con `supabase/actualitzacio-eines.sql` (no toca nada de lo que ya existe, salvo permitir que el Editor elimine entidades).
 
 Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 
@@ -69,8 +73,8 @@ Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi troba
 
 | Rol | Puede |
 |---|---|
-| Administrador | Todo (también eliminar entitats y sol·licituds d'adhesió): usuarios y roles, activar/desactivar cuentas, publicar, archivar, eliminar, documentos y permisos. No puede quitarse a sí mismo el rol de admin ni desactivarse, y nunca puede quedar el sistema sin un admin activo. |
-| Editor | Ver todas las publicaciones, editarlas, publicarlas, devolverlas con nota y archivarlas. Crear, editar, publicar y despublicar **entitats** y gestionar las **sol·licituds d'adhesió** (no las elimina). No elimina ni gestiona usuarios ni documentos. Ve el nombre de los autores, no su correo. |
+| Administrador | Todo (también eliminar sol·licituds d'adhesió): usuarios y roles, activar/desactivar cuentas, publicar, archivar, eliminar, documentos y permisos. No puede quitarse a sí mismo el rol de admin ni desactivarse, y nunca puede quedar el sistema sin un admin activo. |
+| Editor | Ver todas las publicaciones, editarlas, publicarlas, devolverlas con nota y archivarlas. Crear, editar, publicar, despublicar y eliminar **entitats** y **eines**, y aceptar o rechazar las **sol·licituds d'adhesió** (no las elimina). No elimina ni gestiona usuarios ni documentos. Ve el nombre de los autores, no su correo. |
 | Col·laborador de notícies | Crear borradores propios y enviarlos a revisión. Solo edita sus textos en estado «Esborrany» o «Retornat». No puede publicar. |
 | Usuari de consulta | Ver los documentos internos a los que el admin le dé acceso. |
 
@@ -79,7 +83,7 @@ Una cuenta desactivada no puede ver ni hacer nada, pero sus publicaciones se con
 ## Pruebas automáticas
 
 ```bash
-# Base de datos (Postgres real en memoria, sin Supabase): 184 comprobaciones
+# Base de datos (Postgres real en memoria, sin Supabase): 202 comprobaciones
 npm i --no-save @electric-sql/pglite
 node supabase/prova-permisos.mjs
 

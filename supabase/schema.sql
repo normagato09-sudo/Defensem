@@ -236,7 +236,7 @@ create policy portades_delete on storage.objects for delete to authenticated usi
 
 -- ---------- 5. ENTITATS ADHERIDES ----------
 -- Índex públic de les organitzacions que donen suport a la iniciativa (/entitats.html).
--- Només admin i editor en creen, editen i publiquen. La web pública només en veu les publicades.
+-- Només admin i editor en creen, editen, publiquen i esborren. La web pública només en veu les publicades.
 -- El logo és una imatge del bucket «portades» (mateixa carpeta per persona que les portades).
 create table if not exists public.entitats (
   id          uuid primary key default gen_random_uuid(),
@@ -286,7 +286,7 @@ create policy ent_update on public.entitats for update to authenticated
   using (public.rol_actual() in ('admin','editor')) with check (public.rol_actual() in ('admin','editor'));
 drop policy if exists ent_delete on public.entitats;
 create policy ent_delete on public.entitats for delete to authenticated
-  using (public.rol_actual() = 'admin');
+  using (public.rol_actual() in ('admin','editor'));
 
 -- ---------- 6. SOL·LICITUDS D'ADHESIÓ D'ENTITATS ----------
 -- Formulari públic «La teva entitat vol adherir-s'hi?». Qualsevol pot enviar-ne (sense llegir res);
@@ -350,3 +350,45 @@ create policy sol_update on public.sollicituds_entitats for update to authentica
 drop policy if exists sol_delete on public.sollicituds_entitats;
 create policy sol_delete on public.sollicituds_entitats for delete to authenticated
   using (public.rol_actual() = 'admin');
+
+-- ---------- 7. EINES (visors per analitzar el territori) ----------
+-- Llista pública de /eines.html. Només admin i editor en creen, editen, ordenen, publiquen i esborren.
+-- La web pública només en veu les publicades. L'URL ha de començar per https://.
+create table if not exists public.eines (
+  id          uuid primary key default gen_random_uuid(),
+  nom         text not null check (char_length(nom) between 1 and 200),
+  organisme   text not null default '' check (char_length(organisme) <= 200),
+  descripcio  text not null default '' check (char_length(descripcio) <= 600),
+  url         text not null check (char_length(url) <= 500 and url ~ '^https://[^[:space:]]+$'),
+  categoria   text not null check (categoria in ('urbanisme','energia','paisatge','medi_natural','altres')),
+  ordre       integer not null default 0,
+  publicada   boolean not null default false,
+  created_by  uuid references public.profiles(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists eines_publicada_idx on public.eines (publicada, ordre);
+alter table public.eines enable row level security;
+
+drop trigger if exists gestionar_eina_t on public.eines;
+create trigger gestionar_eina_t before insert or update on public.eines
+  for each row execute function public.gestionar_entitat();  -- mateixes dates i autoria que les entitats
+
+revoke all on public.eines from anon, authenticated;
+grant select (id, nom, organisme, descripcio, url, categoria, ordre, publicada) on public.eines to anon;
+grant select, insert, update, delete on public.eines to authenticated;
+
+drop policy if exists eina_select_anon on public.eines;
+create policy eina_select_anon on public.eines for select to anon using (publicada);
+drop policy if exists eina_select on public.eines;
+create policy eina_select on public.eines for select to authenticated
+  using (publicada or public.rol_actual() in ('admin','editor'));
+drop policy if exists eina_insert on public.eines;
+create policy eina_insert on public.eines for insert to authenticated
+  with check (public.rol_actual() in ('admin','editor'));
+drop policy if exists eina_update on public.eines;
+create policy eina_update on public.eines for update to authenticated
+  using (public.rol_actual() in ('admin','editor')) with check (public.rol_actual() in ('admin','editor'));
+drop policy if exists eina_delete on public.eines;
+create policy eina_delete on public.eines for delete to authenticated
+  using (public.rol_actual() in ('admin','editor'));

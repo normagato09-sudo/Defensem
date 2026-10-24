@@ -166,13 +166,6 @@ footer .small a{color:var(--color-fons)}
 .eina .eina-org{flex:none;font-weight:700;color:var(--color-verd-text);font-size:.92rem}
 .eina-accions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
 .eina-accions .btn{min-height:44px;padding:9px 16px;font-size:.85rem}
-.eines-visor{margin-top:32px;border:2px solid var(--color-text);background:var(--color-fons)}
-.eines-visor[hidden]{display:none}
-.eines-visor-cap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text);background:var(--color-fons-fosc)}
-.eines-visor-cap h2{font-size:1.3rem;margin:0!important}
-.eines-visor-marc iframe{display:block;width:100%;height:min(75vh,720px);border:0;background:#fff}
-.eines-visor-marc .buit{margin:16px;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
-.eines-visor-marc .buit p{margin:0}
 .avis-eines{margin-top:40px;font-size:.92rem;color:var(--color-text-suau)}
 .avis-eines a{color:var(--color-verd-text);font-weight:700}
 nav a[aria-current=page]:not(.btn){color:var(--color-defensem-vermell)}

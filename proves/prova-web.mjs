@@ -65,7 +65,8 @@ function dadesInicials() {
     documents: [{ id: randomUUID(), titol: 'Acta de l’assemblea', descripcio: 'Acta', enllac: 'https://exemple.cat/acta.pdf', created_by: U.A, created_at: ara }],
     permisos_document: [],
     entitats: [],
-    sollicituds_entitats: []
+    sollicituds_entitats: [],
+    eines: []
   };
 }
 let BD = dadesInicials(), peticions = [], fallaLogout = false;
@@ -82,6 +83,7 @@ function visibles(taula, u) {
   const rol = u && u.actiu ? u.rol : null;
   if (taula === 'publicacions_publiques') return BD.publicacions.filter((p) => p.estat === 'publicat')
     .map(({ id, tipus, titol, resum, contingut, imatge, published_at }) => ({ id, tipus, titol, resum, contingut, imatge, published_at }));
+  if (taula === 'eines') return BD.eines.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
   if (taula === 'entitats') return BD.entitats.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
   if (taula === 'sollicituds_entitats') return ['admin', 'editor'].includes(rol) ? BD.sollicituds_entitats : (u ? [] : null);
   if (!u) return null;
@@ -144,7 +146,11 @@ async function supabaseFals(route) {
       f.forEach((x) => Object.assign(BD[taula].find((y) => y.id === x.id), canvis));
       return json(200, f.map((x) => ({ id: x.id })));
     }
-    if (m === 'DELETE') return json(200, []);
+    if (m === 'DELETE') {
+      const f = filtra(vis, new URLSearchParams([...url.searchParams].filter(([k]) => k !== 'select')));
+      BD[taula] = BD[taula].filter((y) => !f.some((x) => x.id === y.id));
+      return json(200, f.map((x) => ({ id: x.id })));
+    }
   }
   return json(404, {});
 }
@@ -737,8 +743,8 @@ for (const [vp, nom, tactil] of [[ESCRIPTORI, '1280 px', false], [MOBIL, '390 px
 console.log('\n8. Menú i botons segons el rol');
 const ESPERAT = {
   'col@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Documents'],
-  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Documents'],
-  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Documents', 'Usuaris'],
+  'editor@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents'],
+  'admin@ex.cat': ['Inici', 'Nova publicació', 'Les meves publicacions', 'Revisió', 'Totes les publicacions', 'Entitats', 'Sol·licituds d’adhesió', 'Eines', 'Documents', 'Usuaris'],
   'consulta@ex.cat': ['Inici', 'Documents']
 };
 const ROL = { 'col@ex.cat': 'Col·laborador de notícies', 'editor@ex.cat': 'Editor', 'admin@ex.cat': 'Administrador', 'consulta@ex.cat': 'Usuari de consulta' };
@@ -1315,26 +1321,33 @@ console.log('\n16. Entitats i Eines');
 {
   const pg = await pagina(MOBIL, false);
   await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
-  comprova('eines: sense visors verificats, missatge d’espera (cap visor inventat)', /Aviat els hi trobareu/.test(await pg.textContent('#eines-llista')) && (await pg.$$('.eina')).length === 0);
-  // Amb una llista de prova: targetes, filtre i «Veure aquí» només amb consentiment.
-  await pg.route('**/js/eines.js', async (r) => r.fulfill({ status: 200, contentType: 'text/javascript',
-    body: (await readFile(join(ARREL, 'js/eines.js'), 'utf8')).replace('var EINES = [', `var EINES = [
-      { nom: 'Visor A', organisme: 'Org A', descripcio: 'd', url: 'https://a.exemple.cat/', categoria: 'urbanisme', incrustable: true },
-      { nom: 'Visor B', organisme: 'Org B', descripcio: 'd', url: 'https://b.exemple.cat/', categoria: 'energia' },
-      { nom: 'Dolent', organisme: 'X', descripcio: 'd', url: 'javascript:alert(1)', categoria: 'energia' },`) }));
-  await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
-  const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.eina').length, filtres: [...document.querySelectorAll('.filtre-btn')].map((b) => b.textContent).join(),
-    a: [...document.querySelectorAll('.eina a')].map((a) => a.target + '|' + a.rel).join(), aqui: document.querySelectorAll('.eina button').length }));
-  comprova('eines: només visors amb URL https, s’obren en pestanya nova amb noopener', d.n === 2 && d.a === '_blank|noopener noreferrer,_blank|noopener noreferrer' && d.aqui === 1, JSON.stringify(d));
-  comprova('eines: filtres només de les categories presents', d.filtres === 'Totes,Urbanisme,Energia', d.filtres);
-  await pg.click('.filtre-btn:has-text("Energia")');
-  comprova('eines: el filtre de categoria funciona', (await pg.$$eval('.eina h3', (l) => l.map((h) => h.textContent))).join() === 'Visor B');
-  await pg.click('.filtre-btn:has-text("Totes")');
-  await pg.click('.eina button');
-  comprova('eines: «Veure aquí» sense consentiment no carrega cap iframe', !(await pg.$('#eines-visor iframe')) && !(await pg.isHidden('#eines-visor')));
-  comprova('eines: sense errors ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
-  if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/eines-390.png`, fullPage: true });
+  comprova('eines sense Supabase: «Aviat hi trobareu eines per analitzar el territori»', (await pg.textContent('#eines-llista')).trim() === 'Aviat hi trobareu eines per analitzar el territori.');
   await pg.context().close();
+}
+{
+  BD = dadesInicials(); peticions = [];
+  BD.eines.push({ id: randomUUID(), nom: 'Amagada', organisme: 'X', descripcio: '', url: 'https://x.exemple.cat/', categoria: 'altres', ordre: 1, publicada: false });
+  let pg = await pagina(ESCRIPTORI, true);
+  await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
+  comprova('eines amb Supabase i cap de publicada: missatge d’espera', (await pg.textContent('#eines-llista')).includes('Aviat hi trobareu eines') && peticions.some((p) => p.url.startsWith('/rest/v1/eines') && p.url.includes('publicada=eq.true')));
+  await pg.context().close();
+  BD.eines.push(
+    { id: randomUUID(), nom: 'Visor B', organisme: 'Org B', descripcio: 'd', url: 'https://b.exemple.cat/', categoria: 'energia', ordre: 20, publicada: true },
+    { id: randomUUID(), nom: 'Visor A', organisme: 'Org A', descripcio: 'd', url: 'https://a.exemple.cat/', categoria: 'urbanisme', ordre: 10, publicada: true });
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    pg = await pagina(vp, true);
+    await pg.goto(ORIGEN + '/eines.html', { waitUntil: 'networkidle' });
+    const d = await pg.evaluate(() => ({ noms: [...document.querySelectorAll('.eina h3')].map((h) => h.textContent).join(),
+      filtres: [...document.querySelectorAll('.filtre-btn')].map((b) => b.textContent).join(),
+      a: [...document.querySelectorAll('.eina a')].map((a) => a.target + '|' + a.rel).join() }));
+    comprova(`eines @${vp.width}px: només les publicades, en l’ordre desat, en pestanya nova amb noopener`, d.noms === 'Visor A,Visor B' && d.a === '_blank|noopener noreferrer,_blank|noopener noreferrer', JSON.stringify(d));
+    comprova(`eines @${vp.width}px: filtres de les categories presents`, d.filtres === 'Totes,Urbanisme,Energia', d.filtres);
+    await pg.click('.filtre-btn:has-text("Energia")');
+    comprova(`eines @${vp.width}px: el filtre funciona`, (await pg.$$eval('.eina h3', (l) => l.map((h) => h.textContent))).join() === 'Visor B');
+    comprova(`eines @${vp.width}px: sense errors ni desbordament`, pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
+    if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/eines-${vp.width}.png`, fullPage: true });
+    await pg.context().close();
+  }
 }
 {
   // Tauler: l'editor crea una entitat a partir d'una sol·licitud i la publica.
@@ -1349,7 +1362,7 @@ console.log('\n16. Entitats i Eines');
   await pg.goto(ORIGEN + '/area-privada/panel.html#/sollicituds', { waitUntil: 'networkidle' });
   await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Sol·licituds d’adhesió');
   comprova('tauler: l’editor veu la sol·licitud amb el contacte', (await pg.textContent('#vista')).includes('pere@ex.cat'));
-  await pg.click('a:has-text("Crea l’entitat amb aquestes dades")');
+  await pg.click('a:has-text("Accepta i crea l’entitat")');
   await espera(pg, () => document.getElementById('e-nom')?.value === 'Entitat sol·licitant');
   comprova('tauler: el formulari d’entitat s’omple amb la sol·licitud', await pg.evaluate(() => document.getElementById('e-tipus').value === 'fundacio'
     && document.getElementById('e-ig').value === 'https://www.instagram.com/ent_ex/' && document.querySelector('#menu a[aria-current=page]')?.textContent === 'Entitats'));
@@ -1360,10 +1373,45 @@ console.log('\n16. Entitats i Eines');
   comprova('tauler: l’entitat es crea publicada i la sol·licitud queda acceptada', ent.nom === 'Entitat sol·licitant' && ent.publicada === true && SOL.estat === 'acceptada', JSON.stringify({ ent, estat: SOL.estat }));
   await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
   await espera(pg, () => document.querySelector('#vista h1')?.textContent === 'Entitats' && !!document.querySelector('#vista .item'));
-  comprova('tauler: l’editor no veu «Elimina» a les entitats', !(await pg.$('#vista .item button:has-text("Elimina")')));
   await pg.click('#vista .item button:has-text("Despublica")');
   await espera(pg, () => !!document.querySelector('#vista .item button') && /Publica/.test(document.querySelector('#vista .item button').textContent));
   comprova('tauler: «Despublica» retira l’entitat de la web', ent.publicada === false);
+  // Rebutjar una sol·licitud
+  const SOL2 = { ...SOL, id: randomUUID(), nom_entitat: 'Una altra', estat: 'nova' };
+  BD.sollicituds_entitats.push(SOL2);
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/sollicituds');
+  await espera(pg, () => !!document.querySelector('#vista button[aria-label="Rebutja la sol·licitud de Una altra"]'));
+  await pg.evaluate(() => { window.confirm = () => true; });  // accepta les confirmacions d'aquí endavant
+  await pg.click('#vista button[aria-label="Rebutja la sol·licitud de Una altra"]');
+  await espera(pg, () => /rebutjada/.test(document.getElementById('avisos').textContent));
+  comprova('tauler: «Rebutja» marca la sol·licitud com a rebutjada', SOL2.estat === 'descartada');
+  comprova('tauler: la sol·licitud acceptada ja no ofereix «Accepta»', !(await pg.$('#vista a[aria-label^="Accepta la sol·licitud de Entitat sol·licitant"]')));
+  // L'editor també esborra entitats
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/entitats');
+  await espera(pg, () => !!document.querySelector('#vista .item button[aria-label^="Elimina"]'));
+  await pg.evaluate(() => { window.confirm = () => true; });
+  await pg.click('#vista .item button[aria-label^="Elimina"]');
+  comprova('tauler: l’editor pot eliminar entitats', await espera(pg, () => /eliminada/.test(document.getElementById('avisos').textContent)) && peticions.some((p) => p.m === 'DELETE' && p.url.startsWith('/rest/v1/entitats')));
+  // Eines: crear (URL validada), ordenar i publicar
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/eina/nova');
+  await espera(pg, () => !!document.getElementById('i-nom'));
+  await pg.fill('#i-nom', 'Visor nou'); await pg.fill('#i-url', 'http://insegur.exemple.cat'); await pg.selectOption('#i-cat', 'altres');
+  await pg.click('#vista button[type=submit]');
+  comprova('tauler: una URL sense https:// es rebutja', /https:\/\//.test(await pg.textContent('#avisos')) && BD.eines.length === 0);
+  await pg.fill('#i-url', 'https://segur.exemple.cat/visor');
+  await pg.click('#vista button[type=submit]');
+  await espera(pg, () => /^#\/eina\/[0-9a-f-]{36}$/.test(location.hash));
+  comprova('tauler: l’eina es crea no publicada, amb categoria «altres»', BD.eines.length === 1 && BD.eines[0].publicada === false && BD.eines[0].categoria === 'altres' && BD.eines[0].ordre === 10, JSON.stringify(BD.eines));
+  BD.eines.push({ id: randomUUID(), nom: 'Segona', organisme: '', descripcio: '', url: 'https://s.exemple.cat/', categoria: 'energia', ordre: 20, publicada: true });
+  await pg.goto(ORIGEN + '/area-privada/panel.html#/eines');
+  await espera(pg, () => document.querySelectorAll('#vista .item').length === 2);
+  comprova('tauler: a la primera eina «Puja» està desactivat', await pg.$eval('#vista .item button[aria-label="Puja Visor nou"]', (b) => b.disabled));
+  await pg.click('#vista .item button[aria-label="Baixa Visor nou"]');
+  await espera(pg, () => document.querySelector('#vista .item h3')?.textContent === 'Segona');
+  comprova('tauler: «Baixa» canvia l’ordre', BD.eines.find((x) => x.nom === 'Segona').ordre === 10 && BD.eines.find((x) => x.nom === 'Visor nou').ordre === 20);
+  await pg.click('#vista button[aria-label="Publica Visor nou"]');
+  await espera(pg, () => /publicada/.test(document.getElementById('avisos').textContent));
+  comprova('tauler: «Publica» publica l’eina', BD.eines.find((x) => x.nom === 'Visor nou').publicada === true);
   comprova('tauler entitats: cap error', pg.errors.length === 0, JSON.stringify(pg.errors));
   if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/panel-entitats.png`, fullPage: true });
   await pg.context().close();

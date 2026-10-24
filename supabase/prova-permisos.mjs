@@ -285,8 +285,10 @@ comprova('web sense https rebutjada', await falla(E, "update entitats set web = 
 comprova('instagram que no és instagram.com rebutjat', await falla(E, "update entitats set instagram = 'https://ex.cat/x' where id = $1", [ENT1]));
 comprova('instagram vàlid acceptat', await afecta(E, "update entitats set instagram = 'https://www.instagram.com/nom.entitat/' where id = $1", [ENT1]) === 1);
 comprova('logo amb ruta no vàlida rebutjat', await falla(E, "update entitats set logo = '../x.png' where id = $1", [ENT1]));
-comprova('editor NO esborra entitats', await bloquejat(E, 'delete from entitats where id = $1', [ENT2]));
-comprova('admin esborra entitats', await afecta(A, 'delete from entitats where id = $1', [ENT2]) === 1);
+comprova('col·laborador NO esborra entitats', await bloquejat(C, 'delete from entitats where id = $1', [ENT2]));
+comprova('editor esborra entitats', await afecta(E, 'delete from entitats where id = $1', [ENT2]) === 1);
+const ENT3 = await novaEnt(E, { nom: 'Per esborrar' });
+comprova('admin esborra entitats', await afecta(A, 'delete from entitats where id = $1', [ENT3]) === 1);
 
 console.log('\nSol·licituds d\'adhesió');
 const sol = (u, camps = {}) => afecta(u, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
@@ -318,6 +320,29 @@ for (let i = 0; (await su("select count(*)::int n from sollicituds_entitats wher
   values ('x','associacio','Albons','P',$1, true)`, ['massiu' + i + '@ex.cat']);
 comprova('límit global de 20 sol·licituds per hora', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
   values ('x','associacio','Albons','P','nou@ex.cat', true)`));
+
+console.log('\nEines');
+const novaEina = (u, camps = {}) => com(u, 'insert into eines (nom, url, categoria, ordre, publicada) values ($1,$2,$3,$4,$5) returning id',
+  [camps.nom || 'Visor', camps.url || 'https://visor.exemple.cat/', camps.categoria || 'urbanisme', camps.ordre || 0, !!camps.publicada]).then((r) => r.rows[0].id);
+const EI1 = await novaEina(E, { nom: 'Visor A', publicada: true, ordre: 2 });
+const EI2 = await novaEina(A, { nom: 'Visor B', ordre: 1 });
+comprova('editor i admin creen eines (no publicades per defecte)', !!EI1 && (await su('select publicada from eines where id = $1', [EI2]))[0].publicada === false);
+comprova('anònim veu només les publicades', (await files(null, 'select id from eines')).map((x) => x.id).join() === EI1);
+comprova('anònim NO veu created_by', await falla(null, 'select created_by from eines'));
+comprova('anònim NO crea eines', await falla(null, "insert into eines (nom, url, categoria) values ('x','https://x.cat','altres')"));
+comprova('col·laborador NO crea eines', await falla(C, "insert into eines (nom, url, categoria) values ('x','https://x.cat','altres')"));
+comprova('consulta NO crea eines', await falla(Q, "insert into eines (nom, url, categoria) values ('x','https://x.cat','altres')"));
+comprova('col·laborador NO publica eines', await bloquejat(C, 'update eines set publicada = true where id = $1', [EI2]));
+comprova('col·laborador veu només les publicades', (await files(C, 'select id from eines')).every((x) => x.id === EI1));
+comprova('URL sense https rebutjada', await falla(E, "update eines set url = 'http://x.cat' where id = $1", [EI2]));
+comprova('URL javascript: rebutjada', await falla(E, "update eines set url = 'javascript:alert(1)' where id = $1", [EI2]));
+comprova('categoria no vàlida rebutjada', await falla(E, "update eines set categoria = 'politica' where id = $1", [EI2]));
+comprova('categoria «altres» acceptada', await afecta(E, "update eines set categoria = 'altres' where id = $1", [EI2]) === 1);
+comprova('editor reordena i publica', await afecta(E, 'update eines set ordre = 5, publicada = true where id = $1', [EI2]) === 1);
+comprova('anònim les veu en l\'ordre desat', (await files(null, 'select nom from eines order by ordre')).map((x) => x.nom).join() === 'Visor A,Visor B');
+comprova('col·laborador NO esborra eines', await bloquejat(C, 'delete from eines where id = $1', [EI1]));
+comprova('editor esborra eines', await afecta(E, 'delete from eines where id = $1', [EI1]) === 1);
+comprova('admin esborra eines', await afecta(A, 'delete from eines where id = $1', [EI2]) === 1);
 
 console.log('\nIdempotència amb dades');
 await db.exec(ESQUEMA);
