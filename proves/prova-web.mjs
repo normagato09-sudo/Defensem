@@ -329,7 +329,7 @@ const SECCIONS = [
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
     comprova(`${ruta}: estils site.css → afegits.css → pagines.css`, /\/css\/site\.css,\/css\/afegits\.css,\/css\/pagines\.css/.test(p.css), p.css);
-    comprova(`${ruta}: mode clar forçat (color-scheme only light)`, p.esquema === 'only light', p.esquema);
+    comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
       await pg.goto(ORIGEN + ruta, { waitUntil: 'networkidle' });
@@ -1092,7 +1092,7 @@ console.log('\n11. Navegador en mode fosc: la web es manté clara (390 px i 1280
   });
   const FOSC = { colorScheme: 'dark' };
   const nom = (ruta) => (ruta === '/' ? 'index' : ruta.replace(/^\/|\.html.*$|\/$/g, '').replace(/\//g, '-'));
-  const rutes = PAGINES.map((r) => [r, false]).concat([['/area-privada/panel.html (amb sessió)', true]]);
+  const rutes = PAGINES.map((r) => [r, false]).concat([['/app/', false], ['/area-privada/panel.html (amb sessió)', true]]);
   for (const vp of [MOBIL, ESCRIPTORI]) {
     for (const [ruta, ambSessio] of rutes) {
       const pg = await pagina(vp, ambSessio, FOSC);
@@ -1109,7 +1109,7 @@ console.log('\n11. Navegador en mode fosc: la web es manté clara (390 px i 1280
         esquema: getComputedStyle(document.documentElement).colorScheme, fons: getComputedStyle(document.body).backgroundColor,
         meta: document.querySelector('meta[name="color-scheme"]')?.content, meta2: document.querySelector('meta[name="supported-color-schemes"]')?.content }));
       comprova(`${ruta} @${vp.width}px: amb el navegador fosc el fons segueix rgb(241, 240, 238)`,
-        e.fosc && e.fons === 'rgb(241, 240, 238)' && /only/.test(e.esquema) && /light/.test(e.esquema) && !/dark/.test(e.esquema) && e.meta === 'only light' && e.meta2 === 'light', JSON.stringify(e));
+        e.fosc && e.fons === 'rgb(241, 240, 238)' && e.esquema === 'light' && e.meta === 'light' && e.meta2 === 'light', JSON.stringify(e));
       const c = await contrastos(pg);
       comprova(`${ruta} @${vp.width}px: text i botons amb contrast AA (${c.revisats} elements)`, c.revisats > 0 && c.dolents.length === 0, c.dolents.slice(0, 5).join(' | '));
       if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/fosc-${nom(ruta.split(' ')[0])}${ambSessio ? '-sessio' : ''}-${vp.width}.png`, fullPage: true });
@@ -1178,7 +1178,7 @@ console.log('\n12. Fitxers nous, icones i capçaleres de seguretat');
     comprova('portada: canonical, og:url, mida i text alternatiu de la imatge per compartir', m.canon === 'https://defensem.vercel.app/' && m.url === m.canon && m.w === '1200' && m.h === '630' && !!m.alt, JSON.stringify(m));
     const og = await pg.evaluate(() => new Promise((ok) => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight].join('x')); i.onerror = () => ok('error'); i.src = '/img/og-defensem.jpg'; }));
     comprova('la imatge per compartir fa 1200 × 630', og === '1200x630', og);
-    comprova('la portada continua forçant l’esquema clar', m.color === 'only light');
+    comprova('la portada continua forçant l’esquema clar', m.color === 'light');
     await pg.context().close();
   }
   for (const f of ['avis-legal.html', 'privacitat.html']) {
@@ -1388,7 +1388,7 @@ console.log('\n15c. /joc: el joc com a app independent (per obrir des d’Instag
   const meta = (k, attr = 'property') => (html.match(new RegExp(`<meta ${attr}="${k}" content="([^"]+)"`)) || [])[1];
   comprova('/joc: Open Graph propi (títol, descripció, imatge 1200 × 630, URL) i targeta gran', /Fora molins!/.test(meta('og:title')) && !!meta('og:description')
     && meta('og:image') === 'https://defensem.vercel.app/img/og-joc.jpg' && meta('og:url') === 'https://defensem.vercel.app/joc' && meta('twitter:card', 'name') === 'summary_large_image');
-  comprova('/joc: noindex i mode clar forçat', meta('robots', 'name') === 'noindex' && meta('color-scheme', 'name') === 'only light');
+  comprova('/joc: noindex i mode clar forçat', meta('robots', 'name') === 'noindex' && meta('color-scheme', 'name') === 'light');
   comprova('/joc: sense capçalera, menú, peu ni bàner de la web', !/marc\.js|menu\.js|consentiment\.js|<header|<footer|<nav/.test(html));
   for (const [img, w, h] of [['/img/instagram/joc-post.png', 1080, 1350], ['/img/instagram/joc-historia.png', 1080, 1920], ['/img/og-joc.jpg', 1200, 630]]) {
     const pg = await pagina(MOBIL, false); await pg.goto(ORIGEN + img);
