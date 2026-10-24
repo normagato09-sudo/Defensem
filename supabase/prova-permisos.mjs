@@ -165,7 +165,7 @@ comprova('retorna amb nota', await afecta(E, "update publicacions set estat = 'r
 const PE = await novaPub(E, { titol: 'Comunicat de l\'editora', tipus: 'comunicat' });
 comprova('esborrany sense published_at', (await pub(PE)).published_at === null);
 comprova('publica i s\'omple published_at', await afecta(E, "update publicacions set estat = 'publicat' where id = $1", [PE]) === 1 && (await pub(PE)).published_at !== null);
-comprova('NO esborra publicacions', await bloquejat(E, 'delete from publicacions where id = $1', [PE]) && !!(await pub(PE)));
+comprova('esborra publicacions (admin i editor: tot)', await afecta(E, 'delete from publicacions where id = $1', [await novaPub(C, { titol: 'Per esborrar' })]) === 1);
 comprova('NO canvia rols', await bloquejat(E, "update profiles set rol = 'admin' where id = $1", [C]) && (await perfil(C)).rol === 'col_laborador');
 comprova('NO s\'auto-promociona', (await bloquejat(E, "update profiles set rol = 'admin' where id = $1", [E])) && (await perfil(E)).rol === 'editor');
 comprova('NO crea documents', await falla(E, "insert into documents (titol, enllac) values ('x','https://ex.cat')"));
@@ -229,7 +229,10 @@ comprova('consulta NO es dona permisos', await falla(Q, 'insert into permisos_do
 comprova('consulta NO crea documents', await falla(Q, "insert into documents (titol, enllac) values ('x','https://ex.cat')"));
 comprova('consulta NO esborra documents', await bloquejat(Q, 'delete from documents where id = $1', [doc1]));
 comprova('consulta NO crea publicacions', await falla(Q, "insert into publicacions (tipus, titol, autor_id) values ('noticia','x',$1)", [Q]));
-comprova('consulta NO veu esborranys ni pendents', (await files(Q, 'select id from publicacions')).length === 0);
+comprova('consulta veu totes les publicacions (també esborranys), però només per consultar-les', (await files(Q, 'select id from publicacions')).length === (await su('select id from publicacions')).length
+  && await bloquejat(Q, "update publicacions set titol = 'x'") && await bloquejat(Q, 'delete from publicacions'));
+comprova('consulta veu els actes, entitats i eines ocults, sense poder-los canviar', await bloquejat(Q, "update actes set titol = 'x'") && await bloquejat(Q, "update entitats set nom = 'x'")
+  && await bloquejat(Q, "update eines set nom = 'x'"));
 comprova('consulta veu només el seu perfil', (await files(Q, 'select id from profiles')).length === 1);
 comprova('l\'admin treu permisos', await afecta(A, 'delete from permisos_document where document_id = $1 and usuari_id = $2', [doc1, Q]) === 1
   && (await files(Q, 'select id from documents')).length === 0);

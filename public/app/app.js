@@ -14,6 +14,7 @@
   var jo = null, torn = 0;
   var ROLS = { admin: 'Administrador', editor: 'Editor', col_laborador: 'Col·laborador de notícies', consulta: 'Usuari de consulta' };
   var EDITA = ['admin', 'editor'], ESCRIU = ['admin', 'editor', 'col_laborador'], TOTS = ['admin', 'editor', 'col_laborador', 'consulta'];
+  var VEU = ['admin', 'editor', 'consulta'];   // l'usuari de consulta ho veu tot, però no pot canviar res
   var SENSE_PERMIS = 'No tens permís per fer aquesta acció.';
   var CLAU_ESB = 'defensem.app.esborrany.';
   // Mateixes llistes que els check de supabase/schema.sql
@@ -21,6 +22,9 @@
     cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', observatori: 'Observatori', xarxa: 'Xarxa d’entitats', altres: 'Altres' };
   var CAT_EINA = { urbanisme: 'Urbanisme', energia: 'Energia', paisatge: 'Paisatge', medi_natural: 'Medi natural', altres: 'Altres' };
   var ESTATS = { esborrany: 'Esborrany', pendent: 'En revisió', publicat: 'Publicada', retornat: 'Retornada', arxivat: 'Oculta' };
+  var SECCIONS = { defensem: 'Notícies de Defensem', renovables: 'Notícies d’energies renovables' };
+  var PROJECTES = { '': 'Cap', 'la-tallada': 'La Tallada', albons: 'Albons' };
+  var MAX_PDF = 20 * 1024 * 1024;
   var PROPIETATS = { disabled: 1, checked: 1, hidden: 1, required: 1, selected: 1, multiple: 1 };
 
   // ------------------------------------------------------------------ utilitats
@@ -78,8 +82,8 @@
     return el('button', at, [text]);
   }
   // Escriu i comprova que ha afectat alguna fila (si no, RLS l'ha bloquejada en silenci).
-  async function escriu(consulta) {
-    var r = await consulta.select('id');
+  async function escriu(consulta, col) {
+    var r = await consulta.select(col || 'id');
     if (r.error) { falla(r.error); return null; }
     if (!r.data || (Array.isArray(r.data) && !r.data.length)) { avis(SENSE_PERMIS, 'error'); return null; }
     return r.data;
@@ -92,10 +96,20 @@
     if (/^https:\/\//i.test(c)) return S.enllac(c);           // logos externs provisionals
     return S.urlImatge(null, c);
   }
-  function esborraFitxer(cami) {
+  function esborraFitxer(cami, bucket) {
     if (!cami || !jo || /^(\/|https:)/.test(cami)) return;
-    if (cami.indexOf(jo.id + '/') !== 0 && jo.rol !== 'admin') return;
-    sb.storage.from('portades').remove([cami]).catch(function () {});
+    if (bucket !== 'informacio' && cami.indexOf(jo.id + '/') !== 0 && jo.rol !== 'admin') return;
+    sb.storage.from(bucket || 'portades').remove([cami]).catch(function () {});
+  }
+  function mida(b) {
+    if (!(b > 0)) return '';
+    return b >= 5e5 ? (b / 1e6).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1000)) + ' kB';
+  }
+  async function pujaPdf(fitxer) {
+    var cami = jo.id + '/' + crypto.randomUUID() + '.pdf';
+    var r = await sb.storage.from('informacio').upload(cami, fitxer, { contentType: 'application/pdf', upsert: false });
+    if (r.error) throw new Error('No s’ha pogut pujar el PDF. ' + (/security|policy|403/i.test(r.error.message || '') ? SENSE_PERMIS : 'Torna-ho a provar.'));
+    return cami;
   }
 
   // ------------------------------------------------------------------ fotos: càmera o galeria, comprimides
@@ -170,7 +184,10 @@
     eines: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14',
     usuaris: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7M18 4l2 2-2 2',
     perfil: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
-    documents: 'M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'
+    documents: 'M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z',
+    projectes: 'M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    informacio: 'M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 15h7M9 18h4',
+    pagines: 'M4 4h16v16H4zM4 9h16M8 13h8M8 16h5'
   };
   function icona(nom) {
     var NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'), p = document.createElementNS(NS, 'path');
@@ -182,34 +199,42 @@
   function publicadaOculta() {
     return [['publicades', 'Publicades', function (r) { return r.publicada; }], ['ocultes', 'Ocultes', function (r) { return !r.publicada; }]];
   }
-  function camiFoto(k, t) { return { k: k, t: t, tipus: 'foto' }; }
+  function camiFoto(k, t, nomes) { return { k: k, t: t, tipus: 'foto', nomes: nomes }; }
   var BLOCS = {
     noticies: {
-      titol: 'Notícies', rols: ESCRIU, nou: '+ Nova notícia', taula: 'publicacions',
-      camps: 'id,tipus,titol,resum,contingut,imatge,estat,autor_id,updated_at,nota_revisio',
+      titol: 'Notícies', rols: TOTS, crea: ESCRIU, nou: '+ Nova notícia', taula: 'publicacions',
+      camps: 'id,seccio,tipus,titol,data,mitja,resum,contingut,imatge,font_url,projecte,estat,autor_id,updated_at,nota_revisio',
       ordre: ['updated_at', false],
+      filtre: { k: 'seccio', t: 'Secció', opcions: [['totes', 'Totes'], ['defensem', 'Defensem'], ['renovables', 'Renovables']] },
       pestanyes: [['esborranys', 'Esborranys', function (r) { return ['esborrany', 'retornat', 'arxivat'].indexOf(r.estat) !== -1; }],
         ['revisio', 'En revisió', function (r) { return r.estat === 'pendent'; }],
         ['publicades', 'Publicades', function (r) { return r.estat === 'publicat'; }]],
       comptador: function () {
         if (pot(EDITA)) return { q: sb.from('publicacions').select('id', { count: 'exact', head: true }).eq('estat', 'pendent'), t: ['en revisió', 'en revisió'] };
+        if (jo.rol !== 'col_laborador') return null;
         return { q: sb.from('publicacions').select('id', { count: 'exact', head: true }).eq('estat', 'retornat').eq('autor_id', jo.id), t: ['retornada', 'retornades'] };
       },
       targeta: function (r) {
+        var tipus = r.seccio === 'renovables' ? 'Renovables' + (r.mitja ? ' · ' + r.mitja : '') : 'Defensem · ' + (r.tipus === 'comunicat' ? 'Comunicat' : 'Notícia');
         return [el('span', { class: 'app-estat ' + r.estat }, [ESTATS[r.estat] || r.estat]), el('h3', null, [r.titol]),
-          el('p', { class: 'app-meta' }, [(r.tipus === 'comunicat' ? 'Comunicat' : 'Notícia') + ' · ' + dataCurta(r.updated_at)]),
+          el('p', { class: 'app-meta' }, [tipus + ' · ' + dataCurta(r.data ? r.data + 'T12:00:00' : r.updated_at) + (r.projecte ? ' · ' + PROJECTES[r.projecte] : '')]),
           r.estat === 'retornat' && r.nota_revisio ? el('p', { class: 'app-nota' }, ['Nota: ' + r.nota_revisio]) : null];
       },
       formulari: [
-        { k: 'tipus', t: 'Tipus', tipus: 'select', opcions: { noticia: 'Notícia', comunicat: 'Comunicat' }, defecte: 'noticia' },
+        { k: 'seccio', t: 'On es publica?', tipus: 'select', req: true, opcions: SECCIONS, buit: 'Tria-ho' },
         { k: 'titol', t: 'Títol', tipus: 'text', req: true, max: 200 },
-        { k: 'resum', t: 'Resum (una o dues frases)', tipus: 'textarea', max: 500, ajuda: 'Es veu a les targetes de la web.' },
-        camiFoto('imatge', 'Foto de portada'),
-        { k: 'contingut', t: 'Text', tipus: 'ric', max: 50000 }
+        { k: 'tipus', t: 'Tipus', tipus: 'select', opcions: { noticia: 'Notícia', comunicat: 'Comunicat' }, defecte: 'noticia', nomes: 'defensem' },
+        { k: 'mitja', t: 'Mitjà', tipus: 'text', max: 120, req: true, nomes: 'renovables', ajuda: 'El diari, la ràdio o el web que l’ha publicada.' },
+        { k: 'data', t: 'Data', tipus: 'date' },
+        camiFoto('imatge', 'Imatge', 'defensem'),
+        { k: 'resum', t: 'Resum (una o dues frases)', tipus: 'textarea', max: 500, ajuda: 'Es veu a les targetes de la web. A les de renovables, escriu-lo amb les teves paraules.' },
+        { k: 'contingut', t: 'Text complet', tipus: 'ric', max: 50000, nomes: 'defensem' },
+        { k: 'font_url', t: 'Adreça de la font (https://)', tipus: 'url', https: true, req: true, max: 500, nomes: 'renovables' },
+        { k: 'projecte', t: 'Projecte relacionat', tipus: 'select', opcions: PROJECTES, nul: true, ajuda: 'També sortirà a la pàgina del projecte.' }
       ]
     },
     agenda: {
-      titol: 'Agenda', rols: EDITA, nou: '+ Nou acte', taula: 'actes',
+      titol: 'Agenda', rols: VEU, nou: '+ Nou acte', taula: 'actes',
       camps: 'id,titol,data,hora,data_fi,quan,lloc,descripcio,organitza,cartell,publicada,updated_at', ordre: ['data', false],
       pestanyes: publicadaOculta(),
       comptador: function () { return { q: sb.from('actes').select('id', { count: 'exact', head: true }).eq('publicada', false), t: ['ocult', 'ocults'] }; },
@@ -230,7 +255,7 @@
       ]
     },
     entitats: {
-      titol: 'Entitats', rols: EDITA, nou: '+ Nova entitat', taula: 'entitats',
+      titol: 'Entitats', rols: VEU, nou: '+ Nova entitat', taula: 'entitats',
       camps: 'id,nom,tipus,municipi,descripcio,web,instagram,logo,publicada,updated_at', ordre: ['nom', true],
       pestanyes: publicadaOculta(),
       comptador: function () { return { q: sb.from('entitats').select('id', { count: 'exact', head: true }).eq('publicada', false), t: ['oculta', 'ocultes'] }; },
@@ -249,7 +274,7 @@
       ]
     },
     eines: {
-      titol: 'Eines', rols: EDITA, nou: '+ Nova eina', taula: 'eines',
+      titol: 'Eines', rols: VEU, nou: '+ Nova eina', taula: 'eines',
       camps: 'id,nom,organisme,descripcio,url,categoria,ordre,publicada,updated_at', ordre: ['ordre', true],
       pestanyes: publicadaOculta(),
       comptador: function () { return { q: sb.from('eines').select('id', { count: 'exact', head: true }).eq('publicada', false), t: ['oculta', 'ocultes'] }; },
@@ -266,6 +291,51 @@
         { k: 'ordre', t: 'Ordre (les més petites, primer)', tipus: 'number', defecte: 10 }
       ]
     },
+    projectes: {
+      titol: 'Projectes', rols: VEU, nou: null, taula: 'projectes', clau: /^(la-tallada|albons)$/, fix: true,
+      camps: 'id,titol,descripcio,mapa,mapa_enllac,situacio,publicada,updated_at', ordre: ['id', false],
+      pestanyes: publicadaOculta(),
+      targeta: function (r) {
+        return [el('span', { class: 'app-estat ' + (r.publicada ? 'publicat' : 'arxivat') }, [r.publicada ? 'Publicat' : 'Ocult']), el('h3', null, [r.titol]),
+          el('p', { class: 'app-meta' }, ['Actualitzat el ' + dataCurta(r.updated_at)])];
+      },
+      formulari: [
+        { k: 'titol', t: 'Títol', tipus: 'text', req: true, max: 200 },
+        { k: 'descripcio', t: 'Descripció', tipus: 'textarea', max: 10000, files: 8, ajuda: 'Deixa una línia en blanc entre paràgrafs.' },
+        camiFoto('mapa', 'Mapa (imatge)'),
+        { k: 'mapa_enllac', t: 'Enllaç al mapa o al visor (opcional)', tipus: 'url', https: true, max: 500 },
+        { k: 'situacio', t: 'Situació actual', tipus: 'textarea', max: 5000, files: 5, ajuda: 'En quin punt de la tramitació és. Deixa una línia en blanc entre paràgrafs.' }
+      ]
+    },
+    informacio: {
+      titol: 'Informació', rols: VEU, nou: '+ Nou document', taula: 'informacio', bucket: 'informacio',
+      camps: 'id,titol,categoria,data,fitxer,mida,projecte,publicada,updated_at', ordre: ['updated_at', false],
+      pestanyes: publicadaOculta(),
+      comptador: function () { return { q: sb.from('informacio').select('id', { count: 'exact', head: true }).eq('publicada', false), t: ['ocult', 'ocults'] }; },
+      targeta: function (r) {
+        return [el('span', { class: 'app-estat ' + (r.publicada ? 'publicat' : 'arxivat') }, [r.publicada ? 'Publicat' : 'Ocult']), el('h3', null, [r.titol]),
+          el('p', { class: 'app-meta' }, [[r.categoria, r.data ? dataCurta(r.data + 'T12:00:00') : '', 'PDF' + (mida(r.mida) ? ', ' + mida(r.mida) : ''),
+            r.projecte ? PROJECTES[r.projecte] : ''].filter(Boolean).join(' · ')])];
+      },
+      formulari: [
+        { k: 'fitxer', t: 'Document PDF', tipus: 'pdf', req: true },
+        { k: 'titol', t: 'Títol', tipus: 'text', req: true, max: 200 },
+        { k: 'categoria', t: 'Categoria', tipus: 'text', req: true, max: 80, llista: true, ajuda: 'A la web, els documents s’agrupen per categoria. Tria’n una de les que ja hi ha o escriu-ne una de nova.' },
+        { k: 'data', t: 'Data del document', tipus: 'date' },
+        { k: 'projecte', t: 'Projecte relacionat', tipus: 'select', opcions: PROJECTES, nul: true, ajuda: 'També sortirà a la pàgina del projecte.' }
+      ]
+    },
+    pagines: {
+      titol: 'Pàgines', rols: VEU, nou: null, taula: 'pagines', clau: /^[a-z-]{1,40}$/, idCamp: 'clau', fix: true, nomesDesa: true,
+      camps: 'clau,titol,contingut,ordre,updated_at', ordre: ['ordre', true],
+      pestanyes: [['textos', 'Textos', function () { return true; }]],
+      targeta: function (r) {
+        return [el('h3', null, [r.titol]), el('p', { class: 'app-meta' }, [(r.contingut || '').slice(0, 90) + ((r.contingut || '').length > 90 ? '…' : '')])];
+      },
+      formulari: [
+        { k: 'contingut', t: 'Text', tipus: 'textarea', max: 10000, files: 10, ajuda: 'Deixa una línia en blanc entre paràgrafs. Si el deixes buit, la web fa servir el text de sempre.' }
+      ]
+    },
     usuaris: {
       titol: 'Usuaris', rols: ['admin'], nou: '+ Convida', taula: 'profiles', camps: 'id,email,nom,rol,actiu,created_at', ordre: ['created_at', true],
       pestanyes: [['actius', 'Actius', function (r) { return r.actiu; }], ['desactivats', 'Desactivats', function (r) { return !r.actiu; }]],
@@ -275,7 +345,7 @@
       }
     }
   };
-  var ORDRE_BLOCS = ['noticies', 'agenda', 'entitats', 'eines', 'usuaris'];
+  var ORDRE_BLOCS = ['noticies', 'agenda', 'projectes', 'informacio', 'entitats', 'eines', 'pagines', 'usuaris'];
 
   // ------------------------------------------------------------------ Inici
   async function vInici(t) {
@@ -286,7 +356,8 @@
       if (!pot(B.rols)) return;
       var num = el('span', { class: 'app-compte', hidden: true });
       graella.appendChild(el('li', null, [el('a', { href: '#/' + k, class: 'app-bloc' }, [icona(k), el('span', { class: 'app-bloc-nom' }, [B.titol]), num])]));
-      if (B.comptador) comptes.push([B.comptador(), num]);
+      var c = B.comptador && (pot(EDITA) || k === 'noticies') ? B.comptador() : null;
+      if (c) comptes.push([c, num]);
     });
     graella.appendChild(el('li', null, [el('a', { href: '/area-privada/panel.html#/documents', class: 'app-bloc' }, [icona('documents'), el('span', { class: 'app-bloc-nom' }, ['Documents'])])]));
     graella.appendChild(el('li', null, [el('a', { href: '#/perfil', class: 'app-bloc' }, [icona('perfil'), el('span', { class: 'app-bloc-nom' }, ['El meu perfil'])])]));
@@ -300,43 +371,58 @@
   }
 
   // ------------------------------------------------------------------ llista d'un bloc
-  async function vLlista(t, clau, pestanya) {
-    var B = BLOCS[clau];
+  async function vLlista(t, clau, pestanya, filtreActual) {
+    var B = BLOCS[clau], idc = B.idCamp || 'id';
     var r = await sb.from(B.taula).select(B.camps).order(B.ordre[0], { ascending: B.ordre[1] });
     if (r.error) throw r.error;
     var files = r.data || [];
+    var nou = B.nou && pot(B.crea || EDITA) ? el('a', { href: '#/' + clau + '/nou', class: 'app-btn gran v app-nou' }, [B.nou]) : null;
+    var cap = [tornaInici(), el('div', { class: 'app-titol' }, [el('h1', null, [B.titol]), nou])];
+    if (!files.length) {
+      pinta(t, cap.concat([el('p', { class: 'app-buit app-buit-bloc' }, [nou ? 'Encara no hi ha res. Toca ' + B.nou + ' per començar.' : 'Encara no hi ha res.'])]));
+      return;
+    }
     if (!B.pestanyes.some(function (p) { return p[0] === pestanya; })) pestanya = B.pestanyes[0][0];
+    var F = B.filtre, filtre = F && F.opcions.some(function (o) { return o[0] === filtreActual; }) ? filtreActual : (F ? F.opcions[0][0] : null);
     var llista = el('ul', { class: 'app-llista', id: 'app-llista', role: 'tabpanel' });
     var tabs = el('div', { class: 'app-pestanyes', role: 'tablist', 'aria-label': 'Estat' });
+    var xips = F ? el('div', { class: 'app-filtre', role: 'group', 'aria-label': F.t }) : null;
+    function delFiltre(f) { return !F || filtre === F.opcions[0][0] || f[F.k] === filtre; }
     function mostra(p) {
       pestanya = p;
-      Array.prototype.forEach.call(tabs.children, function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-p') === p)); });
-      history.replaceState(null, '', '#/' + clau + '?p=' + p);
+      Array.prototype.forEach.call(tabs.children, function (b) {
+        b.setAttribute('aria-selected', String(b.getAttribute('data-p') === p));
+        var x = B.pestanyes.filter(function (q) { return q[0] === b.getAttribute('data-p'); })[0];
+        b.querySelector('.app-pestanya-n').textContent = String(files.filter(delFiltre).filter(x[2]).length);
+      });
+      if (xips) Array.prototype.forEach.call(xips.children, function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-f') === filtre)); });
+      history.replaceState(null, '', '#/' + clau + '?p=' + p + (F ? '&f=' + filtre : ''));
       llista.textContent = '';
-      var filtre = B.pestanyes.filter(function (x) { return x[0] === p; })[0][2];
-      var sel = files.filter(filtre);
+      var sel = files.filter(delFiltre).filter(B.pestanyes.filter(function (x) { return x[0] === p; })[0][2]);
       if (!sel.length) { llista.appendChild(el('li', { class: 'app-buit' }, ['No n’hi ha cap.'])); return; }
-      sel.forEach(function (f) { llista.appendChild(el('li', null, [el('a', { href: '#/' + clau + '/' + f.id, class: 'app-targeta' }, B.targeta(f))])); });
+      sel.forEach(function (f) { llista.appendChild(el('li', null, [el('a', { href: '#/' + clau + '/' + f[idc], class: 'app-targeta' }, B.targeta(f))])); });
     }
-    B.pestanyes.forEach(function (p) {
-      var n = files.filter(p[2]).length;
-      tabs.appendChild(el('button', { type: 'button', role: 'tab', class: 'app-pestanya', 'data-p': p[0], 'aria-controls': 'app-llista', onclick: function () { mostra(p[0]); } },
-        [p[1], el('span', { class: 'app-pestanya-n' }, [String(n)])]));
+    if (xips) F.opcions.forEach(function (o) {
+      xips.appendChild(el('button', { type: 'button', class: 'app-xip', 'data-f': o[0], onclick: function () { filtre = o[0]; mostra(pestanya); } }, [o[1]]));
     });
-    var nou = B.nou ? el('a', { href: '#/' + clau + '/nou', class: 'app-btn gran v app-nou' }, [B.nou]) : null;
-    if (pinta(t, [tornaInici(), el('div', { class: 'app-titol' }, [el('h1', null, [B.titol]), nou]), tabs, llista])) mostra(pestanya);
+    B.pestanyes.forEach(function (p) {
+      tabs.appendChild(el('button', { type: 'button', role: 'tab', class: 'app-pestanya', 'data-p': p[0], 'aria-controls': 'app-llista', onclick: function () { mostra(p[0]); } },
+        [p[1], el('span', { class: 'app-pestanya-n' }, ['0'])]));
+    });
+    if (pinta(t, cap.concat([xips, B.pestanyes.length > 1 ? tabs : null, llista]))) mostra(pestanya);
   }
 
   // ------------------------------------------------------------------ formulari genèric
   // Construeix els camps i en retorna { nodes, valors(), posa(v), foto }.
-  function formulari(camps, inicial, editable) {
-    var nodes = [], getters = {}, setters = {}, foto = null;
+  function formulari(camps, inicial, editable, taula) {
+    var nodes = [], getters = {}, setters = {}, foto = null, pdf = null;
     camps.forEach(function (c) {
       var id = 'f-' + c.k, v = inicial[c.k] != null ? inicial[c.k] : (c.defecte != null ? c.defecte : ''), ctrl;
       if (c.tipus === 'select') {
-        ctrl = el('select', { id: id, disabled: !editable, value: v }, Object.keys(c.opcions).map(function (k) { return el('option', { value: k }, [c.opcions[k]]); }));
+        ctrl = el('select', { id: id, disabled: !editable, value: v }, (c.buit ? [el('option', { value: '' }, [c.buit])] : [])
+          .concat(Object.keys(c.opcions).map(function (k) { return el('option', { value: k }, [c.opcions[k]]); })));
       } else if (c.tipus === 'textarea') {
-        ctrl = el('textarea', { id: id, maxlength: c.max, disabled: !editable, rows: 4, value: v });
+        ctrl = el('textarea', { id: id, maxlength: c.max, disabled: !editable, rows: c.files || 4, value: v });
       } else if (c.tipus === 'ric') {
         var ed = el('div', { id: id, class: 'app-ric', contenteditable: editable ? 'true' : 'false', role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': id + '-e' });
         ed.appendChild(S.neteja(v || ''));
@@ -349,7 +435,7 @@
             var u = window.prompt('Adreça de l’enllaç (https://…)', 'https://');
             if (u && /^https:\/\/\S+$/i.test(u.trim()) && S.enllac(u.trim())) ordre('createLink', S.enllac(u.trim())); else if (u) avis('L’enllaç ha de començar per https://', 'error');
           }]].map(function (b) { var x = el('button', { type: 'button', onclick: b[1] }, [b[0]]); x.addEventListener('mousedown', function (e) { e.preventDefault(); }); return x; })) : null;
-        nodes.push(el('div', { class: 'app-camp' }, [el('span', { class: 'app-etiq', id: id + '-e' }, [c.t]), barra, ed]));
+        nodes.push(el('div', { class: 'app-camp', 'data-nomes': c.nomes }, [el('span', { class: 'app-etiq', id: id + '-e' }, [c.t]), barra, ed]));
         getters[c.k] = function () { return S.serialitza(ed.innerHTML); };
         setters[c.k] = function (x) { ed.textContent = ''; ed.appendChild(S.neteja(x || '')); };
         return;
@@ -370,23 +456,54 @@
           catch (e) { avis(e.message, 'error'); }
         });
         pintaPrev();
-        nodes.push(el('div', { class: 'app-camp' }, [el('span', { class: 'app-etiq' }, [c.t]), prev, editable ? el('div', { class: 'app-fila' }, [
+        nodes.push(el('div', { class: 'app-camp', 'data-nomes': c.nomes }, [el('span', { class: 'app-etiq' }, [c.t]), prev, editable ? el('div', { class: 'app-fila' }, [
           el('label', { for: id, class: 'app-btn' }, ['Fes una foto o tria’n una']), input,
           boto('Treu-la', 'o', function () { nova = null; treure = true; pintaPrev(); })]) : null]));
         foto = { k: c.k, actual: function () { return actual; }, nova: function () { return nova; }, treure: function () { return treure; } };
         return;
+      } else if (c.tipus === 'pdf') {
+        var pActual = v || null, pNou = null, pMida = inicial.mida || null;
+        var info = el('div', { class: 'app-pdf' });
+        var pin = el('input', { type: 'file', id: id, accept: 'application/pdf,.pdf', class: 'app-fitxer', disabled: !editable });
+        var pintaPdf = function () {
+          info.textContent = '';
+          if (pNou) { info.appendChild(el('p', { class: 'app-meta' }, ['Nou: ' + pNou.name + ' (' + mida(pNou.size) + '). Es pujarà en desar.'])); return; }
+          var u = pActual ? S.urlPdf(null, pActual) : '';
+          if (u) info.appendChild(el('p', null, [el('a', { href: u, target: '_blank', rel: 'noopener' }, ['Obre el PDF actual']), mida(pMida) ? ' (' + mida(pMida) + ')' : '']));
+          else info.appendChild(el('p', { class: 'app-meta' }, ['Encara no hi ha cap PDF.']));
+        };
+        pin.addEventListener('change', function () {
+          var f = pin.files && pin.files[0]; pin.value = '';
+          if (!f) return;
+          if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { avis('Ha de ser un fitxer PDF.', 'error'); return; }
+          if (f.size > MAX_PDF) { avis('El PDF és massa gran: com a màxim, 20 MB.', 'error'); return; }
+          pNou = f; pintaPdf();
+        });
+        pintaPdf();
+        nodes.push(el('div', { class: 'app-camp' }, [el('span', { class: 'app-etiq' }, [c.t + (c.req ? ' *' : '')]), info, editable ? el('div', { class: 'app-fila' }, [
+          el('label', { for: id, class: 'app-btn' }, [pActual ? 'Canvia el PDF' : 'Tria el PDF']), pin]) : null]));
+        pdf = { k: c.k, actual: function () { return pActual; }, nou: function () { return pNou; } };
+        return;
       } else {
         var tipusInput = { text: 'text', url: 'url', date: 'date', time: 'time', number: 'number' }[c.tipus] || 'text';
         ctrl = el('input', { id: id, type: tipusInput, maxlength: c.max, disabled: !editable, inputmode: c.tipus === 'url' ? 'url' : null,
-          placeholder: c.https ? 'https://' : null, value: c.tipus === 'time' && v ? String(v).slice(0, 5) : v });
+          placeholder: c.https ? 'https://' : null, value: c.tipus === 'time' && v ? String(v).slice(0, 5) : v, list: c.llista ? id + '-llista' : null });
       }
-      nodes.push(el('div', { class: 'app-camp' }, [el('label', { for: id, class: 'app-etiq' }, [c.t + (c.req ? ' *' : '')]), ctrl,
+      var dl = null;
+      if (c.llista && taula) {
+        dl = el('datalist', { id: id + '-llista' });
+        sb.from(taula).select(c.k).then(function (r) {
+          var vist = {};
+          (r.data || []).forEach(function (x) { var t = (x[c.k] || '').trim(); if (t && !vist[t]) { vist[t] = 1; dl.appendChild(el('option', { value: t })); } });
+        }, function () {});
+      }
+      nodes.push(el('div', { class: 'app-camp', 'data-nomes': c.nomes }, [el('label', { for: id, class: 'app-etiq' }, [c.t + (c.req ? ' *' : '')]), ctrl, dl,
         c.ajuda ? el('span', { class: 'app-ajuda' }, [c.ajuda]) : null]));
       getters[c.k] = function () { return ctrl.value; };
       setters[c.k] = function (x) { ctrl.value = x == null ? '' : x; };
     });
     return {
-      nodes: nodes, foto: foto,
+      nodes: nodes, foto: foto, pdf: pdf,
       valors: function () { var o = {}; Object.keys(getters).forEach(function (k) { o[k] = getters[k](); }); return o; },
       posa: function (o) { Object.keys(o || {}).forEach(function (k) { if (setters[k]) setters[k](o[k]); }); }
     };
@@ -396,17 +513,19 @@
     var o = {};
     for (var i = 0; i < camps.length; i++) {
       var c = camps[i];
-      if (c.tipus === 'foto') continue;
+      if (c.tipus === 'foto' || c.tipus === 'pdf') continue;
       var x = typeof v[c.k] === 'string' ? v[c.k].trim() : v[c.k];
-      if (c.req && !x) { avis('Omple «' + c.t.replace(/ \(.*\)$/, '') + '».', 'error'); var f = document.getElementById('f-' + c.k); if (f) f.focus(); return null; }
-      if (c.https && x && (!/^https:\/\/\S+$/i.test(x) || !S.enllac(x))) { avis('L’adreça ha de començar per https://', 'error'); document.getElementById('f-' + c.k).focus(); return null; }
+      var amagat = c.nomes && c.nomes !== v.seccio;   // camp d'una altra secció (Defensem / renovables)
+      if (c.req && !x && !amagat) { avis('Omple «' + c.t.replace(/ \(.*\)$/, '') + '».', 'error'); var f = document.getElementById('f-' + c.k); if (f) f.focus(); return null; }
+      if (c.https && x && !amagat && (!/^https:\/\/\S+$/i.test(x) || !S.enllac(x))) { avis('L’adreça ha de començar per https://', 'error'); document.getElementById('f-' + c.k).focus(); return null; }
       if (c.instagram && x) {
         var m = x.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:[?#].*)?$/i) || x.match(/^@?([A-Za-z0-9._]{1,30})$/);
         if (!m) { avis('L’Instagram ha de ser @nom o una adreça d’instagram.com.', 'error'); document.getElementById('f-' + c.k).focus(); return null; }
         x = 'https://www.instagram.com/' + m[1] + '/';
       }
       if (c.tipus === 'number') x = x === '' ? 0 : parseInt(x, 10);
-      if ((c.tipus === 'date' || c.tipus === 'time' || c.tipus === 'url' || c.instagram) && !x) x = null;
+      if ((c.tipus === 'date' || c.tipus === 'time' || c.tipus === 'url' || c.instagram || c.nul) && !x) x = null;
+      if (amagat && c.tipus === 'url' && x && !/^https:\/\/\S+$/i.test(x)) x = null;
       o[c.k] = x;
     }
     return o;
@@ -414,20 +533,23 @@
 
   // ------------------------------------------------------------------ vista d'edició (comuna)
   async function vEdita(t, clau, id) {
-    var B = BLOCS[clau], fila = null;
+    var B = BLOCS[clau], fila = null, idc = B.idCamp || 'id';
+    var editora = pot(EDITA);
+    if (id === 'nou' && (!B.nou || !pot(B.crea || EDITA))) { pinta(t, [tornaInici(), el('h1', null, ['No hi tens accés.'])]); return; }
     if (id !== 'nou') {
-      if (!S.esUuid(id)) { pinta(t, [tornaInici(), el('h1', null, ['No l’hem trobat.'])]); return; }
-      var r = await sb.from(B.taula).select(B.camps).eq('id', id).maybeSingle();
+      if (!(B.clau ? B.clau.test(id) : S.esUuid(id))) { pinta(t, [tornaInici(), el('h1', null, ['No l’hem trobat.'])]); return; }
+      var r = await sb.from(B.taula).select(B.camps).eq(idc, id).maybeSingle();
       if (r.error) throw r.error;
       if (!r.data) { pinta(t, [tornaInici(), el('h1', null, ['No l’hem trobat.']), el('p', null, ['Potser ja no existeix o no hi tens accés.'])]); return; }
       fila = r.data;
     }
     if (clau === 'usuaris') return fila ? vUsuari(t, fila) : vConvida(t);
 
-    var editora = pot(EDITA);
-    var editable = clau !== 'noticies' || !fila || editora || (fila.autor_id === jo.id && (fila.estat === 'esborrany' || fila.estat === 'retornat'));
-    var F = formulari(B.formulari, fila || {}, editable);
-    var kEsb = esbClau(clau, fila && fila.id);
+    // Admin i editor ho editen tot; el col·laborador, només les seves notícies en esborrany o retornades; la consulta, res.
+    var editable = editora || (clau === 'noticies' && jo.rol === 'col_laborador'
+      && (!fila || (fila.autor_id === jo.id && (fila.estat === 'esborrany' || fila.estat === 'retornat'))));
+    var F = formulari(B.formulari, fila || {}, editable, B.taula);
+    var kEsb = esbClau(clau, fila && fila[idc]);
     var esb = editable ? esbLlegeix(kEsb) : null;
     var avisEsb = null;
     if (esb && esb.v) {
@@ -438,40 +560,57 @@
     var temps = null;
     var form = el('form', { class: 'app-form', novalidate: true, onsubmit: function (e) { e.preventDefault(); } }, F.nodes);
     if (editable) form.addEventListener('input', function () { clearTimeout(temps); temps = setTimeout(function () { esbDesa(kEsb, F.valors()); }, 600); });
+    // Notícies: «On es publica?» decideix quins camps es veuen (Defensem / renovables).
+    function aplicaSeccio() {
+      var sec = F.valors().seccio;
+      Array.prototype.forEach.call(form.querySelectorAll('[data-nomes]'), function (w) { w.hidden = w.getAttribute('data-nomes') !== sec; });
+    }
+    if (clau === 'noticies') { form.addEventListener('change', function (e) { if (e.target.id === 'f-seccio') aplicaSeccio(); }); aplicaSeccio(); }
 
     var botons = [];
     async function desa(extra, missatge) {
       var dades = neteja(B.formulari, F.valors());
       if (!dades) return false;
+      if (F.pdf && !F.pdf.nou() && !F.pdf.actual()) { avis('Tria el document PDF.', 'error'); return false; }
       Object.keys(extra || {}).forEach(function (k) { dades[k] = extra[k]; });
       botons.forEach(function (b) { b.disabled = true; });
-      var pujada = null;
+      var pujada = null, pujadaPdf = null;
       try {
         if (F.foto) {
           var fk = F.foto.k, actual = F.foto.actual();
           if (F.foto.nova()) { pujada = await pujaFoto(F.foto.nova()); dades[fk] = pujada; }
           else dades[fk] = F.foto.treure() ? null : actual;
         }
+        if (F.pdf) {
+          if (F.pdf.nou()) { pujadaPdf = await pujaPdf(F.pdf.nou()); dades[F.pdf.k] = pujadaPdf; dades.mida = F.pdf.nou().size; }
+          else dades[F.pdf.k] = F.pdf.actual();
+        }
         if (clau === 'noticies' && !fila) { dades.autor_id = jo.id; if (!dades.estat) dades.estat = 'esborrany'; }
         if (clau === 'noticies' && fila && !editora) delete dades.nota_revisio;
-        var res = fila ? await escriu(sb.from(B.taula).update(dades).eq('id', fila.id)) : await escriu(sb.from(B.taula).insert(dades));
-        if (!res) { if (pujada) esborraFitxer(pujada); return false; }
+        var res = fila ? await escriu(sb.from(B.taula).update(dades).eq(idc, fila[idc]), idc) : await escriu(sb.from(B.taula).insert(dades), idc);
+        if (!res) { if (pujada) esborraFitxer(pujada); if (pujadaPdf) esborraFitxer(pujadaPdf, 'informacio'); return false; }
         if (F.foto && fila && F.foto.actual() && F.foto.actual() !== dades[F.foto.k]) esborraFitxer(F.foto.actual());
+        if (F.pdf && fila && F.pdf.actual() && F.pdf.actual() !== dades[F.pdf.k]) esborraFitxer(F.pdf.actual(), 'informacio');
         esbEsborra(kEsb);
         avis(missatge || 'Desat.');
-        var nouId = Array.isArray(res) ? res[0].id : res.id;
+        var nouId = Array.isArray(res) ? res[0][idc] : res[idc];
         if (!fila) location.hash = '#/' + clau + '/' + nouId; else encamina();
         return true;
       } catch (e) {
         if (pujada) esborraFitxer(pujada);
+        if (pujadaPdf) esborraFitxer(pujadaPdf, 'informacio');
         avis(e && e.message && !e.code ? e.message : errorText(e), 'error');
         return false;
       } finally { botons.forEach(function (b) { b.disabled = false; }); }
     }
     async function esborra() {
       if (!confirma('Segur que vols esborrar «' + (fila.titol || fila.nom) + '»? No es pot desfer.')) return;
-      var d = await escriu(sb.from(B.taula).delete().eq('id', fila.id));
-      if (d) { if (F.foto) esborraFitxer(F.foto.actual()); esbEsborra(kEsb); avis('Esborrat.'); location.hash = '#/' + clau; }
+      var d = await escriu(sb.from(B.taula).delete().eq(idc, fila[idc]), idc);
+      if (d) {
+        if (F.foto) esborraFitxer(F.foto.actual());
+        if (F.pdf) esborraFitxer(F.pdf.actual(), 'informacio');
+        esbEsborra(kEsb); avis('Esborrat.'); location.hash = '#/' + clau;
+      }
     }
 
     var retorn = null;
@@ -491,13 +630,15 @@
           botons.push(boto('Retorna a l’autor', 'o gran', function () { retorn.hidden = !retorn.hidden; if (!retorn.hidden) nota.focus(); }));
         }
         if (editora && estat === 'publicat') botons.push(boto('Oculta', 'o gran', function () { desa({ estat: 'arxivat' }, 'Ocultada: ja no es veu a la web.'); }));
-        if (fila && jo.rol === 'admin') botons.push(boto('Esborra', 'perill gran', esborra));
+        if (fila && editora) botons.push(boto('Esborra', 'perill gran', esborra));
+      } else if (B.nomesDesa) {
+        botons.push(boto('Desa', 'v gran', function () { desa({}, 'Desat. Ja es veu a la web.'); }));
       } else {
         var pub = fila ? fila.publicada : false;
         botons.push(boto('Desa', 'o gran', function () { desa({}, 'Desat.'); }));
         botons.push(pub ? boto('Oculta', 'o gran', function () { desa({ publicada: false }, 'Ocultat: ja no es veu a la web.'); })
           : boto('Publica', 'v gran', function () { desa({ publicada: true }, 'Publicat. Ja es veu a la web.'); }));
-        if (fila) botons.push(boto('Esborra', 'perill gran', esborra));
+        if (fila && !B.fix) botons.push(boto('Esborra', 'perill gran', esborra));
       }
     }
     var previ = el('section', { class: 'app-previ', hidden: true, 'aria-label': 'Vista prèvia' });
@@ -507,28 +648,39 @@
       previ.hidden = false; bPrevi.textContent = 'Amaga la vista prèvia'; previ.scrollIntoView({ block: 'nearest' });
     });
     var titol = fila ? (fila.titol || fila.nom) : (B.nou || '').replace(/^\+ /, '');
+    var estatFila = fila && clau === 'noticies' ? fila.estat : null;
     pinta(t, [
       el('a', { href: '#/' + clau, class: 'app-inici' }, ['← ' + B.titol]),
       el('h1', null, [titol]),
-      fila && clau === 'noticies' ? el('p', null, [el('span', { class: 'app-estat ' + fila.estat }, [ESTATS[fila.estat]])]) : null,
-      fila && clau === 'noticies' && fila.estat === 'retornat' && fila.nota_revisio ? el('p', { class: 'app-nota' }, ['Nota de revisió: ' + fila.nota_revisio]) : null,
-      !editable ? el('p', { class: 'app-avis-esb' }, ['Ara no la pots modificar (està ' + (ESTATS[fila.estat] || '').toLowerCase() + '). Només la pots consultar.']) : null,
+      estatFila ? el('p', null, [el('span', { class: 'app-estat ' + estatFila }, [ESTATS[estatFila]])]) : null,
+      estatFila === 'retornat' && fila.nota_revisio ? el('p', { class: 'app-nota' }, ['Nota de revisió: ' + fila.nota_revisio]) : null,
+      !editable ? el('p', { class: 'app-avis-esb' }, [jo.rol === 'col_laborador' && estatFila
+        ? 'Ara no la pots modificar (està ' + (ESTATS[estatFila] || '').toLowerCase() + '). Només la pots consultar.' : 'Només ho pots consultar.']) : null,
       avisEsb, form, el('div', { class: 'app-accions' }, [bPrevi].concat(botons)), retorn, previ
     ]);
   }
   function previsualitza(clau, v, foto) {
     var c = el('article', { class: 'app-previ-in' });
     var src = foto ? (foto.nova() ? URL.createObjectURL(foto.nova()) : (foto.treure() ? '' : imatgeUrl(foto.actual()))) : '';
-    if (clau === 'noticies') {
+    var data = v.data ? dataCurta(v.data + 'T12:00:00') : '';
+    if (clau === 'noticies' && v.seccio === 'renovables') {
+      c.appendChild(el('p', { class: 'kicker' }, ['Notícies d’energies renovables']));
+      c.appendChild(el('h2', null, [v.titol || '(sense títol)']));
+      if (v.mitja || data) c.appendChild(el('p', { class: 'app-meta' }, [[v.mitja, data].filter(Boolean).join(' · ')]));
+      if (v.resum) c.appendChild(el('p', null, [v.resum]));
+      if (v.font_url) c.appendChild(el('p', null, [el('a', { href: S.enllac(v.font_url) || '#', target: '_blank', rel: 'noopener noreferrer' }, ['Llegeix-la a la font'])]));
+    } else if (clau === 'noticies') {
       c.appendChild(el('p', { class: 'kicker' }, [v.tipus === 'comunicat' ? 'Comunicat' : 'Notícia']));
       c.appendChild(el('h2', null, [v.titol || '(sense títol)']));
+      if (data) c.appendChild(el('p', { class: 'app-meta' }, [data]));
       if (v.resum) c.appendChild(el('p', null, [el('strong', null, [v.resum])]));
       if (src) c.appendChild(el('img', { src: src, alt: '' }));
       var cos = el('div', { class: 'contingut' }); cos.appendChild(S.neteja(v.contingut || '')); c.appendChild(cos);
     } else {
       if (src) c.appendChild(el('img', { src: src, alt: '' }));
-      c.appendChild(el('h2', null, [v.titol || v.nom || '(sense nom)']));
-      ['quan', 'lloc', 'municipi', 'organisme', 'descripcio', 'organitza', 'web', 'url'].forEach(function (k) { if (v[k]) c.appendChild(el('p', null, [v[k]])); });
+      if (v.titol || v.nom) c.appendChild(el('h2', null, [v.titol || v.nom]));
+      ['quan', 'lloc', 'municipi', 'organisme', 'categoria', 'organitza', 'web', 'url', 'mapa_enllac'].forEach(function (k) { if (v[k]) c.appendChild(el('p', null, [v[k]])); });
+      ['descripcio', 'situacio', 'contingut'].forEach(function (k) { if (v[k]) { var d = el('div'); d.appendChild(S.paragrafs(v[k])); c.appendChild(d); } });
     }
     return c;
   }
@@ -666,7 +818,7 @@
         var B = BLOCS[parts[0]];
         if (!pot(B.rols)) { pinta(t, [tornaInici(), el('h1', null, ['No hi tens accés.'])]); return; }
         document.title = B.titol + ' · Defensem Admin';
-        if (parts[1]) await vEdita(t, parts[0], parts[1]); else await vLlista(t, parts[0], params.get('p'));
+        if (parts[1]) await vEdita(t, parts[0], decodeURIComponent(parts[1])); else await vLlista(t, parts[0], params.get('p'), params.get('f'));
       } else pinta(t, [tornaInici(), el('h1', null, ['No hem trobat aquesta secció.'])]);
     } catch (e) { pinta(t, [tornaInici(), el('p', { class: 'app-avis-esb error' }, [errorText(e)])]); }
     if (t === torn) { vista.focus({ preventScroll: true }); window.scrollTo(0, 0); }

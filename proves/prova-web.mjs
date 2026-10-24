@@ -58,10 +58,10 @@ function dadesInicials() {
       { id: U.D, email: 'desactivat@ex.cat', nom: 'Dani Desactivat', rol: 'col_laborador', actiu: false, created_at: ara }
     ],
     publicacions: [
-      { id: randomUUID(), tipus: 'noticia', titol: 'Esborrany del Carles', resum: '', contingut: '<p>hola</p>', imatge: null, estat: 'esborrany', nota_revisio: null, autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
-      { id: randomUUID(), tipus: 'noticia', titol: 'Pendent del Carles', resum: 'r', contingut: '<p>text</p>', imatge: null, estat: 'pendent', nota_revisio: null, autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
-      { id: randomUUID(), tipus: 'noticia', titol: 'Retornada del Carles', resum: '', contingut: '', imatge: null, estat: 'retornat', nota_revisio: 'Falta la font de les dades.', autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
-      { id: randomUUID(), tipus: 'comunicat', titol: 'Comunicat publicat', resum: 'Resum del comunicat', imatge: U.E + '/portada.jpg', estat: 'publicat', nota_revisio: null, autor_id: U.E, created_at: ara, updated_at: ara, published_at: ara,
+      { id: randomUUID(), seccio: 'defensem', tipus: 'noticia', titol: 'Esborrany del Carles', resum: '', contingut: '<p>hola</p>', imatge: null, estat: 'esborrany', nota_revisio: null, autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
+      { id: randomUUID(), seccio: 'defensem', tipus: 'noticia', titol: 'Pendent del Carles', resum: 'r', contingut: '<p>text</p>', imatge: null, estat: 'pendent', nota_revisio: null, autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
+      { id: randomUUID(), seccio: 'defensem', tipus: 'noticia', titol: 'Retornada del Carles', resum: '', contingut: '', imatge: null, estat: 'retornat', nota_revisio: 'Falta la font de les dades.', autor_id: U.C, created_at: ara, updated_at: ara, published_at: null },
+      { id: randomUUID(), seccio: 'defensem', tipus: 'comunicat', titol: 'Comunicat publicat', resum: 'Resum del comunicat', imatge: U.E + '/portada.jpg', estat: 'publicat', nota_revisio: null, autor_id: U.E, created_at: ara, updated_at: ara, published_at: ara,
         contingut: '<p>Text <b>important</b>.</p><script>window.__xss=1</script><img src=x onerror="window.__xss=2"><a href="javascript:window.__xss=3">mal</a><p style="color:red" onclick="window.__xss=4">estil</p><a href="https://exemple.cat">bo</a>' }
     ],
     documents: [{ id: randomUUID(), titol: 'Acta de l’assemblea', descripcio: 'Acta', enllac: 'https://exemple.cat/acta.pdf', created_by: U.A, created_at: ara }],
@@ -107,14 +107,14 @@ function visibles(taula, u) {
   if (taula === 'projectes' || taula === 'informacio') return BD[taula].filter((e) => e.publicada || ['admin', 'editor', 'consulta'].includes(rol));
   if (taula === 'pagines') return BD.pagines;
   if (taula === 'missatges_contacte') return ['admin', 'editor'].includes(rol) ? BD.missatges_contacte : (u ? [] : null);
-  if (taula === 'actes') return BD.actes.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
-  if (taula === 'eines') return BD.eines.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
-  if (taula === 'entitats') return BD.entitats.filter((e) => e.publicada || ['admin', 'editor'].includes(rol));
+  if (taula === 'actes') return BD.actes.filter((e) => e.publicada || ['admin', 'editor', 'consulta'].includes(rol));
+  if (taula === 'eines') return BD.eines.filter((e) => e.publicada || ['admin', 'editor', 'consulta'].includes(rol));
+  if (taula === 'entitats') return BD.entitats.filter((e) => e.publicada || ['admin', 'editor', 'consulta'].includes(rol));
   if (taula === 'sollicituds_entitats') return ['admin', 'editor'].includes(rol) ? BD.sollicituds_entitats : (u ? [] : null);
   if (!u) return null;
   if (taula === 'profiles') return BD.profiles.filter((p) => p.id === u.id || rol === 'admin');
   if (taula === 'noms_usuaris') return ['admin', 'editor'].includes(rol) ? BD.profiles.map(({ id, nom }) => ({ id, nom })) : [];
-  if (taula === 'publicacions') return BD.publicacions.filter((p) => ['admin', 'editor'].includes(rol) || (rol === 'col_laborador' && p.autor_id === u.id));
+  if (taula === 'publicacions') return BD.publicacions.filter((p) => ['admin', 'editor', 'consulta'].includes(rol) || (rol === 'col_laborador' && p.autor_id === u.id));
   if (taula === 'documents') return BD.documents.filter((d) => rol === 'admin' || (rol && BD.permisos_document.some((x) => x.document_id === d.id && x.usuari_id === u.id)));
   if (taula === 'permisos_document') return BD.permisos_document.filter((x) => rol === 'admin' || x.usuari_id === u.id);
   return null;
@@ -135,6 +135,9 @@ async function supabaseFals(route) {
   const p = url.pathname;
   if (p.startsWith('/storage/v1/object/public/')) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64') });
   if (h.apikey !== 'anon-de-prova') return json(401, { message: 'Invalid API key' });
+  if (p.startsWith('/storage/v1/object/informacio/') && m === 'POST') { pujades.push({ cami: p.slice('/storage/v1/object/informacio/'.length), bucket: 'informacio', mida: (req.postDataBuffer() || []).length });
+    return quiEs(h) ? json(200, { Key: p.slice('/storage/v1/object/'.length), Id: randomUUID() }) : json(403, { message: 'new row violates row-level security policy' }); }
+  if (p === '/storage/v1/object/informacio' && m === 'DELETE') { pujades.push({ esborrat: JSON.parse(req.postData() || '{}').prefixes }); return json(200, []); }
   if (p.startsWith('/storage/v1/object/portades/') && m === 'POST') { const cos = req.postDataBuffer(); pujades.push({ cami: p.slice('/storage/v1/object/portades/'.length), mida: cos ? cos.length : 0, tipus: h['content-type'], mides: midesJpeg(cos) }); }
   if (p === '/storage/v1/object/portades' && m === 'DELETE') return json(200, []);
   if (p.startsWith('/storage/v1/object/portades/') && m === 'POST') return quiEs(h) ? json(200, { Key: p.slice('/storage/v1/object/'.length), Id: randomUUID() }) : json(403, { message: 'new row violates row-level security policy' });
@@ -174,8 +177,8 @@ async function supabaseFals(route) {
     if (m === 'PATCH') {
       const canvis = JSON.parse(req.postData());
       const f = filtra(vis, new URLSearchParams([...url.searchParams].filter(([k]) => k !== 'select')));
-      f.forEach((x) => Object.assign(BD[taula].find((y) => y.id === x.id), canvis));
-      return json(200, f.map((x) => ({ id: x.id })));
+      f.forEach((x) => Object.assign(BD[taula].find((y) => (y.id ?? y.clau) === (x.id ?? x.clau)), canvis));
+      return json(200, f.map((x) => ({ id: x.id, clau: x.clau })));
     }
     if (m === 'DELETE') {
       const f = filtra(vis, new URLSearchParams([...url.searchParams].filter(([k]) => k !== 'select')));
@@ -1697,8 +1700,8 @@ const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textConte
   await pg.fill('#a-email', 'editor@ex.cat'); await pg.fill('#a-pw', 'dolenta-123'); await pg.click('form button[type=submit]');
   comprova('app: contrasenya incorrecta → missatge clar', await espera(pg, () => /Correu o contrasenya incorrectes/.test(document.getElementById('avisos').textContent)));
   await pg.fill('#a-pw', PW); await pg.click('form button[type=submit]'); await pg.waitForSelector('.app-blocs');
-  comprova('app (editor): blocs Notícies, Agenda, Entitats, Eines, Documents i El meu perfil (sense Sol·licituds ni Usuaris)',
-    (await blocs(pg)).join() === 'Notícies,Agenda,Entitats,Eines,Documents,El meu perfil', (await blocs(pg)).join());
+  comprova('app (editor): blocs Notícies, Agenda, Projectes, Informació, Entitats, Eines, Pàgines, Documents i El meu perfil (sense Usuaris)',
+    (await blocs(pg)).join() === 'Notícies,Agenda,Projectes,Informació,Entitats,Eines,Pàgines,Documents,El meu perfil', (await blocs(pg)).join());
   await espera(pg, () => [...document.querySelectorAll('.app-compte')].filter((c) => !c.hidden).length >= 2);
   const comptes = await pg.$$eval('.app-bloc', (l) => l.map((b) => b.querySelector('.app-bloc-nom').textContent + ':' + (b.querySelector('.app-compte:not([hidden])')?.textContent || '')));
   comprova('app: comptadors de pendents (notícies en revisió, actes ocults) i cap de sol·licituds', comptes.includes('Notícies:1 en revisió') && comptes.includes('Agenda:1 ocult')
@@ -1779,6 +1782,8 @@ const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textConte
   const bt = await pg.$$eval('.app-accions button', (l) => l.map((b) => b.textContent).join());
   comprova('app (col·laborador): pot desar i enviar a revisió, però no publicar', bt === 'Vista prèvia,Desa,Envia a revisió', bt);
   await pg.fill('#f-titol', 'Notícia del Carles'); await pg.click('.app-accions button:has-text("Envia a revisió")');
+  comprova('app (col·laborador): «On es publica?» és obligatori', /Omple «On es publica\?»/.test(await pg.textContent('#avisos')) && !BD.publicacions.some((x) => x.titol === 'Notícia del Carles'));
+  await pg.selectOption('#f-seccio', 'defensem'); await pg.click('.app-accions button:has-text("Envia a revisió")');
   const n = await espera(pg, () => /revisió/.test(document.getElementById('avisos').textContent)) && BD.publicacions.find((x) => x.titol === 'Notícia del Carles');
   comprova('app (col·laborador): la notícia queda en revisió', n && n.estat === 'pendent' && n.autor_id === U.C, JSON.stringify(n));
   await pg.goto(ORIGEN + '/app/#/agenda'); await pg.waitForSelector('h1');
@@ -1794,6 +1799,107 @@ const blocs = (pg) => pg.$$eval('.app-bloc-nom', (l) => l.map((x) => x.textConte
     && (await pg.$$eval('.app-pestanya', (l) => l.map((b) => b.childNodes[0].textContent).join())) === 'Actius,Desactivats');
   if (CAPTURES) await pg.screenshot({ path: `${CAPTURES}/app-usuaris-1280.png`, fullPage: true });
   comprova('app (admin): cap error ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+console.log('\n17b. App: notícies per secció, projectes, informació (PDF), pàgines i rols');
+{
+  BD = dadesInicials(); peticions = []; pujades = [];
+  BD.publicacions.push({ id: randomUUID(), seccio: 'renovables', tipus: 'noticia', titol: 'Renovable existent', mitja: 'Diari X', resum: 'r', contingut: '', imatge: null, font_url: 'https://diari.exemple.cat/x',
+    data: '2026-10-01', projecte: null, estat: 'publicat', nota_revisio: null, autor_id: U.E, created_at: '', updated_at: new Date().toISOString(), published_at: new Date().toISOString() });
+  BD.projectes.push({ id: 'la-tallada', titol: 'Aerogeneradors de La Tallada', descripcio: 'Desc.', mapa: null, mapa_enllac: null, situacio: '', publicada: false, updated_at: new Date().toISOString() },
+    { id: 'albons', titol: 'Aerogenerador d’Albons', descripcio: 'Desc.', mapa: null, mapa_enllac: null, situacio: 'En informació pública.', publicada: true, updated_at: new Date().toISOString() });
+  BD.pagines.push({ clau: 'qui-som', titol: 'Qui som: text', contingut: 'Som una iniciativa ciutadana.', ordre: 10 }, { clau: 'peu-lema', titol: 'Peu de pàgina: lema', contingut: 'Pensem en el que tenim.', ordre: 30 });
+  const pg = await pagina(MOBIL, true);
+  await entraApp(pg, 'editor@ex.cat');
+  // Notícies: filtre Totes · Defensem · Renovables
+  await pg.goto(ORIGEN + '/app/#/noticies?p=publicades'); await pg.waitForSelector('.app-filtre');
+  const xips = await pg.$$eval('.app-xip', (l) => l.map((b) => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join());
+  comprova('app Notícies: filtre Totes · Defensem · Renovables', xips === 'Totes*,Defensem,Renovables', xips);
+  comprova('app Notícies: «Totes» mostra les dues seccions', (await textos(pg, '#app-llista h3')).sort().join() === 'Comunicat publicat,Renovable existent');
+  await pg.click('.app-xip[data-f=renovables]');
+  comprova('app Notícies: «Renovables» filtra (i ho recorda a l’adreça)', (await textos(pg, '#app-llista h3')).join() === 'Renovable existent' && /f=renovables/.test(pg.url())
+    && /Renovables · Diari X/.test(await pg.textContent('#app-llista')));
+  // Nova notícia de renovables: camps propis i projecte relacionat
+  await pg.goto(ORIGEN + '/app/#/noticies/nou'); await pg.waitForSelector('#f-seccio');
+  const primer = await pg.$eval('form.app-form .app-camp', (c) => c.querySelector('label').textContent + '|' + c.querySelector('select').value);
+  comprova('app: el primer camp és «On es publica?» (obligatori, sense triar)', primer === 'On es publica? *|', primer);
+  const vis = () => pg.$$eval('form.app-form .app-camp', (l) => l.filter((c) => !c.hidden).map((c) => (c.querySelector('label, .app-etiq').textContent || '').replace(' *', '')).join('|'));
+  await pg.selectOption('#f-seccio', 'renovables');
+  comprova('app: Renovables → títol, mitjà, data, resum, URL de la font i projecte', (await vis()) === 'On es publica?|Títol|Mitjà|Data|Resum (una o dues frases)|Adreça de la font (https://)|Projecte relacionat', await vis());
+  await pg.selectOption('#f-seccio', 'defensem');
+  comprova('app: Defensem → títol, tipus, data, imatge, resum i text complet', (await vis()) === 'On es publica?|Títol|Tipus|Data|Imatge|Resum (una o dues frases)|Text complet|Projecte relacionat', await vis());
+  comprova('app: «Projecte relacionat»: Cap · La Tallada · Albons', (await pg.$$eval('#f-projecte option', (l) => l.map((o) => o.textContent).join())) === 'Cap,La Tallada,Albons');
+  await pg.selectOption('#f-seccio', 'renovables');
+  await pg.fill('#f-titol', 'Nova renovable'); await pg.fill('#f-mitja', 'Ràdio Y'); await pg.fill('#f-data', '2026-10-20'); await pg.fill('#f-resum', 'Resum meu.');
+  await pg.fill('#f-font_url', 'http://insegur.exemple.cat'); await pg.selectOption('#f-projecte', 'albons');
+  await pg.click('.app-accions button:has-text("Publica")');
+  comprova('app: la font ha de ser https://', /https:\/\//.test(await pg.textContent('#avisos')) && !BD.publicacions.some((x) => x.titol === 'Nova renovable'));
+  await pg.fill('#f-font_url', 'https://radio.exemple.cat/n');
+  await pg.click('.app-accions button:has-text("Vista prèvia")');
+  comprova('app: vista prèvia de renovables amb «Llegeix-la a la font»', /Ràdio Y/.test(await pg.textContent('.app-previ')) && (await pg.textContent('.app-previ a')) === 'Llegeix-la a la font');
+  await pg.click('.app-accions button:has-text("Publica")');
+  await espera(pg, () => /Publicat/.test(document.getElementById('avisos').textContent));
+  const nr = BD.publicacions.find((x) => x.titol === 'Nova renovable') || {};
+  comprova('app: es desa a renovables amb mitjà, data, font i projecte', nr.seccio === 'renovables' && nr.mitja === 'Ràdio Y' && nr.data === '2026-10-20' && nr.font_url === 'https://radio.exemple.cat/n'
+    && nr.projecte === 'albons' && nr.estat === 'publicat', JSON.stringify(nr));
+  await pg.waitForSelector('#f-seccio'); await pg.selectOption('#f-seccio', 'defensem'); await pg.click('.app-accions button:has-text("Desa")');
+  await espera(pg, () => /Desat/.test(document.getElementById('avisos').textContent));
+  comprova('app: es pot canviar de secció després', nr.seccio === 'defensem');
+  await pg.waitForSelector('.app-accions button:has-text("Esborra")');
+  comprova('app (editor): pot esborrar notícies', (await textos(pg, '.app-accions button')).includes('Esborra'));
+  // Projectes: els dos, sense «+ Nou» ni «Esborra»
+  await pg.goto(ORIGEN + '/app/#/projectes'); await pg.waitForSelector('.app-pestanyes');
+  comprova('app Projectes: sense «+ Nou», un publicat i un d’ocult', !(await pg.$('.app-nou')) && (await textos(pg, '#app-llista h3')).join() === 'Aerogenerador d’Albons');
+  await pg.click('.app-pestanya[data-p=ocultes]'); await pg.click('#app-llista .app-targeta'); await pg.waitForSelector('#f-situacio');
+  comprova('app Projecte: descripció, mapa, enllaç al mapa i situació actual; Desa i Publica, sense Esborra', (await textos(pg, '.app-accions button')).join() === 'Vista prèvia,Desa,Publica'
+    && !!(await pg.$('#f-descripcio')) && !!(await pg.$('#f-mapa')) && !!(await pg.$('#f-mapa_enllac')));
+  await pg.fill('#f-situacio', 'Tramitació aturada.'); await pg.click('.app-accions button:has-text("Publica")');
+  await espera(pg, () => /Publicat/.test(document.getElementById('avisos').textContent));
+  const pt = BD.projectes.find((x) => x.id === 'la-tallada');
+  comprova('app Projecte: es desa i es publica', pt.situacio === 'Tramitació aturada.' && pt.publicada === true && /#\/projectes\/la-tallada/.test(pg.url()), JSON.stringify(pt));
+  // Informació: bloc buit, pujar un PDF
+  await pg.goto(ORIGEN + '/app/#/informacio'); await pg.waitForSelector('.app-buit-bloc');
+  comprova('app Informació buida: «Encara no hi ha res. Toca + Nou document per començar.»', (await pg.textContent('.app-buit-bloc')) === 'Encara no hi ha res. Toca + Nou document per començar.');
+  await pg.click('.app-nou'); await pg.waitForSelector('#f-categoria');
+  await pg.setInputFiles('#f-fitxer', { name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from('x') });
+  comprova('app Informació: només accepta PDF', /PDF/.test(await pg.textContent('#avisos')));
+  await pg.setInputFiles('#f-fitxer', { name: 'model.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n' + 'x'.repeat(30000)) });
+  await pg.fill('#f-titol', 'Model d’al·legació'); await pg.fill('#f-categoria', 'Al·legacions'); await pg.fill('#f-data', '2026-10-10'); await pg.selectOption('#f-projecte', 'la-tallada');
+  await pg.click('.app-accions button:has-text("Publica")');
+  await espera(pg, () => /Publicat/.test(document.getElementById('avisos').textContent));
+  const d = BD.informacio[0] || {};
+  comprova('app Informació: el PDF es puja al bucket «informacio» i es desa amb categoria, data, mida i projecte', /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/.test(d.fitxer || '')
+    && d.fitxer.startsWith(U.E + '/') && d.categoria === 'Al·legacions' && d.data === '2026-10-10' && d.mida === 30009 && d.projecte === 'la-tallada' && d.publicada === true
+    && pujades.some((x) => x.bucket === 'informacio'), JSON.stringify(d));
+  await pg.goto(ORIGEN + '/app/#/informacio/nou'); await pg.waitForSelector('#f-categoria');
+  await espera(pg, () => document.querySelectorAll('#f-categoria-llista option').length === 1);
+  comprova('app Informació: suggereix les categories que ja hi ha', (await pg.$eval('#f-categoria-llista option', (o) => o.value)) === 'Al·legacions');
+  // Pàgines: textos de Qui som i del peu; només «Desa»
+  await pg.goto(ORIGEN + '/app/#/pagines'); await pg.waitForSelector('#app-llista .app-targeta');
+  comprova('app Pàgines: els textos, en ordre, sense «+ Nou» ni pestanyes', (await textos(pg, '#app-llista h3')).join() === 'Qui som: text,Peu de pàgina: lema' && !(await pg.$('.app-nou, .app-pestanyes')));
+  await pg.click('#app-llista li:nth-child(2) .app-targeta'); await pg.waitForSelector('#f-contingut');
+  comprova('app Pàgina: només «Vista prèvia» i «Desa»', (await textos(pg, '.app-accions button')).join() === 'Vista prèvia,Desa');
+  await pg.fill('#f-contingut', 'Lema nou.'); await pg.click('.app-accions button:has-text("Desa")');
+  await espera(pg, () => /Desat/.test(document.getElementById('avisos').textContent));
+  comprova('app Pàgina: el text es desa', BD.pagines.find((x) => x.clau === 'peu-lema').contingut === 'Lema nou.');
+  comprova('app (editor, blocs nous): sense errors ni desbordament', pg.errors.length === 0 && (await desbordament(pg)) <= 0, JSON.stringify(pg.errors));
+  await pg.context().close();
+}
+{
+  // Usuari de consulta: ho veu tot, però només per consultar
+  const pg = await pagina(MOBIL, true);
+  await entraApp(pg, 'consulta@ex.cat');
+  comprova('app (consulta): veu tots els blocs de contingut (sense Usuaris)', (await blocs(pg)).join() === 'Notícies,Agenda,Projectes,Informació,Entitats,Eines,Pàgines,Documents,El meu perfil', (await blocs(pg)).join());
+  await pg.click('a.app-bloc[href="#/noticies"]'); await pg.waitForSelector('#app-llista');
+  comprova('app (consulta): sense «+ Nou»', !(await pg.$('.app-nou')));
+  await pg.click('.app-pestanya[data-p=revisio]'); await pg.click('#app-llista .app-targeta'); await pg.waitForSelector('#f-titol');
+  comprova('app (consulta): la notícia es veu però no es pot canviar (només «Vista prèvia»)', await pg.$eval('#f-titol', (i) => i.disabled)
+    && (await textos(pg, '.app-accions button')).join() === 'Vista prèvia' && /Només ho pots consultar/.test(await pg.textContent('#vista')));
+  await pg.goto(ORIGEN + '/app/#/pagines'); await pg.waitForSelector('#app-llista .app-targeta'); await pg.click('#app-llista .app-targeta'); await pg.waitForSelector('#f-contingut');
+  comprova('app (consulta): els textos tampoc', await pg.$eval('#f-contingut', (i) => i.disabled) && (await textos(pg, '.app-accions button')).join() === 'Vista prèvia');
+  await pg.goto(ORIGEN + '/app/#/agenda/nou'); await pg.waitForSelector('#vista h1');
+  comprova('app (consulta): #/…/nou → «No hi tens accés.»', (await pg.textContent('#vista h1')) === 'No hi tens accés.');
+  comprova('app (consulta): sense errors', pg.errors.length === 0, JSON.stringify(pg.errors));
   await pg.context().close();
 }
 {

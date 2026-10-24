@@ -196,3 +196,24 @@ insert into public.pagines (clau, titol, contingut, ordre) values
   ('peu-lema', 'Peu de pàgina: lema',
    'Pensem en el que tenim, en el que som i en el que deixarem.', 30)
 on conflict (clau) do nothing;
+
+-- ---------- 16. PERMISOS DE L'APP DE L'EQUIP (/app) ----------
+-- Administrador i editor: tot el contingut (també esborrar notícies).
+-- Col·laborador de notícies: només les seves notícies en esborrany i enviar-les a revisió (secció 2).
+-- Usuari de consulta: ho pot veure tot (també el que encara no és públic), però no pot canviar res.
+drop policy if exists pub_select on public.publicacions;
+create policy pub_select on public.publicacions for select to authenticated using (
+  public.rol_actual() in ('admin','editor','consulta')
+  or (public.rol_actual() = 'col_laborador' and autor_id = auth.uid()));
+drop policy if exists pub_delete on public.publicacions;
+create policy pub_delete on public.publicacions for delete to authenticated
+  using (public.rol_actual() in ('admin','editor'));
+drop policy if exists acte_select on public.actes;
+create policy acte_select on public.actes for select to authenticated
+  using (publicada or public.rol_actual() in ('admin','editor','consulta'));
+drop policy if exists ent_select on public.entitats;
+create policy ent_select on public.entitats for select to authenticated
+  using (publicada or public.rol_actual() in ('admin','editor','consulta'));
+drop policy if exists eina_select on public.eines;
+create policy eina_select on public.eines for select to authenticated
+  using (publicada or public.rol_actual() in ('admin','editor','consulta'));

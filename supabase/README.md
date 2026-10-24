@@ -73,7 +73,7 @@ Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat
 
 ## Web por secciones (octubre 2026)
 
-Ejecuta **`supabase/web-i-app.sql`** en *SQL Editor* (se puede ejecutar varias veces; no borra nada ni sobrescribe lo que se haya editado). Añade:
+Ejecuta **`supabase/web-i-app.sql`** en *SQL Editor* (después de los demás SQL: también fija los permisos de la app por rol) (se puede ejecutar varias veces; no borra nada ni sobrescribe lo que se haya editado). Añade:
 
 - `publicacions`: columnas `seccio` (`defensem` · `renovables`), `mitja`, `font_url` (https, obligatoria para publicar una de renovables), `data` y `projecte` (`la-tallada` · `albons`). La vista pública `publicacions_publiques` las incluye.
 - `projectes`: las dos páginas de proyecto (descripción, mapa, enlace al mapa, situación actual, publicada). Se crean con el texto que ya había en *Qui som → El projecte*.
@@ -84,7 +84,9 @@ Mientras no lo ejecutes, las páginas nuevas muestran la tarjeta «Pròximament�
 
 ## App de la zona privada (`/app`, octubre 2026)
 
-La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Entitats, Eines, Usuaris —solo admin—, Documents y El meu perfil), listas por estado, formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).
+La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Projectes, Informació, Entitats, Eines, Pàgines, Usuaris —solo admin—, Documents y El meu perfil), listas por estado (y en Notícies, filtro Totes · Defensem · Renovables), formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).
+
+Todo el contenido de la web se gestiona desde aquí. **Notícies**: el primer campo, «On es publica?», decide los campos (Defensem: título, fecha, imagen, resumen y texto completo; renovables: título, medio, fecha, resumen propio y URL de la fuente); «Projecte relacionat» la muestra también en la página del proyecto. **Informació** sube PDF (máx. 20 MB) con categoría y proyecto. **Pàgines** cambia los textos de Qui som y el lema del pie. Los bloques vacíos dicen «Encara no hi ha res. Toca + Nou… per començar».
 
 Para la **Agenda** hay que ejecutar `supabase/app.sql` (crea la tabla `actes` y copia en ella los tres actos que había en la web; se puede repetir). Mientras no exista la tabla, la web sigue mostrando la agenda escrita en el HTML.
 
@@ -93,9 +95,9 @@ Para la **Agenda** hay que ejecutar `supabase/app.sql` (crea la tabla `actes` y 
 | Rol | Puede |
 |---|---|
 | Administrador | Todo: usuarios y roles, activar/desactivar cuentas, publicar, archivar, eliminar, documentos y permisos. No puede quitarse a sí mismo el rol de admin ni desactivarse, y nunca puede quedar el sistema sin un admin activo. |
-| Editor | Ver todas las publicaciones, editarlas, publicarlas, devolverlas con nota y archivarlas. Crear, editar, publicar, despublicar y eliminar **entitats** y **eines**. No elimina ni gestiona usuarios ni documentos. Ve el nombre de los autores, no su correo. |
+| Editor | Todo el contenido de la web: publicaciones (también eliminarlas), agenda, proyectos, documentos PDF (Informació), entitats, eines y textos de las páginas. No gestiona usuarios ni los documentos internos. Ve el nombre de los autores, no su correo. |
 | Col·laborador de notícies | Crear borradores propios y enviarlos a revisión. Solo edita sus textos en estado «Esborrany» o «Retornat». No puede publicar. |
-| Usuari de consulta | Ver los documentos internos a los que el admin le dé acceso. |
+| Usuari de consulta | Ver todo el contenido de la app (también lo que aún no es público), sin poder cambiar nada, y los documentos internos a los que el admin le dé acceso. |
 
 Una cuenta desactivada no puede ver ni hacer nada, pero sus publicaciones se conservan.
 

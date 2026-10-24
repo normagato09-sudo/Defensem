@@ -108,3 +108,15 @@ body.app{min-height:100vh;min-height:100dvh;padding-bottom:max(24px,env(safe-are
 .app-avis{margin:0;padding:14px 16px;background:var(--color-fons);border:2px solid var(--color-text);border-left:8px solid var(--color-defensem-verd);
   box-shadow:4px 4px 0 var(--color-text);font-weight:700;pointer-events:auto}
 .app-avis.error{border-left-color:var(--color-defensem-vermell)}
+/* Filtre de secció (Notícies: Totes · Defensem · Renovables) */
+.app-filtre{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+.app-xip{min-height:44px;padding:8px 16px;border:2px solid var(--color-text);border-radius:999px;background:var(--color-fons);color:var(--color-text);font:700 .9rem var(--font-defensem);cursor:pointer}
+.app-xip[aria-pressed=true]{background:var(--color-defensem-vermell);border-color:var(--color-defensem-vermell);color:#fff}
+.app-xip:focus-visible{outline:3px solid var(--color-defensem-vermell);outline-offset:3px}
+.app-filtre+.app-pestanyes{margin-top:10px}
+/* Bloc sense contingut */
+.app-buit-bloc{margin-top:16px;font-size:1.05rem;font-weight:600}
+/* Camps que només són d'una secció (Defensem / renovables) */
+.app-camp[hidden]{display:none}
+.app-pdf p{margin:4px 0}
+.app-pdf a{font-weight:700;color:var(--color-verd-text)}
