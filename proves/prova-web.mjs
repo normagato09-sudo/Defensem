@@ -350,7 +350,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       && p.clau === clau && p.actual === (actual || ''), JSON.stringify({ menu: p.menu, actual: p.actual, clau: p.clau }));
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
-    comprova(`${ruta}: estils site.css → afegits.css → pagines.css`, /\/css\/site\.css,\/css\/afegits\.css,\/css\/pagines\.css/.test(p.css), p.css);
+    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=4)`, /\/css\/site\.css\?v=4,\/css\/afegits\.css\?v=4,\/css\/pagines\.css\?v=4/.test(p.css), p.css);
     comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
@@ -1372,7 +1372,7 @@ for (const [avui, propers, passats] of [['2026-10-22', ['2026-10-24'], ['2026-07
 }
 {
   const pg = await pagina(MOBIL, false);
-  await pg.route('**/js/agenda.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+  await pg.route('**/js/agenda.js*', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
   await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
   comprova('sense JavaScript, es veuen tots els actes en una sola llista', (await pg.$$('#actes > li')).length === 3 && await pg.$eval('#actes', (o) => !o.hidden));
   await pg.context().close();

@@ -48,7 +48,7 @@ async function pagina(viewport, opcions) {
   pg.on('pageerror', (e) => pg.errors.push(e.message));
   pg.on('request', (r) => { if (!r.url().startsWith(ORIGEN) && !r.url().startsWith('data:')) pg.externes.push(r.url()); });
   await pg.route('**/js/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: CONFIG_BUIT }));
-  if (opcionals) await pg.route('**/js/consentiment.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: AMB_OPCIONALS }));
+  if (opcionals) await pg.route('**/js/consentiment.js*', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: AMB_OPCIONALS }));
   return pg;
 }
 const desbordament = (pg) => pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
