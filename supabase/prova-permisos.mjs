@@ -386,6 +386,53 @@ comprova('col·laborador NO esborra actes', await bloquejat(C, 'delete from acte
 comprova('editor esborra actes', await afecta(E, 'delete from actes where id = $1', [AC2]) === 1);
 comprova('admin esborra actes', await afecta(A, 'delete from actes where id = $1', [AC1]) === 1);
 
+console.log('\nWeb per seccions: projectes, notícies de renovables, informació (PDF) i textos de les pàgines');
+const WEB = readFileSync(new URL('./web-i-app.sql', import.meta.url), 'utf8');
+await db.exec(WEB); await db.exec(WEB);
+comprova('web-i-app.sql s\'executa dues vegades sense errors sobre l\'esquema', true);
+comprova('contingut inicial: 2 projectes publicats, el fulletó d\'Albons i 3 textos (sense duplicar)',
+  (await su('select count(*)::int n from projectes where publicada'))[0].n === 2 && (await su("select count(*)::int n from informacio where projecte = 'albons' and publicada"))[0].n === 1
+  && (await su('select count(*)::int n from pagines'))[0].n === 3);
+await su("update projectes set publicada = false where id = 'la-tallada'");
+comprova('anònim veu només els projectes publicats', (await files(null, 'select id from projectes')).map((x) => x.id).join() === 'albons');
+comprova('consulta veu també els ocults', (await files(Q, 'select id from projectes')).length === 2);
+comprova('editor edita un projecte', await afecta(E, "update projectes set situacio = 'Nova situació' where id = 'la-tallada'") === 1);
+comprova('col·laborador NO edita projectes', await bloquejat(C, "update projectes set situacio = 'x' where id = 'albons'"));
+comprova('consulta NO edita projectes', await bloquejat(Q, "update projectes set situacio = 'x' where id = 'albons'"));
+comprova('ningú no crea ni esborra projectes des de l\'app', await falla(E, "insert into projectes (id, titol) values ('albons', 'x')") && await bloquejat(A, "delete from projectes where id = 'albons'"));
+comprova('mapa: només camins de Storage vàlids', await falla(E, "update projectes set mapa = '../x' where id = 'albons'"));
+
+const PR = await novaPub(E, { titol: 'Renovable' });
+await su("update publicacions set seccio = 'renovables', mitja = 'Diari', resum = 'Resum propi' where id = $1", [PR]);
+comprova('una de renovables no es pot publicar sense l\'adreça de la font', await falla(E, "update publicacions set estat = 'publicat' where id = $1", [PR]));
+comprova('amb la font (https), sí; i es pot canviar de secció', await afecta(E, "update publicacions set estat = 'publicat', font_url = 'https://diari.exemple.cat/n', projecte = 'albons' where id = $1", [PR]) === 1
+  && await afecta(E, "update publicacions set seccio = 'defensem' where id = $1", [PR]) === 1 && await afecta(E, "update publicacions set seccio = 'renovables' where id = $1", [PR]) === 1);
+comprova('la font ha de ser https://', await falla(E, "update publicacions set font_url = 'javascript:alert(1)' where id = $1", [PR]));
+comprova('secció i projecte només dels valors permesos', await falla(E, "update publicacions set seccio = 'altres' where id = $1", [PR]) && await falla(E, "update publicacions set projecte = 'x' where id = $1", [PR]));
+const vp = (await files(null, 'select seccio, mitja, font_url, data, projecte from publicacions_publiques where id = $1', [PR]))[0];
+comprova('la vista pública porta secció, mitjà, font, data i projecte', vp && vp.seccio === 'renovables' && vp.mitja === 'Diari' && vp.font_url === 'https://diari.exemple.cat/n' && !!vp.data && vp.projecte === 'albons');
+comprova('el col·laborador pot triar la secció de la seva notícia', !!(await com(C, "insert into publicacions (tipus, titol, estat, autor_id, seccio, projecte) values ('noticia', 'Col renovable', 'esborrany', $1, 'renovables', 'la-tallada') returning id", [C])).rows[0]);
+
+const INS_INFO = (u, publicada) => com(u, "insert into informacio (titol, categoria, fitxer, mida, publicada) values ('Doc', 'Al·legacions', $1, 1000, $2) returning id", [E + '/' + randomUUID() + '.pdf', publicada]);
+comprova('editor puja un document', !!(await INS_INFO(E, false)).rows[0]);
+const DOC = (await INS_INFO(A, true)).rows[0].id;
+comprova('col·laborador i consulta NO pugen documents', await falla(C, "insert into informacio (titol, categoria, fitxer) values ('x', 'y', '/docs/x.pdf')") && await falla(Q, "insert into informacio (titol, categoria, fitxer) values ('x', 'y', '/docs/x.pdf')"));
+comprova('només PDF (al bucket o a /docs)', await falla(E, "insert into informacio (titol, categoria, fitxer) values ('x', 'y', 'https://x.cat/a.pdf')") && await falla(E, "insert into informacio (titol, categoria, fitxer) values ('x', 'y', '/docs/a.exe')"));
+comprova('anònim veu només els documents publicats', (await files(null, 'select id from informacio')).length === 2);
+comprova('consulta veu també els ocults', (await files(Q, 'select id from informacio')).length === 3);
+comprova('editor esborra documents', await afecta(E, 'delete from informacio where id = $1', [DOC]) === 1);
+comprova('Storage: editor puja PDF a la seva carpeta d\'«informacio»; col·laborador no', await afecta(E, "insert into storage.objects (bucket_id, name) values ('informacio', $1)", [E + '/a.pdf']) === 1
+  && await falla(C, "insert into storage.objects (bucket_id, name) values ('informacio', $1)", [C + '/a.pdf']));
+
+comprova('anònim llegeix els textos de les pàgines', (await files(null, 'select clau from pagines order by ordre')).map((x) => x.clau).join() === 'qui-som,el-projecte,peu-lema');
+comprova('editor canvia un text', await afecta(E, "update pagines set contingut = 'Nou lema' where clau = 'peu-lema'") === 1);
+comprova('col·laborador i consulta NO els canvien', await bloquejat(C, "update pagines set contingut = 'x' where clau = 'peu-lema'") && await bloquejat(Q, "update pagines set contingut = 'x' where clau = 'peu-lema'"));
+comprova('ni anònim', await falla(null, "update pagines set contingut = 'x' where clau = 'peu-lema'"));
+comprova('no se\'n creen de noves', await falla(A, "insert into pagines (clau, titol) values ('altra', 'x')"));
+await db.exec(WEB);
+comprova('tornar a executar web-i-app.sql no sobreescriu els textos ni els projectes editats', (await su("select contingut from pagines where clau = 'peu-lema'"))[0].contingut === 'Nou lema'
+  && (await su("select situacio from projectes where id = 'la-tallada'"))[0].situacio === 'Nova situació');
+
 console.log('\nIdempotència amb dades');
 await db.exec(ESQUEMA);
 comprova('tornar a executar l\'esquema no perd dades', (await su('select count(*)::int n from profiles'))[0].n === 7 && !!(await pub(P1)));

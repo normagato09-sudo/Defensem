@@ -1,7 +1,7 @@
-/* Eines (/recursos.html#eines): visors per analitzar el territori.
+/* Eines (/eines.html): visors per analitzar el territori.
    Es gestionen des de l'àrea privada (Eines) i es llegeixen de la taula «eines» de Supabase: NOMÉS les publicades
    (ho garanteix la política RLS; el filtre publicada=eq.true només evita demanar res més), en l'ordre desat.
-   Sense Supabase configurat o sense cap eina publicada, es mostra l'estat buit. */
+   Sense Supabase configurat o sense cap eina publicada, es mostra la targeta «Pròximament». */
 (function () {
   'use strict';
   var S = window.Segur, cfg = S && S.config();
@@ -36,12 +36,12 @@
 
   function pinta(totes) {
     var eines = totes.filter(function (e) { return e && e.nom && CATEGORIES[e.categoria] && segura(e.url); });
-    if (!eines.length) { missatge(BUIT); return; }
+    if (!eines.length) { llista.textContent = ''; llista.appendChild(S.proximament(BUIT)); return; }
     llista.textContent = '';
     eines.forEach(function (e) { llista.appendChild(targeta(e)); });
   }
 
-  if (!cfg) { missatge(BUIT); return; }
+  if (!cfg) { llista.textContent = ''; llista.appendChild(S.proximament(BUIT)); return; }
   fetch(cfg.url + '/rest/v1/eines?select=id,nom,organisme,descripcio,url,categoria,ordre&publicada=eq.true&order=ordre.asc,nom.asc',
     { headers: { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key } })
     .then(function (r) { if (!r.ok) throw 0; return r.json(); })

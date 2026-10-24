@@ -71,6 +71,17 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides».
 
+## Web por secciones (octubre 2026)
+
+Ejecuta **`supabase/web-i-app.sql`** en *SQL Editor* (se puede ejecutar varias veces; no borra nada ni sobrescribe lo que se haya editado). Añade:
+
+- `publicacions`: columnas `seccio` (`defensem` · `renovables`), `mitja`, `font_url` (https, obligatoria para publicar una de renovables), `data` y `projecte` (`la-tallada` · `albons`). La vista pública `publicacions_publiques` las incluye.
+- `projectes`: las dos páginas de proyecto (descripción, mapa, enlace al mapa, situación actual, publicada). Se crean con el texto que ya había en *Qui som → El projecte*.
+- `informacio` + bucket público `informacio` (solo PDF, 20 MB): los documentos de `/documents.html` (título, categoría, fecha, tamaño, proyecto relacionado). Se añade el folleto del molino de Albons que ya estaba en `/docs`.
+- `pagines`: los textos de *Qui som* y el lema del pie, editables desde la app. Se crean con el texto actual.
+
+Mientras no lo ejecutes, las páginas nuevas muestran la tarjeta «Pròximament» y la web sigue funcionando.
+
 ## App de la zona privada (`/app`, octubre 2026)
 
 La zona privada también es una app instalable (PWA) en `https://MI-DOMINIO/app`: inicio con bloques según el rol (Notícies, Agenda, Entitats, Eines, Usuaris —solo admin—, Documents y El meu perfil), listas por estado, formularios con fotos de la cámara o la galería (se reducen a 1600 px antes de subirlas) y borrador automático en el dispositivo. Usa la misma sesión y las mismas reglas (RLS) que `/area-privada/`, que sigue funcionando (Documents se abre ahí).

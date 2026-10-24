@@ -5,7 +5,9 @@
      <main id="inici" tabindex="-1">…</main>
      <script src="/js/marc.js" data-part="peu"></script>           ← just després de </main>: peu
    S'executa en el moment (sense defer), així la capçalera es veu des del primer pintat, sense salts.
-   El menú mòbil (botó «Menú») el gestiona /js/menu.js. La capçalera és fixa; la seva alçada real es desa a --alt-cap.
+   El menú (desplegables; en mòbil, acordió dins del menú) el gestiona /js/menu.js. La capçalera és fixa; la seva alçada
+   real es desa a --alt-cap. El peu porta «Què hi pots fer», el correu i Instagram; els textos amb data-text es poden
+   canviar des de l'app (bloc Pàgines) i els posa /js/textos.js.
    Els elements amb [data-peticio] de qualsevol pàgina reben l'enllaç de la petició. */
 (function () {
   'use strict';
@@ -13,12 +15,30 @@
   var PETICIO = 'https://docs.google.com/forms/d/e/1FAIpQLSf6IsYYaV5FMGA-Qw-Khk-ff-6PxW5JrYaxLETymXJ7eg7CJg/viewform';
   var INSTAGRAM = 'https://www.instagram.com/defensemlempordanet/';
   var CORREU = 'defensemlempordanet@gmail.com';
+  // Menú: [clau, adreça (o null si només obre el submenú), text, submenú]. El logo porta a l'inici.
   var MENU = [
-    ['inici', '/', 'Inici'],
     ['qui-som', '/qui-som.html', 'Qui som'],
-    ['actualitat', '/actualitat.html', 'Actualitat'],
-    ['recursos', '/recursos.html', 'Recursos'],
-    ['contacte', '/contacte.html', 'Contacte']
+    ['actualitat', '/actualitat.html', 'Actualitat', [
+      ['noticies-defensem', '/noticies-defensem.html', 'Notícies de Defensem'],
+      ['noticies-renovables', '/noticies-renovables.html', 'Notícies d’energies renovables']]],
+    ['projectes', null, 'Projectes', [
+      ['projecte-la-tallada', '/projecte-la-tallada.html', 'Aerogeneradors de La Tallada'],
+      ['projecte-albons', '/projecte-albons.html', 'Aerogenerador d’Albons']]],
+    ['recursos', null, 'Recursos', [
+      ['documents', '/documents.html', 'Informació'],
+      ['entitats', '/entitats.html', 'Entitats'],
+      ['eines', '/eines.html', 'Eines']]]
+  ];
+  // «Què hi pots fer» (al peu de totes les pàgines): [títol, text, botó, adreça, text per als lectors de pantalla o null]
+  var ACCIONS = [
+    ['Fes-te’n soci o sòcia', 'Com més som, més pes tenim davant dels ajuntaments i de la Generalitat.', 'Inscriu-t’hi', PETICIO,
+      'Fes-te’n soci o sòcia (s’obre en una pestanya nova, formulari de Google)'],
+    ['Comparteix-ho', 'Envia aquesta web per WhatsApp a la família, als amics i als veïns.', 'Comparteix per WhatsApp',
+      'https://wa.me/?text=No%20al%20parc%20e%C3%B2lic%20a%20l%E2%80%99Empordanet!%20Mira%20qu%C3%A8%20hi%20volen%20fer%20i%20com%20ho%20podem%20aturar%3A%20https%3A%2F%2Fdefensem.vercel.app%2F',
+      'Comparteix per WhatsApp (s’obre en una pestanya nova)'],
+    ['Vine als actes', 'Assemblees, xerrades i caminades per conèixer el territori i decidir plegats.', 'Veure l’agenda', '/actualitat.html#agenda', null],
+    ['Segueix-nos', 'A Instagram publiquem les novetats i les convocatòries.', 'Instagram', INSTAGRAM,
+      'Instagram de Defensem l’Empordanet (s’obre en una pestanya nova)']
   ];
   var LEGALS = [
     ['/avis-legal.html', 'Avís legal'], ['/privacitat.html', 'Política de privacitat'],
@@ -35,10 +55,22 @@
     if (!a.getAttribute('aria-label')) a.setAttribute('aria-label', (a.textContent || 'Signa la petició').trim() + ' (s’obre en una pestanya nova, formulari de Google)');
   }
 
+  var FLETXA = '<svg viewBox="0 0 12 8" aria-hidden="true" focusable="false"><path d="M1 1.5l5 5 5-5"/></svg>';
+  function enllacMenu(m) {
+    return '<a href="' + m[1] + '"' + (m[0] === actual ? ' aria-current="page"' : '') + '>' + m[2] + '</a>';
+  }
+  function element(m) {
+    if (!m[3]) return '<li>' + enllacMenu(m) + '</li>';
+    var id = 'sub-' + m[0], dins = m[3].some(function (f) { return f[0] === actual; }) || m[0] === actual;
+    var boto = m[1]
+      ? enllacMenu(m) + '<button type="button" class="desp-b" aria-expanded="false" aria-controls="' + id + '" aria-label="Mostra el submenú ' + m[2] + '">' + FLETXA + '</button>'
+      : '<button type="button" class="desp-b desp-t" aria-expanded="false" aria-controls="' + id + '">' + m[2] + FLETXA + '</button>';
+    return '<li class="desp' + (dins ? ' actiu' : '') + '"><div class="desp-cap">' + boto + '</div>' +
+      '<ul class="sub" id="' + id + '">' + m[3].map(function (f) { return '<li>' + enllacMenu(f) + '</li>'; }).join('') + '</ul></li>';
+  }
+
   if (part === 'cap') {
-    var items = MENU.map(function (m) {
-      return '<li><a href="' + m[1] + '"' + (m[0] === actual ? ' aria-current="page"' : '') + '>' + m[2] + '</a></li>';
-    }).join('');
+    var items = MENU.map(element).join('');
     script.insertAdjacentHTML('beforebegin',
       '<a class="salta" href="#inici">Salta al contingut</a>' +
       '<header class="cap"><div class="w bar">' +
@@ -56,13 +88,24 @@
     mesura();
     if (window.ResizeObserver) new ResizeObserver(mesura).observe(capcalera); else window.addEventListener('resize', mesura);
   } else if (part === 'peu') {
+    var extern = function (u) { return /^https:/.test(u) ? ' target="_blank" rel="noopener noreferrer"' : ''; };
     script.insertAdjacentHTML('beforebegin',
-      '<footer><div class="w">' +
-        '<div class="cond">Defensem l’Empordanet</div>' +
-        '<p>Pensem en el que tenim, en el que som i en el que deixarem.</p>' +
-        '<p class="small">Web de l’Associació Defensem l’Empordanet · <a href="mailto:' + CORREU + '">' + CORREU + '</a> · ' +
-          '<a href="' + INSTAGRAM + '" target="_blank" rel="noopener noreferrer">Instagram</a></p>' +
+      '<footer id="peu"><div class="w peu-graella">' +
+        '<div class="peu-marca"><div class="cond">Defensem l’Empordanet</div>' +
+          '<p data-text="peu-lema">Pensem en el que tenim, en el que som i en el que deixarem.</p></div>' +
+        '<section class="peu-actua" id="actua" aria-labelledby="actua-t"><h2 class="cond" id="actua-t">Què hi pots fer</h2><ul class="peu-accions">' +
+          ACCIONS.map(function (a) {
+            return '<li><h3>' + a[0] + '</h3><p>' + a[1] + '</p><a class="btn-peu" href="' + a[3] + '"' + extern(a[3]) +
+              (a[4] ? ' aria-label="' + a[4] + '"' : '') + '>' + a[2] + '</a></li>';
+          }).join('') +
+        '</ul></section>' +
+        '<section class="peu-contacte" id="contacte" aria-labelledby="contacte-t"><h2 class="cond" id="contacte-t">Contacte</h2><ul class="contacte">' +
+          '<li><span class="cond">Correu electrònic</span><a href="mailto:' + CORREU + '">' + CORREU + '</a></li>' +
+          '<li><span class="cond">Instagram</span><a href="' + INSTAGRAM + '" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Defensem l’Empordanet (s’obre en una pestanya nova)">@defensemlempordanet</a></li>' +
+        '</ul></section>' +
       '</div>' +
+      '<div class="w peu-petit"><p class="small">Web de l’Associació Defensem l’Empordanet · <a href="mailto:' + CORREU + '">' + CORREU + '</a> · ' +
+          '<a href="' + INSTAGRAM + '" target="_blank" rel="noopener noreferrer">Instagram</a></p></div>' +
       '<div class="peu-legal"><div class="w"><ul class="legal">' +
         LEGALS.map(function (l) { return '<li><a href="' + l[0] + '">' + l[1] + '</a></li>'; }).join('') +
       '</ul></div></div></footer>');

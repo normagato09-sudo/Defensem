@@ -12,18 +12,44 @@ header.cap{position:fixed;top:0;left:0;right:0}
 :target{scroll-margin-top:calc(var(--alt-cap,70px) + 12px)}
 header.cap .bar{gap:16px}
 header.cap nav{margin-left:auto}
-header.cap nav ul{gap:20px}
+header.cap nav>ul{gap:6px}
 header.cap nav a{font-size:.92rem}
 header.cap nav a[aria-current=page]{color:var(--color-defensem-vermell);text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:8px}
 .btn-peticio{flex:none;min-height:44px;padding:9px 16px;font-size:.82rem;white-space:nowrap}
-/* Menú hamburguesa fins a 1060 px: amb set enllaços i el botó de la petició, no hi caben en una fila. */
-@media(max-width:1060px){
+/* Desplegables: Actualitat (enllaç + fletxa), Projectes i Recursos (botó). */
+header.cap nav>ul>li>a,.desp-t{display:inline-flex;align-items:center;min-height:44px;padding:0 10px}
+.desp{position:relative}
+.desp-cap{display:flex;align-items:center}
+.desp-b{display:inline-flex;align-items:center;gap:6px;min-height:44px;min-width:32px;justify-content:center;padding:0 6px;background:none;border:0;color:var(--color-text);font:600 .92rem var(--font-defensem);cursor:pointer}
+.desp-t{padding:0 10px}
+.desp-b svg{width:12px;height:8px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .15s}
+.desp.obert>.desp-cap .desp-b svg{transform:rotate(180deg)}
+.desp-b:hover,.desp.actiu>.desp-cap .desp-t,.desp.actiu>.desp-cap>a{color:var(--color-defensem-vermell)}
+.sub{display:none;list-style:none;margin:0;padding:8px 0}
+.sub a{display:block;padding:10px 18px;font-weight:600;text-decoration:none;white-space:nowrap}
+.sub a:hover{color:var(--color-defensem-vermell)}
+.sub a[aria-current=page]{color:var(--color-defensem-vermell);text-decoration:none!important;box-shadow:inset 4px 0 0 var(--color-defensem-vermell)}
+@media(min-width:901px){
+  header.cap nav .sub{position:absolute;top:100%;left:0;min-width:260px;background:var(--color-fons);border:2px solid var(--color-text);box-shadow:6px 6px 0 var(--color-defensem-verd);z-index:20;flex-direction:column;align-items:stretch;gap:0}
+  .desp.obert>.sub{display:block}
+}
+@media(min-width:901px) and (hover:hover){.desp:hover>.sub{display:block}}
+@media(prefers-reduced-motion:reduce){.desp-b svg{transition:none}}
+/* Menú hamburguesa fins a 900 px; dins, els desplegables són un acordió. */
+@media(max-width:900px){
   header.cap #mb{display:block;flex:none}
-  header.cap nav{display:none;position:absolute;left:0;right:0;top:100%;margin:0;background:var(--color-fons);border-bottom:2px solid var(--color-text);padding:10px clamp(16px,4vw,32px) 20px;box-shadow:0 12px 24px rgba(30,30,28,.12)}
+  header.cap nav{display:none;position:absolute;left:0;right:0;top:100%;margin:0;max-height:calc(100vh - var(--alt-cap,70px));overflow-y:auto;background:var(--color-fons);border-bottom:2px solid var(--color-text);padding:10px clamp(16px,4vw,32px) 20px;box-shadow:0 12px 24px rgba(30,30,28,.12)}
   header.cap nav.open{display:block}
   header.cap nav ul{flex-direction:column;align-items:stretch;gap:0}
-  header.cap nav li a{display:block;padding:12px 0;font-size:1.1rem;border-bottom:1px solid var(--color-fons-fosc)}
+  header.cap nav>ul>li{border-bottom:1px solid var(--color-fons-fosc)}
+  header.cap nav>ul>li>a,.desp-cap>a,.desp-t{flex:1;display:flex;padding:12px 0;font-size:1.1rem}
+  .desp-t{justify-content:space-between;text-align:left}
+  .desp-cap>.desp-b:not(.desp-t){min-width:48px}
   header.cap nav a[aria-current=page]{text-decoration:none;box-shadow:inset 4px 0 0 var(--color-defensem-vermell);padding-left:12px}
+  .sub{padding:0 0 10px 14px}
+  .desp.obert>.sub{display:block}
+  .sub a{padding:10px 0;white-space:normal;font-size:1rem}
+  .sub a[aria-current=page]{padding-left:12px}
   .btn-peticio{margin-left:auto}
 }
 @media(max-width:520px){
@@ -117,14 +143,65 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 .subnav + section.s{padding-top:clamp(36px,6vw,64px)}
 section#entitats .ent-filtres{margin-top:24px}
 
-/* ---------- Contacte: primer «Què pots fer» i, a sota, el correu i Instagram, discrets ---------- */
-.cap-pagina + #actua{background:transparent;border-top:0}
-section.contacte-discret{padding:clamp(28px,4vw,40px) 0 clamp(40px,6vw,64px)}
-.contacte-discret .contacte{margin:0;display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-start}
-.contacte-discret .contacte .cond{font-size:.8rem}
-.contacte-discret .contacte a{font-size:1rem;font-weight:600}
-.contacte-discret .ig{font-size:1rem}
-.contacte-discret .ig svg{width:36px;height:36px;padding:8px}
-
 /* Agenda llegida de Supabase: un acte sense cartell ocupa tota l'amplada */
 .acte.sense-cartell{grid-template-columns:1fr}
+
+/* ---------- Peu: lema, «Què hi pots fer», correu i Instagram ---------- */
+footer>.w.peu-graella{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2fr) minmax(0,.9fr);gap:32px clamp(24px,4vw,48px);padding-bottom:28px}
+@media(max-width:900px){footer>.w.peu-graella{grid-template-columns:1fr}}
+footer h2.cond{color:var(--color-fons);font-size:1.1rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px}
+.peu-accions{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:18px 24px}
+.peu-accions li{display:flex;flex-direction:column;gap:6px;border-top:3px solid var(--color-fons);padding-top:10px}
+.peu-accions h3{font-size:1.05rem}
+.peu-accions p{margin:0;font-size:.95rem;line-height:1.5;flex:1}
+.btn-peu{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:2px solid var(--color-fons);color:var(--color-fons);font:700 .82rem/1.2 var(--font-defensem);letter-spacing:.05em;text-transform:uppercase;text-decoration:none!important}
+.btn-peu:hover,.btn-peu:focus-visible{background:var(--color-fons);color:var(--color-defensem-vermell)}
+footer>.w :focus-visible{outline-color:var(--color-fons)}
+footer .contacte{margin:0;gap:14px}
+footer .contacte .cond{color:var(--color-fons);font-size:.8rem;opacity:.9}
+footer .contacte a{font-size:1rem}
+footer>.w.peu-petit{padding-bottom:24px}
+
+/* ---------- «Pròximament»: pàgines i blocs sense contingut publicat ---------- */
+.proximament{position:relative;overflow:hidden;grid-column:1/-1;margin:24px 0 0;padding:clamp(24px,4vw,36px) clamp(20px,4vw,36px);background:var(--color-fons);border:3px solid var(--color-text);box-shadow:8px 8px 0 var(--color-defensem-verd);max-width:760px}
+.proximament::after{content:"";position:absolute;right:-30px;bottom:-8px;width:300px;height:134px;background:url(/img/molins-solars.webp) right bottom/contain no-repeat;opacity:.13;pointer-events:none}
+.proximament .prox-k{position:relative;margin:0;font:400 clamp(1.9rem,5vw,2.6rem)/1 var(--font-titular);text-transform:uppercase;letter-spacing:.01em;color:var(--color-defensem-vermell)}
+.proximament .prox-t{position:relative;margin:10px 0 0;max-width:46ch;font-size:1.08rem;line-height:1.5;color:var(--color-text)}
+.news>.proximament,.docs>.proximament,.projecte-cos section>.proximament{margin-top:0}
+.proximament.petita{padding:18px 20px;box-shadow:5px 5px 0 var(--color-defensem-verd);border-width:2px}
+.proximament.petita::after{display:none}
+.proximament.petita .prox-k{font-size:1.45rem}
+.proximament.petita .prox-t{font-size:1rem}
+.mes-link[hidden],.resum-cap .mes-link[hidden]{display:none}
+
+/* ---------- Actualitat: blocs amb les 3 últimes i «Veure-les totes» ---------- */
+#renovables{border-bottom:2px solid var(--color-text)}
+.resum-cap h2{margin:0}
+.resum-cap .kicker{margin-bottom:6px}
+/* Notícies d'energies renovables: mitjà, data, resum propi i enllaç a la font */
+.card.renovable .tx{padding:18px 18px 20px}
+.renovable .mitja{flex:none;font:700 .85rem var(--font-defensem);letter-spacing:.06em;text-transform:uppercase;color:var(--color-verd-text)}
+.renovable h3{font-size:1.15rem;line-height:1.25}
+.renovable .font{flex:none;align-self:flex-start;margin-top:4px;font:700 .9rem var(--font-defensem);letter-spacing:.05em;text-transform:uppercase;color:var(--color-defensem-vermell);text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
+
+/* ---------- Pàgines de projecte ---------- */
+.projecte-cos{display:grid;gap:clamp(36px,6vw,56px)}
+.projecte-cos h2{font-size:clamp(1.5rem,4vw,2.1rem);margin-bottom:14px}
+.projecte-cos .txt{max-width:70ch}
+.projecte-cos .txt p{margin:0 0 1em}
+.projecte-mapa{margin:0;max-width:900px}
+.projecte-mapa img{display:block;width:100%;height:auto;border:3px solid var(--color-text);background:#fff}
+.projecte-mapa a{display:inline-flex;align-items:center;min-height:44px;margin-top:10px;font-weight:700;color:var(--color-verd-text)}
+.situacio{max-width:70ch;padding:18px 20px;border-left:6px solid var(--color-defensem-vermell);background:var(--color-fons-fosc)}
+.situacio p{margin:0 0 .6em}.situacio p:last-child{margin:0}
+
+/* ---------- Informació: documents PDF per categoria ---------- */
+.docs-cat+.docs-cat{margin-top:clamp(32px,5vw,48px)}
+.docs-cat h2{font-size:clamp(1.4rem,3.6vw,1.9rem);margin-bottom:14px}
+.docs-llista{list-style:none;margin:0;padding:0;display:grid;gap:12px;max-width:820px}
+.docs-llista li{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--color-fons);border:2px solid var(--color-text)}
+.docs-llista .doc-ic{flex:none;width:40px;height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;background:var(--color-defensem-vermell);color:#fff;font:800 .7rem var(--font-defensem);letter-spacing:.06em;clip-path:polygon(0 0,70% 0,100% 22%,100% 100%,0 100%)}
+.docs-llista .doc-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.docs-llista a{font-weight:700;font-size:1.05rem;color:var(--color-text);overflow-wrap:anywhere;text-underline-offset:3px}
+.docs-llista a:hover{color:var(--color-defensem-vermell)}
+.docs-llista .doc-meta{font-size:.9rem;color:var(--color-text-suau)}

@@ -71,17 +71,17 @@
     },
     {
       "source": "/noticies.html",
-      "destination": "/actualitat.html#noticies",
+      "destination": "/noticies-defensem.html",
       "statusCode": 301
     },
     {
-      "source": "/entitats.html",
-      "destination": "/recursos.html#entitats",
+      "source": "/recursos.html",
+      "destination": "/entitats.html",
       "statusCode": 301
     },
     {
-      "source": "/eines.html",
-      "destination": "/recursos.html#eines",
+      "source": "/contacte.html",
+      "destination": "/#actua",
       "statusCode": 301
     },
     {

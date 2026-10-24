@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
 <title>Actualitat · Defensem l’Empordanet</title>
-<meta name="description" content="Notícies i comunicats de Defensem l’Empordanet i agenda d’actes: assemblees, xerrades i caminades per conèixer el territori i decidir plegats.">
+<meta name="description" content="Les últimes notícies de Defensem l’Empordanet i d’energies renovables, i l’agenda d’actes: assemblees, xerrades i caminades.">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/img/icona-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <meta property="og:url" content="https://defensem.vercel.app/actualitat.html">
 <meta property="og:site_name" content="Defensem l’Empordanet">
 <meta property="og:title" content="Actualitat · Defensem l’Empordanet">
-<meta property="og:description" content="Notícies i comunicats de Defensem l’Empordanet i agenda d’actes: assemblees, xerrades i caminades per conèixer el territori i decidir plegats.">
+<meta property="og:description" content="Les últimes notícies de Defensem l’Empordanet i d’energies renovables, i l’agenda d’actes: assemblees, xerrades i caminades.">
 <meta property="og:locale" content="ca_ES">
 <meta property="og:image" content="https://defensem.vercel.app/img/og-defensem.jpg">
 <meta property="og:image:width" content="1200">
@@ -38,16 +38,21 @@
 <div class="w">
 <p class="kicker">Defensem l’Empordanet</p>
 <h1>Actualitat</h1>
-<p class="frase">Notícies i comunicats de Defensem l’Empordanet.</p>
+<p class="frase">Notícies de Defensem, notícies d’energies renovables i agenda d’actes.</p>
 </div>
 </section>
-<nav class="subnav" aria-label="En aquesta pàgina"><div class="w"><ul><li><a href="#noticies">Notícies</a></li><li><a href="#agenda">Agenda</a></li></ul></div></nav>
+<nav class="subnav" aria-label="En aquesta pàgina"><div class="w"><ul><li><a href="#noticies">Notícies de Defensem</a></li><li><a href="#renovables">Energies renovables</a></li><li><a href="#agenda">Agenda</a></li></ul></div></nav>
 <section class="s" id="noticies">
 <div class="w">
-<p class="kicker">Actualitat</p>
-<h2>Notícies <span>i comunicats</span></h2>
-<div class="news news-compactes" id="news" data-per-carrega="6" aria-live="polite"></div>
-<p class="mes-noticies"><button class="btn o" type="button" id="news-mes" hidden>Carrega’n més</button></p>
+<div class="resum-cap"><div><p class="kicker">Actualitat</p><h2>Notícies <span>de Defensem</span></h2></div><a class="mes-link" id="totes-defensem" href="/noticies-defensem.html" hidden>Veure-les totes</a></div>
+<div class="news news-compactes" id="news" data-seccio="defensem" data-per-carrega="3" data-totes="totes-defensem" data-buit="Aviat hi trobareu les notícies de Defensem." aria-live="polite"></div>
+</div>
+</section>
+
+<section class="s" id="renovables">
+<div class="w">
+<div class="resum-cap"><div><p class="kicker">En altres mitjans</p><h2>Notícies <span>d’energies renovables</span></h2></div><a class="mes-link" id="totes-renovables" href="/noticies-renovables.html" hidden>Veure-les totes</a></div>
+<div class="news" id="news-renovables" data-seccio="renovables" data-per-carrega="3" data-totes="totes-renovables" data-buit="Aviat hi trobareu notícies d’energies renovables." aria-live="polite"></div>
 </div>
 </section>
 
@@ -56,7 +61,7 @@
 <p class="kicker">Ens hi veiem</p>
 <h2>Agenda <span>d’actes</span></h2>
 <p class="intro">Assemblees, xerrades i caminades per conèixer el territori i decidir plegats.</p>
-<p class="agenda-buit" id="agenda-buit" hidden>Ara mateix no hi ha cap acte anunciat. Segueix-nos a <a href="https://www.instagram.com/defensemlempordanet/" target="_blank" rel="noopener noreferrer">Instagram</a> per saber quan és el proper.</p>
+<div class="agenda-buit" id="agenda-buit" hidden><div class="proximament"><p class="prox-k">Pròximament</p><p class="prox-t">Aviat hi trobareu els propers actes.</p></div></div>
 <!-- Cada acte porta data-fins="AAAA-MM-DD" (l'últim dia de l'acte). /js/agenda.js mou sol els actes passats a «Actes anteriors». -->
 <ol class="actes" id="actes">
 <li class="acte" data-fins="2026-10-24">
@@ -99,6 +104,7 @@
 <script src="/js/segur.js" defer></script>
 <script src="/js/noticies.js" defer></script>
 <script src="/js/agenda.js" defer></script>
+<script src="/js/textos.js" defer></script>
 <script src="/js/menu.js" defer></script>
 </body>
 </html>

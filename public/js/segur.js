@@ -89,9 +89,58 @@
     return c.url + '/storage/v1/object/public/portades/' + cami;
   }
 
+  // PDF de la secció Informació: fitxer del bucket «informacio» o un dels PDF de la web (/docs/…).
+  var PDF = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/, PDF_WEB = /^\/docs\/[a-z0-9-]{1,100}\.pdf$/;
+  function urlPdf(cfg, cami) {
+    if (typeof cami !== 'string') return '';
+    if (PDF_WEB.test(cami)) return cami;
+    var c = config(cfg);
+    return c && PDF.test(cami) ? c.url + '/storage/v1/object/public/informacio/' + cami : '';
+  }
+
+  // Lectura pública de Supabase (només el que deixen veure les polítiques RLS). Retorna una promesa amb la llista
+  // i, si es demana, el total (capçalera content-range). Falla si no hi ha configuració o la resposta no és bona.
+  function llegeix(cami, ambTotal) {
+    var c = config();
+    if (!c) return Promise.reject(new Error('sense configuració'));
+    var h = { apikey: c.key, Authorization: 'Bearer ' + c.key };
+    if (ambTotal) h.Prefer = 'count=exact';
+    return fetch(c.url + '/rest/v1/' + cami, { headers: h }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var m = /\/(\d+)$/.exec(r.headers.get('content-range') || '');
+      return r.json().then(function (l) {
+        if (!Array.isArray(l)) throw new Error('resposta no vàlida');
+        return ambTotal ? { files: l, total: m ? parseInt(m[1], 10) : null } : l;
+      });
+    });
+  }
+
+  // Text pla en paràgrafs (una línia en blanc separa paràgrafs; un salt simple es manté).
+  function paragrafs(text) {
+    var frag = document.createDocumentFragment();
+    String(text || '').split(/\n\s*\n/).forEach(function (t) {
+      t = t.trim(); if (!t) return;
+      var p = document.createElement('p');
+      t.split('\n').forEach(function (l, i) { if (i) p.appendChild(document.createElement('br')); p.appendChild(document.createTextNode(l)); });
+      frag.appendChild(p);
+    });
+    return frag;
+  }
+
+  // Targeta «Pròximament» amb la identitat Defensem, per a qualsevol pàgina o bloc sense contingut publicat.
+  function proximament(frase, petita) {
+    var d = document.createElement('div'), k = document.createElement('p'), t = document.createElement('p');
+    d.className = 'proximament' + (petita ? ' petita' : '');
+    k.className = 'prox-k'; k.textContent = 'Pròximament';
+    t.className = 'prox-t'; t.textContent = frase;
+    d.appendChild(k); d.appendChild(t);
+    return d;
+  }
+
   window.Segur = {
     neteja: neteja, serialitza: serialitza, html: escapa, dataCurta: dataCurta,
-    urlImatge: urlImatge, config: config, enllac: enllac,
+    urlImatge: urlImatge, urlPdf: urlPdf, config: config, enllac: enllac,
+    llegeix: llegeix, paragrafs: paragrafs, proximament: proximament,
     esUuid: function (s) { return typeof s === 'string' && UUID.test(s); }
   };
 })();

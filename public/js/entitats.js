@@ -1,6 +1,7 @@
-/* Entitats adherides (/recursos.html#entitats).
+/* Entitats adherides (/entitats.html).
    - Llegeix de la taula «entitats» de Supabase NOMÉS les publicades (ho garanteix la política RLS; el filtre
-     publicada=eq.true només evita demanar res més). Sense Supabase configurat, es mostra l'estat buit.
+     publicada=eq.true només evita demanar res més). Sense Supabase configurat o sense cap entitat publicada,
+     es mostra la targeta «Pròximament».
    - Les entitats només s'afegeixen des de l'app de la zona privada (/app → Entitats). */
 (function () {
   'use strict';
@@ -18,9 +19,7 @@
 
   function estatBuit() {
     llista.textContent = '';
-    var b = el('div', 'buit ent-buit');
-    b.appendChild(el('p', null, BUIT));
-    llista.appendChild(b);
+    llista.appendChild(S.proximament(BUIT));
   }
 
   function enllac(href, text, nom) {
