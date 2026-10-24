@@ -1,4 +1,4 @@
-/* Notícies: a la portada (les últimes, data-limit="3") i a /noticies.html (totes, per pàgines: data-per-pagina="9").
+/* Notícies de /actualitat.html (totes, per pàgines: data-per-pagina="9"; amb data-limit="N" en surten només les N últimes).
    - Si Supabase està configurat (js/config.js), es llegeixen de la vista pública publicacions_publiques
      (només contingut publicat; mai esborranys ni pendents).
    - Si no, es llegeixen de /noticies.json (llista buida = estat buit).
@@ -28,7 +28,7 @@ t.appendChild(el('p','',n.descripcio||''));
 if(n.enllac){var a=el('a','mes','Llegeix-ne més');a.href=n.enllac;a.setAttribute('aria-label','Llegeix-ne més: '+(n.titol||''));if(/^https?:/.test(n.enllac)){a.target='_blank';a.rel='noopener'}t.appendChild(a)}
 c.appendChild(t);return c}
 function enllacPagina(p,text,etiqueta){
-var a=el('a','pag',text);a.href='/noticies.html'+(p>1?'?pagina='+p:'');
+var a=el('a','pag',text);a.href='/actualitat.html'+(p>1?'?pagina='+p:'')+'#noticies';
 if(etiqueta)a.setAttribute('aria-label',etiqueta);
 if(p===pagina)a.setAttribute('aria-current','page');
 return a}

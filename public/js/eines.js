@@ -1,4 +1,4 @@
-/* Eines (/eines.html): visors per analitzar el territori.
+/* Eines (/recursos.html#eines): visors per analitzar el territori.
    Es gestionen des de l'àrea privada (Eines) i es llegeixen de la taula «eines» de Supabase: NOMÉS les publicades
    (ho garanteix la política RLS; el filtre publicada=eq.true només evita demanar res més), en l'ordre desat.
    Sense Supabase configurat o sense cap eina publicada, es mostra l'estat buit. */

@@ -60,16 +60,16 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 `schema.sql` añade dos tablas. **Vuelve a ejecutar `schema.sql` entero** en *SQL Editor* (es idempotente) para crearlas:
 
-- `entitats`: el índice público de `/entitats.html`. Lectura pública **solo** de las filas con `publicada = true` (RLS). Solo Administrador y Editor crean, editan, publican y eliminan (panel → *Entitats*). El logo se sube al bucket `portades`.
+- `entitats`: el índice público de `/recursos.html#entitats`. Lectura pública **solo** de las filas con `publicada = true` (RLS). Solo Administrador y Editor crean, editan, publican y eliminan (panel → *Entitats*). El logo se sube al bucket `portades`.
 - `sollicituds_entitats`: el formulario «La teva entitat vol adherir-s'hi?». Cualquiera puede insertar (sin poder leer nada); solo Administrador y Editor las ven y cambian su estado (panel → *Sol·licituds d'adhesió*), y las aceptan (se abre la ficha de la entidad con los datos ya rellenados) o rechazan. Antispam: casilla de consentimiento obligatoria, campo trampa y tiempo mínimo en el navegador, y en la base de datos un máximo de 3 solicitudes por correo y día y de 20 por hora en total.
 
-- `eines`: los visores de `/eines.html` (nombre, organismo, descripción, URL `https://`, categoría, orden y publicada). Lectura pública **solo** de las publicadas; solo Administrador y Editor crean, editan, ordenan, publican y eliminan (panel → *Eines*).
+- `eines`: los visores de `/recursos.html#eines` (nombre, organismo, descripción, URL `https://`, categoría, orden y publicada). Lectura pública **solo** de las publicadas; solo Administrador y Editor crean, editan, ordenan, publican y eliminan (panel → *Eines*).
 
 **Si ya tienes la base de datos en marcha**, en lugar de volver a ejecutar `schema.sql` entero puedes ejecutar solo `supabase/entitats-i-eines.sql`: crea o completa Entitats, las solicitudes de adhesión y Eines (tablas, permisos, políticas RLS y validaciones), corrige las validaciones de web, correo y URL, y añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir) si no existe. Se puede ejecutar varias veces sin errores ni duplicados. Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
 
 **Formulario de contacto (`/contacte.html`).** Guarda los mensajes en la tabla `missatges_contacte`: cualquiera puede enviar (sin leer nada); Administrador y Editor los leen y los marcan como leídos o respondidos (panel → *Missatges de contacte*); solo Administrador los elimina. Para crearla basta con ejecutar `supabase/contacte.sql` (no toca nada más y se puede repetir).
 
-Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
+Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 
 ## Roles
 

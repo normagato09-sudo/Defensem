@@ -5,7 +5,7 @@
      <main id="inici" tabindex="-1">…</main>
      <script src="/js/marc.js" data-part="peu"></script>           ← just després de </main>: peu
    S'executa en el moment (sense defer), així la capçalera es veu des del primer pintat, sense salts.
-   El menú mòbil (botó «Menú») el gestiona /js/menu.js.
+   El menú mòbil (botó «Menú») el gestiona /js/menu.js. La capçalera és fixa; la seva alçada real es desa a --alt-cap.
    Els elements amb [data-peticio] de qualsevol pàgina reben l'enllaç de la petició. */
 (function () {
   'use strict';
@@ -14,12 +14,10 @@
   var INSTAGRAM = 'https://www.instagram.com/defensemlempordanet/';
   var CORREU = 'defensemlempordanet@gmail.com';
   var MENU = [
+    ['inici', '/', 'Inici'],
     ['qui-som', '/qui-som.html', 'Qui som'],
-    ['projecte', '/projecte.html', 'El projecte'],
-    ['agenda', '/agenda.html', 'Agenda'],
-    ['noticies', '/noticies.html', 'Notícies'],
-    ['entitats', '/entitats.html', 'Entitats'],
-    ['eines', '/eines.html', 'Eines'],
+    ['actualitat', '/actualitat.html', 'Actualitat'],
+    ['recursos', '/recursos.html', 'Recursos'],
     ['contacte', '/contacte.html', 'Contacte']
   ];
   var LEGALS = [
@@ -50,6 +48,13 @@
         '<button id="mb" type="button" aria-expanded="false" aria-controls="nav">Menú</button>' +
       '</div></header>');
     peticio(document.querySelector('header.cap [data-peticio]'));
+    // La capçalera queda fixa a dalt: el contingut comença just a sota (padding-top del <body>) i els salts a
+    // una àncora hi deixen el mateix marge, amb l'alçada real (canvia entre mòbil i escriptori o si el logo fa dues línies).
+    var capcalera = document.querySelector('header.cap'), arrel = document.documentElement;
+    arrel.classList.add('amb-cap');
+    var mesura = function () { arrel.style.setProperty('--alt-cap', capcalera.offsetHeight + 'px'); };
+    mesura();
+    if (window.ResizeObserver) new ResizeObserver(mesura).observe(capcalera); else window.addEventListener('resize', mesura);
   } else if (part === 'peu') {
     script.insertAdjacentHTML('beforebegin',
       '<footer><div class="w">' +

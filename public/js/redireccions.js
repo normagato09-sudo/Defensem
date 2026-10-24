@@ -1,9 +1,11 @@
 /* Enllaços antics de la portada llarga (/#noticies, /#agenda…) → pàgina nova de cada secció.
+   (Les pàgines antigues /noticies.html, /agenda.html… les redirigeix el servidor: vegeu vercel.json.)
    L'àncora (#…) no arriba mai al servidor, per això es fa aquí, abans de pintar res. */
 (function () {
   var NOU = {
-    '#qui-som': '/qui-som.html', '#el-projecte': '/projecte.html', '#preguntes': '/projecte.html#preguntes',
-    '#joc': '/projecte.html#joc', '#agenda': '/agenda.html', '#noticies': '/noticies.html',
+    '#qui-som': '/qui-som.html', '#el-projecte': '/qui-som.html#el-projecte', '#preguntes': '/qui-som.html#preguntes',
+    '#joc': '/qui-som.html#joc', '#noticies': '/actualitat.html#noticies', '#agenda': '/actualitat.html#agenda',
+    '#entitats': '/recursos.html#entitats', '#eines': '/recursos.html#eines',
     '#actua': '/contacte.html#actua', '#contacte': '/contacte.html'
   };
   var desti = NOU[location.hash];

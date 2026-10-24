@@ -9,7 +9,7 @@ function noTrobada(){
 main.textContent='';
 main.appendChild(el('p','kicker','Actualitat'));
 main.appendChild(el('h1','','No hem trobat aquesta publicació.'));
-var p=el('p'),a=el('a','','Torna a les notícies');a.href='/noticies.html';p.appendChild(a);main.appendChild(p);
+var p=el('p'),a=el('a','','Torna a les notícies');a.href='/actualitat.html#noticies';p.appendChild(a);main.appendChild(p);
 }
 var id=new URLSearchParams(location.search).get('id');
 var cfg=S&&S.config();
@@ -30,6 +30,6 @@ var src=S.urlImatge(cfg,n.imatge);
 if(src){var f=el('figure','portada'),i=document.createElement('img');i.src=src;i.alt='';i.onerror=function(){f.remove()};f.appendChild(i);art.appendChild(f)}
 var cos=el('div','contingut');cos.appendChild(S.neteja(n.contingut||''));art.appendChild(cos);
 main.appendChild(art);
-var p=el('p','tornar'),a=el('a','','← Totes les notícies');a.href='/noticies.html';p.appendChild(a);main.appendChild(p);
+var p=el('p','tornar'),a=el('a','','← Totes les notícies');a.href='/actualitat.html#noticies';p.appendChild(a);main.appendChild(p);
 }).catch(noTrobada);
 })();

@@ -5,18 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="only light">
 <meta name="supported-color-schemes" content="light">
-<title>Entitats · Defensem l’Empordanet</title>
-<meta name="description" content="Índex de les entitats, associacions i col·lectius que donen suport a Defensem l’Empordanet o hi col·laboren.">
+<title>Recursos · Defensem l’Empordanet</title>
+<meta name="description" content="Entitats que donen suport a la defensa de l’Empordanet, formulari d’adhesió i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/img/icona-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="canonical" href="https://defensem.vercel.app/entitats.html">
 <meta name="theme-color" content="#298d3b">
-<meta property="og:title" content="Entitats · Defensem l’Empordanet">
-<meta property="og:description" content="Índex de les entitats, associacions i col·lectius que donen suport a Defensem l’Empordanet o hi col·laboren.">
+<link rel="canonical" href="https://defensem.vercel.app/recursos.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://defensem.vercel.app/recursos.html">
+<meta property="og:site_name" content="Defensem l’Empordanet">
+<meta property="og:title" content="Recursos · Defensem l’Empordanet">
+<meta property="og:description" content="Entitats que donen suport a la defensa de l’Empordanet, formulari d’adhesió i visors oficials per consultar l’urbanisme, l’energia, el paisatge i el medi natural.">
 <meta property="og:locale" content="ca_ES">
 <meta property="og:image" content="https://defensem.vercel.app/img/og-defensem.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo de Defensem l’Empordanet i el lema «No al parc eòlic!»">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -25,18 +31,22 @@
 <link rel="stylesheet" href="/css/pagines.css">
 <script src="/js/consentiment.js" defer></script>
 </head>
-<body data-pagina="entitats">
+<body data-pagina="recursos">
 <script src="/js/marc.js" data-part="cap"></script>
 <main id="inici" tabindex="-1">
 <section class="cap-pagina">
 <div class="w">
 <p class="kicker">Xarxa de suport</p>
-<h1>Entitats</h1>
-<p class="frase">Associacions, col·lectius i entitats que donen suport a la defensa de l’Empordanet o hi col·laboren.</p>
+<h1>Recursos</h1>
+<p class="frase">Associacions, col·lectius i entitats que donen suport a la defensa de l’Empordanet, i visors oficials per consultar el territori.</p>
 </div>
 </section>
-<div class="s pagina-cos"><div class="w ent">
-
+<nav class="subnav" aria-label="En aquesta pàgina"><div class="w"><ul><li><a href="#entitats">Entitats</a></li><li><a href="#eines">Eines</a></li></ul></div></nav>
+<section class="s" id="entitats">
+<div class="w ent">
+<p class="kicker">Xarxa de suport</p>
+<h2>Entitats</h2>
+<p class="intro">Associacions, col·lectius i entitats que donen suport a la defensa de l’Empordanet o hi col·laboren.</p>
 <div class="ent-filtres" id="ent-filtres" hidden>
 <div class="camp-public"><label for="ent-cerca">Cerca</label><input id="ent-cerca" type="search" autocomplete="off" placeholder="Nom, municipi o paraula clau"></div>
 <div class="camp-public"><label for="ent-tipus">Tipus</label><select id="ent-tipus"><option value="">Tots els tipus</option></select></div>
@@ -89,12 +99,25 @@
 <button class="btn" type="submit" id="adh-envia">Envia la sol·licitud</button>
 </form>
 </section>
-</div></div>
+</div>
+</section>
+
+<section class="s" id="eines">
+<div class="w eines">
+<p class="kicker">Per mirar el territori</p>
+<h2>Eines</h2>
+<p class="intro">Visors oficials i públics per consultar l’urbanisme, l’energia, el paisatge i el medi natural de l’Empordanet. Cada enllaç s’obre al web de l’organisme que el publica.</p>
+<div class="eines-filtre" id="eines-filtre" role="group" aria-label="Filtra per categoria" hidden></div>
+<div class="eines-llista" id="eines-llista"><p class="carrega">Carregant…</p></div>
+<p class="avis-eines">Aquests visors són d’altres organismes: Defensem l’Empordanet no n’és responsable i les dades poden canviar. Si en trobeu algun que no funciona, <a href="mailto:defensemlempordanet@gmail.com">escriviu-nos</a>.</p>
+</div>
+</section>
 </main>
 <script src="/js/marc.js" data-part="peu"></script>
 <script src="/js/config.js"></script>
 <script src="/js/segur.js" defer></script>
 <script src="/js/entitats.js" defer></script>
+<script src="/js/eines.js" defer></script>
 <script src="/js/menu.js" defer></script>
 </body>
 </html>

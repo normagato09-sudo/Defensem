@@ -447,7 +447,7 @@
     });
     pinta(t, [
       el('h1', null, ['Entitats']),
-      el('p', null, ['Entitats que es mostren a la pàgina pública ', el('a', { href: '/entitats.html', target: '_blank', rel: 'noopener' }, ['Entitats']),
+      el('p', null, ['Entitats que es mostren a la pàgina pública ', el('a', { href: '/recursos.html#entitats', target: '_blank', rel: 'noopener' }, ['Entitats']),
         '. Només hi surten les publicades.']),
       !pend.error && pend.count ? el('p', { class: 'msg' }, ['Hi ha ', el('strong', null, [String(pend.count)]),
         pend.count === 1 ? ' sol·licitud d’adhesió nova. ' : ' sol·licituds d’adhesió noves. ', enllacRuta('Revisa-les', 'sollicituds')]) : null,
@@ -682,7 +682,7 @@
     });
     pinta(t, [
       el('h1', null, ['Eines']),
-      el('p', null, ['Visors i eines que es mostren a la pàgina pública ', el('a', { href: '/eines.html', target: '_blank', rel: 'noopener' }, ['Eines']),
+      el('p', null, ['Visors i eines que es mostren a la pàgina pública ', el('a', { href: '/recursos.html#eines', target: '_blank', rel: 'noopener' }, ['Eines']),
         ', en aquest ordre. Només hi surten les publicades.']),
       el('p', { class: 'destacat' }, [enllacRuta('Afegeix una eina', 'eina/nova', 'btn')]),
       items.length ? el('ul', { class: 'llista' }, items) : buit('Encara no hi ha cap eina.')

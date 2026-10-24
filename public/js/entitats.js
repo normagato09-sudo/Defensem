@@ -1,4 +1,4 @@
-/* Entitats adherides (/entitats.html).
+/* Entitats adherides (/recursos.html#entitats).
    - Llegeix de la taula «entitats» de Supabase NOMÉS les publicades (ho garanteix la política RLS; el filtre
      publicada=eq.true només evita demanar res més). Sense Supabase configurat, es mostra l'estat buit.
    - Filtres per tipus i per municipi i cercador (sense accents ni majúscules).

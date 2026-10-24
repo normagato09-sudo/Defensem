@@ -45,6 +45,31 @@
       "source": "/equip/",
       "destination": "/area-privada/",
       "statusCode": 302
+    },
+    {
+      "source": "/projecte.html",
+      "destination": "/qui-som.html#el-projecte",
+      "statusCode": 301
+    },
+    {
+      "source": "/agenda.html",
+      "destination": "/actualitat.html#agenda",
+      "statusCode": 301
+    },
+    {
+      "source": "/noticies.html",
+      "destination": "/actualitat.html#noticies",
+      "statusCode": 301
+    },
+    {
+      "source": "/entitats.html",
+      "destination": "/recursos.html#entitats",
+      "statusCode": 301
+    },
+    {
+      "source": "/eines.html",
+      "destination": "/recursos.html#eines",
+      "statusCode": 301
     }
   ]
 }

@@ -2,7 +2,14 @@
    portada-resum i elements compartits. Va DESPRÉS de site.css i afegits.css i només fa servir les variables
    de la Bíblia d'estils (fons #f1f0ee, verd #298d3b, vermell #da1415). */
 
-/* ---------- Capçalera comuna ---------- */
+/* ---------- Capçalera comuna ----------
+   Fixa a dalt. Perquè no tapi res (p. ex. el titular «No al parc eòlic!»), el <body> deixa a dalt un espai igual
+   a l'alçada real de la capçalera (--alt-cap, que mesura /js/marc.js; 70 px si encara no s'ha mesurat) i els salts
+   a una àncora també la tenen en compte. */
+html.amb-cap{scroll-padding-top:calc(var(--alt-cap,70px) + 12px)}
+html.amb-cap body{padding-top:var(--alt-cap,70px)}
+header.cap{position:fixed;top:0;left:0;right:0}
+:target{scroll-margin-top:calc(var(--alt-cap,70px) + 12px)}
 header.cap .bar{gap:16px}
 header.cap nav{margin-left:auto}
 header.cap nav ul{gap:20px}
@@ -94,3 +101,15 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 /* Primera secció després de la capçalera de pàgina: menys aire a dalt i sense marge extra al primer bloc */
 .cap-pagina + section.s{padding-top:clamp(36px,6vw,64px)}
 .cap-pagina + section.s > .w > :first-child{margin-top:0}
+
+/* ---------- Navegació dins de la pàgina (dos blocs: Qui som / El projecte, Notícies / Agenda, Entitats / Eines) ---------- */
+.subnav{background:var(--color-fons);border-bottom:2px solid var(--color-text)}
+.subnav ul{list-style:none;margin:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:10px}
+.subnav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .9rem var(--font-defensem);letter-spacing:.03em;text-transform:uppercase;text-decoration:none}
+.subnav a:hover,.subnav a:focus-visible{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
+/* Blocs de les pàgines de dues parts: fan servir els fons i les línies de sempre (#el-projecte i #noticies en franja);
+   Eines, que no en tenia, se separa d'Entitats amb una línia. */
+.subnav + #noticies{border-top:0}
+#eines{border-top:2px solid var(--color-text)}
+.subnav + section.s{padding-top:clamp(36px,6vw,64px)}
+section#entitats .ent-filtres{margin-top:24px}
