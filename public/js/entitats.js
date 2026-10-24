@@ -9,7 +9,8 @@
   var S = window.Segur, cfg = S && S.config();
   // Mateixa llista que el check de supabase/schema.sql.
   var TIPUS = { associacio: 'Associació', collectiu: 'Col·lectiu', entitat_veinal: 'Entitat veïnal', fundacio: 'Fundació',
-    cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', altres: 'Altres' };
+    cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', observatori: 'Observatori',
+    xarxa: 'Xarxa d’entitats', altres: 'Altres' };
   var BUIT = 'Aviat hi trobareu les entitats adherides.';
 
   var llista = document.getElementById('ent-llista'), filtres = document.getElementById('ent-filtres');
@@ -39,17 +40,18 @@
   function enllac(href, text, nom) {
     var a = el('a', null, text);
     a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    a.setAttribute('aria-label', text + ' de ' + nom + ' (s’obre en una pestanya nova)');
+    a.setAttribute('aria-label', (text === 'Visita la web' ? 'Visita la web de ' : text + ' de ') + nom + ' (s’obre en una pestanya nova)');
     return a;
   }
 
   function targeta(e) {
     var c = el('article', 'card ent-card');
     var cap = el('div', 'ent-cap');
-    var src = e.logo ? S.urlImatge(null, e.logo) : '';
+    // Logo: fitxer de Storage o, provisionalment, adreça https:// externa.
+    var src = !e.logo ? '' : /^https:\/\//i.test(e.logo) ? S.enllac(e.logo) : S.urlImatge(null, e.logo);
     if (src) {
       var i = document.createElement('img');
-      i.src = src; i.alt = 'Logo de ' + e.nom; i.loading = 'lazy'; i.className = 'ent-logo';
+      i.src = src; i.alt = 'Logo de ' + e.nom; i.loading = 'lazy'; i.className = 'ent-logo'; i.referrerPolicy = 'no-referrer';
       i.onerror = function () { i.remove(); };
       cap.appendChild(i);
     }
@@ -65,7 +67,7 @@
     var ig = /^https:\/\/(www\.)?instagram\.com\//i.test(e.instagram || '') ? S.enllac(e.instagram) : '';
     if (web || ig) {
       var l = el('p', 'ent-enllacos');
-      if (web) l.appendChild(enllac(web, 'Web', e.nom));
+      if (web) { var v = enllac(web, 'Visita la web', e.nom); v.className = 'btn'; l.appendChild(v); }
       if (ig) l.appendChild(enllac(ig, 'Instagram', e.nom));
       tx.appendChild(l);
     }

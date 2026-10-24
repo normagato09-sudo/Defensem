@@ -21,7 +21,7 @@
         },
         {
           "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://uzkwfudbrozjzjtcjfry.supabase.co; connect-src 'self' https://uzkwfudbrozjzjtcjfry.supabase.co wss://uzkwfudbrozjzjtcjfry.supabase.co; font-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://uzkwfudbrozjzjtcjfry.supabase.co https://observatorirenovables.cat https://transicioenergeticajusta.cat; connect-src 'self' https://uzkwfudbrozjzjtcjfry.supabase.co wss://uzkwfudbrozjzjtcjfry.supabase.co; font-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         }
       ]
     },

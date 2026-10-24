@@ -1301,10 +1301,12 @@ console.log('\n16. Entitats i Eines');
     const d = await pg.evaluate(() => ({ n: document.querySelectorAll('.ent-card').length, filtres: !document.getElementById('ent-filtres').hidden,
       tipus: [...document.querySelectorAll('#ent-tipus option')].map((o) => o.value).join(), muns: [...document.querySelectorAll('#ent-municipi option')].map((o) => o.value).join(),
       enllacos: [...document.querySelectorAll('.ent-card a')].map((a) => a.href + '|' + a.target + '|' + a.rel).join(' ; '), logo: document.querySelector('.ent-logo')?.alt,
-      capOcult: document.querySelector('.adhesio h2').offsetParent !== null }));
+      capOcult: document.querySelector('.adhesio h2').offsetParent !== null,
+      visita: [...document.querySelectorAll('.ent-card a.btn')].map((a) => a.textContent + '|' + a.target).join() }));
     comprova(`entitats @${vp.width}px: dues targetes publicades, filtres de tipus i municipi`, d.n === 2 && d.filtres && d.tipus === ',collectiu,entitat_veinal' && d.muns === ',Albons,la Tallada d’Empordà', JSON.stringify(d));
     comprova(`entitats @${vp.width}px: enllaços en pestanya nova amb noopener i cap enllaç javascript:`, !/javascript/.test(d.enllacos) && d.enllacos.split(' ; ').length === 2 && d.enllacos.split(' ; ').every((x) => /\|_blank\|noopener/.test(x)), d.enllacos);
     comprova(`entitats @${vp.width}px: logo amb text alternatiu i secció d’adhesió visible`, d.logo === 'Logo de Col·lectiu Àrids' && d.capOcult);
+    comprova(`entitats @${vp.width}px: botó «Visita la web» en pestanya nova (només si hi ha web vàlida)`, d.visita === 'Visita la web|_blank', d.visita);
     await pg.selectOption('#ent-municipi', 'Albons');
     comprova(`entitats @${vp.width}px: el filtre de municipi deixa una entitat`, (await pg.$$('.ent-card')).length === 1 && /1 de 2/.test(await pg.textContent('#ent-recompte')));
     await pg.selectOption('#ent-municipi', '');

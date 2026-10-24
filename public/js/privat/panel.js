@@ -13,7 +13,8 @@
   var TIPUS = { noticia: 'Notícia', comunicat: 'Comunicat' };
   // Mateixa llista que el check de supabase/schema.sql i que js/entitats.js.
   var TIPUS_ENT = { associacio: 'Associació', collectiu: 'Col·lectiu', entitat_veinal: 'Entitat veïnal', fundacio: 'Fundació',
-    cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', altres: 'Altres' };
+    cooperativa: 'Cooperativa', sindicat: 'Sindicat o organització professional', observatori: 'Observatori',
+    xarxa: 'Xarxa d’entitats', altres: 'Altres' };
   // Mateixa llista que el check de supabase/schema.sql i que js/eines.js.
   var CAT_EINA = { urbanisme: 'Urbanisme', energia: 'Energia', paisatge: 'Paisatge', medi_natural: 'Medi natural', altres: 'Altres' };
   var ESTATS_SOL = { nova: 'Nova', revisada: 'Revisada', acceptada: 'Acceptada', descartada: 'Rebutjada' };
@@ -77,12 +78,12 @@
     return m;
   }
   function esborraImatge(cami) {
-    if (!cami || !jo) return;
+    if (!cami || !jo || /^https:\/\//i.test(cami)) return;  // un logo extern (https://) no és a Storage
     if (cami.indexOf(jo.id + '/') !== 0 && jo.rol !== 'admin') return;
     sb.storage.from('portades').remove([cami]).catch(function () {});
   }
   function imatgePortada(cami, src) {
-    var u = src || S.urlImatge(null, cami);
+    var u = src || (/^https:\/\//i.test(cami || '') ? S.enllac(cami) : S.urlImatge(null, cami));
     if (!u) return null;
     var i = el('img', { class: 'portada-prev', alt: 'Imatge de portada', src: u });
     i.addEventListener('error', function () { i.remove(); });
@@ -482,7 +483,8 @@
 
     var cont = el('div', { class: 'portada-actual' });
     var fLogo = el('input', { id: 'e-logo', type: 'file', accept: 'image/jpeg,image/png,image/webp', 'aria-describedby': 'e-logo-nom e-logo-ajuda' });
-    var nomFitxer = el('span', { class: 'nom-fitxer', id: 'e-logo-nom' }, [logoActual ? 'Té logo.' : 'Sense logo.']);
+    var nomFitxer = el('span', { class: 'nom-fitxer', id: 'e-logo-nom' }, [!logoActual ? 'Sense logo.'
+      : /^https:\/\//i.test(logoActual) ? 'Logo extern provisional (' + logoActual + '). Puja’n una còpia per substituir-lo.' : 'Té logo.']);
     function pintaLogo() {
       cont.textContent = '';
       var img = fitxerNou ? imatgePortada(null, URL.createObjectURL(fitxerNou)) : (treure ? null : imatgePortada(logoActual));

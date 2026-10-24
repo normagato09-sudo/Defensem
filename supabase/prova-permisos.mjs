@@ -281,6 +281,11 @@ comprova('desactivat NO crea entitats', await falla(D, "insert into entitats (no
 comprova('editor veu també les no publicades', (await files(E, 'select id from entitats where id = $1', [ENT2])).length === 1);
 comprova('editor edita i despublica', await afecta(E, 'update entitats set descripcio = $2, publicada = false where id = $1', [ENT1, 'Text']) === 1);
 comprova('tipus no vàlid rebutjat', await falla(E, "insert into entitats (nom, tipus) values ('x','empresa')"));
+comprova('web https acceptada', await afecta(E, "update entitats set web = 'https://www.exemple.cat/ruta' where id = $1", [ENT1]) === 1);
+comprova('logo com a adreça https acceptat', await afecta(E, "update entitats set logo = 'https://ex.cat/logo.png' where id = $1", [ENT1]) === 1);
+comprova('logo amb adreça http rebutjat', await falla(E, "update entitats set logo = 'http://ex.cat/logo.png' where id = $1", [ENT1]));
+comprova('tipus observatori i xarxa acceptats', await afecta(E, "update entitats set tipus = 'observatori' where id = $1", [ENT1]) === 1
+  && await afecta(E, "update entitats set tipus = 'xarxa' where id = $1", [ENT1]) === 1);
 comprova('web sense https rebutjada', await falla(E, "update entitats set web = 'javascript:alert(1)' where id = $1", [ENT1]));
 comprova('instagram que no és instagram.com rebutjat', await falla(E, "update entitats set instagram = 'https://ex.cat/x' where id = $1", [ENT1]));
 comprova('instagram vàlid acceptat', await afecta(E, "update entitats set instagram = 'https://www.instagram.com/nom.entitat/' where id = $1", [ENT1]) === 1);
@@ -295,6 +300,8 @@ const sol = (u, camps = {}) => afecta(u, `insert into sollicituds_entitats (nom_
   values ($1,$2,$3,$4,$5,$6)`, [camps.nom || 'Associació X', camps.tipus || 'associacio', camps.municipi || 'Albons',
   camps.persona || 'Persona', camps.email || 'contacte@ex.cat', camps.consentiment === undefined ? true : camps.consentiment]);
 comprova('anònim envia una sol·licitud', await sol(null) === 1);
+comprova('anònim envia una sol·licitud amb web i Instagram', await afecta(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment, web, instagram)
+  values ('Amb web','xarxa','Albons','P','web@ex.cat', true, 'https://www.exemple.cat', '@nom')`) === 1);
 comprova('anònim NO llegeix sol·licituds', await falla(null, 'select * from sollicituds_entitats'));
 comprova('sense consentiment es rebutja', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
   values ('x','associacio','Albons','P','a@ex.cat', false)`));
@@ -302,7 +309,7 @@ comprova('correu no vàlid rebutjat', await falla(null, `insert into sollicituds
   values ('x','associacio','Albons','P','no-es-correu', true)`));
 comprova('anònim NO pot fixar l\'estat', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment, estat)
   values ('x','associacio','Albons','P','b@ex.cat', true, 'acceptada')`));
-comprova('el correu es desa en minúscules', (await su("select email from sollicituds_entitats order by created_at desc limit 1"))[0].email === 'contacte@ex.cat');
+comprova('el correu es desa en minúscules', (await su("select email from sollicituds_entitats where nom_entitat = 'Associació X' limit 1"))[0].email === 'contacte@ex.cat');
 await sol(null, { email: 'Repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' }); await sol(null, { email: 'repetit@ex.cat' });
 comprova('màxim 3 sol·licituds per correu i dia', await falla(null, `insert into sollicituds_entitats (nom_entitat, tipus, municipi, persona_contacte, email, consentiment)
   values ('x','associacio','Albons','P','REPETIT@ex.cat', true)`));

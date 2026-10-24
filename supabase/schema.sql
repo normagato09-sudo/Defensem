@@ -237,16 +237,18 @@ create policy portades_delete on storage.objects for delete to authenticated usi
 -- ---------- 5. ENTITATS ADHERIDES ----------
 -- Índex públic de les organitzacions que donen suport a la iniciativa (/entitats.html).
 -- Només admin i editor en creen, editen, publiquen i esborren. La web pública només en veu les publicades.
--- El logo és una imatge del bucket «portades» (mateixa carpeta per persona que les portades).
+-- El logo és una imatge del bucket «portades» (mateixa carpeta per persona que les portades) o, provisionalment,
+-- una adreça https:// externa (quan no s'ha pogut pujar el fitxer).
 create table if not exists public.entitats (
   id          uuid primary key default gen_random_uuid(),
   nom         text not null check (char_length(nom) between 1 and 200),
-  tipus       text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','altres')),
+  tipus       text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres')),
   municipi    text not null default '' check (char_length(municipi) <= 100),
   descripcio  text not null default '' check (char_length(descripcio) <= 600),
-  web         text check (web is null or web ~ '^https://[^ ]{1,300}$'),
+  web         text check (web is null or (char_length(web) <= 300 and web ~ '^https://[^[:space:]]+$')),
   instagram   text check (instagram is null or instagram ~ '^https://(www\.)?instagram\.com/[A-Za-z0-9._]{1,30}/?$'),
-  logo        text check (logo is null or logo ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$'),
+  logo        text check (logo is null or logo ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$'
+                      or (char_length(logo) <= 500 and logo ~ '^https://[^[:space:]]+$')),
   publicada   boolean not null default false,
   created_by  uuid references public.profiles(id) on delete set null,
   created_at  timestamptz not null default now(),
@@ -296,10 +298,10 @@ create policy ent_delete on public.entitats for delete to authenticated
 create table if not exists public.sollicituds_entitats (
   id               uuid primary key default gen_random_uuid(),
   nom_entitat      text not null check (char_length(nom_entitat) between 1 and 200),
-  tipus            text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','altres')),
+  tipus            text not null check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres')),
   municipi         text not null check (char_length(municipi) between 1 and 100),
   descripcio       text not null default '' check (char_length(descripcio) <= 600),
-  web              text check (web is null or web ~ '^https?://[^ ]{1,300}$'),
+  web              text check (web is null or (char_length(web) <= 300 and web ~ '^https?://[^[:space:]]+$')),
   instagram        text check (instagram is null or char_length(instagram) between 1 and 100),
   persona_contacte text not null check (char_length(persona_contacte) between 1 and 120),
   email            text not null check (char_length(email) <= 254 and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
@@ -392,3 +394,24 @@ create policy eina_update on public.eines for update to authenticated
 drop policy if exists eina_delete on public.eines;
 create policy eina_delete on public.eines for delete to authenticated
   using (public.rol_actual() in ('admin','editor'));
+
+-- ---------- 8. AMPLIACIONS (octubre 2026) ----------
+-- Per a bases de dades creades abans: «create table if not exists» no canvia les restriccions d'una taula existent.
+-- Tipus nous d'entitat (observatori, xarxa d'entitats), logo com a adreça https:// provisional i correcció del
+-- check del web (la versió anterior tenia una repetició {1,300} que Postgres no admet: qualsevol web donava error).
+alter table public.entitats drop constraint if exists entitats_web_check;
+alter table public.entitats add constraint entitats_web_check
+  check (web is null or (char_length(web) <= 300 and web ~ '^https://[^[:space:]]+$'));
+alter table public.sollicituds_entitats drop constraint if exists sollicituds_entitats_web_check;
+alter table public.sollicituds_entitats add constraint sollicituds_entitats_web_check
+  check (web is null or (char_length(web) <= 300 and web ~ '^https?://[^[:space:]]+$'));
+alter table public.entitats drop constraint if exists entitats_tipus_check;
+alter table public.entitats add constraint entitats_tipus_check
+  check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres'));
+alter table public.sollicituds_entitats drop constraint if exists sollicituds_entitats_tipus_check;
+alter table public.sollicituds_entitats add constraint sollicituds_entitats_tipus_check
+  check (tipus in ('associacio','collectiu','entitat_veinal','fundacio','cooperativa','sindicat','observatori','xarxa','altres'));
+alter table public.entitats drop constraint if exists entitats_logo_check;
+alter table public.entitats add constraint entitats_logo_check
+  check (logo is null or logo ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$'
+         or (char_length(logo) <= 500 and logo ~ '^https://[^[:space:]]+$'));

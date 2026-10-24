@@ -67,6 +67,8 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 Si ya ejecutaste el SQL de Entitats, para añadir Eines basta con `supabase/actualitzacio-eines.sql` (no toca nada de lo que ya existe, salvo permitir que el Editor elimine entidades).
 
+`supabase/contingut-inicial.sql` añade el contenido inicial publicado (OBERCat, Xarxa Catalana per a una Transició Energètica Justa y Vissir), los tipos de entidad «Observatori» y «Xarxa d'entitats», y corrige el check del campo web (la versión anterior daba error con cualquier dirección). Los logos de esas dos entidades apuntan provisionalmente a sus webs: para sustituirlos, súbelos desde el panel (*Entitats → Edita → Canvia el logo*).
+
 Mientras no ejecutes el esquema nuevo, `/entitats.html` muestra «Aviat hi trobareu les entitats adherides» y el formulario devuelve un error al enviar.
 
 ## Roles
