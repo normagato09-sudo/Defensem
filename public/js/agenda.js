@@ -1,4 +1,4 @@
-/* Agenda de Defensem l'Empordanet (/actualitat.html#agenda).
+/* Agenda de Defensem l’Empordanet (/agenda.html i el bloc Agenda d’/actualitat.html).
    - Si Supabase està configurat, els actes es llegeixen de la taula «actes» (NOMÉS els publicats: ho garanteix
      la política RLS) i substitueixen els de l'HTML. Es gestionen des de l'app de la zona privada (/app → Agenda).
    - Si no (o si la taula encara no existeix), es fan servir els actes escrits a l'HTML, dins de <ol id="actes">,

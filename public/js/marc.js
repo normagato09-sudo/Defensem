@@ -20,7 +20,8 @@
     ['qui-som', '/qui-som.html', 'Qui som'],
     ['actualitat', '/actualitat.html', 'Actualitat', [
       ['noticies-defensem', '/noticies-defensem.html', 'Notícies de Defensem'],
-      ['noticies-renovables', '/noticies-renovables.html', 'Notícies d’energies renovables']]],
+      ['noticies-renovables', '/noticies-renovables.html', 'Notícies d’energies renovables'],
+      ['agenda', '/agenda.html', 'Agenda']]],
     ['projectes', null, 'Projectes', [
       ['projecte-la-tallada', '/projecte-la-tallada.html', 'Aerogeneradors de La Tallada'],
       ['projecte-albons', '/projecte-albons.html', 'Aerogenerador d’Albons']]],

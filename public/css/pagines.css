@@ -119,20 +119,17 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 .cap-pagina + section.s{padding-top:clamp(36px,6vw,64px)}
 .cap-pagina + section.s > .w > :first-child{margin-top:0}
 
-/* ---------- Navegació dins de la pàgina (dos blocs: Qui som / El projecte, Notícies / Agenda, Entitats / Eines) ---------- */
-.subnav{background:var(--color-fons);border-bottom:2px solid var(--color-text)}
-.subnav ul{list-style:none;margin:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:10px}
-.subnav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .9rem var(--font-defensem);letter-spacing:.03em;text-transform:uppercase;text-decoration:none}
-.subnav a:hover,.subnav a:focus-visible{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
-/* Blocs de les pàgines de dues parts: fan servir els fons i les línies de sempre (#noticies en franja);
+/* Blocs de les pàgines amb més d'una part: fan servir els fons i les línies de sempre (#noticies en franja, sense
+   repetir la línia de sota la capçalera);
    Eines, que no en tenia, se separa d'Entitats amb una línia. */
-.subnav + #noticies{border-top:0}
+.cap-pagina + #noticies{border-top:0}
 #eines{border-top:2px solid var(--color-text)}
-.subnav + section.s{padding-top:clamp(36px,6vw,64px)}
 section#entitats .ent-filtres{margin-top:24px}
 
 /* Agenda llegida de Supabase: un acte sense cartell ocupa tota l'amplada */
 .acte.sense-cartell{grid-template-columns:1fr}
+/* Pàgina Agenda (/agenda.html): la llista (o l'avís «Pròximament») comença just sota el padding de la secció */
+.cap-pagina + #agenda .actes:first-of-type,.cap-pagina + #agenda .agenda-buit .proximament{margin-top:0}
 
 /* ---------- Peu: lema a l'esquerra, correu i Instagram a la dreta ---------- */
 footer>.w.peu-graella{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:28px clamp(32px,6vw,96px);padding-bottom:28px}
