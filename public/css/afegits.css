@@ -1,7 +1,7 @@
 /* Afegits a la web de Defensem l'Empordanet (octubre 2026).
    Va DESPRÉS de /css/site.css i només fa servir les variables de la Bíblia d'estils que defineix site.css.
    Seccions noves: Agenda (#agenda), Preguntes (#preguntes)
-   i la crida de Contacte. També: enllaç «Salta al contingut», targetes de valors en 5 columnes i zona tàctil
+   i la crida de Contacte. També: enllaç «Salta al contingut» i zona tàctil
    més gran per a «Llegeix-ne més». */
 
 /* Elements amagats amb l'atribut hidden (algunes regles de display el podrien anul·lar) */
@@ -12,9 +12,6 @@
 .salta:focus{top:12px}
 main:focus{outline:none}
 .sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-/* Valors: les 5 targetes en una sola fila en pantalles grans (abans «Participació» quedava sola) */
-@media(min-width:1000px){.valors{grid-template-columns:repeat(5,1fr)}}
 
 /* «Llegeix-ne més»: zona tàctil d'almenys 44 px d'alt sense canviar com es veu */
 .card a.mes{padding-top:12px;padding-bottom:4px;min-height:44px;display:inline-flex;align-items:flex-end}
@@ -37,6 +34,8 @@ main:focus{outline:none}
 .alcada figcaption{font-size:.9rem;color:var(--color-text-suau);margin-top:6px}
 /* ---------- Qui som: «Per què ens hi oposem» ---------- */
 .subtitol{font-size:clamp(1.4rem,3.5vw,1.9rem);margin:32px 0 0;color:var(--color-defensem-verd)}
+/* Qui som: entre el text (o la foto) i «Per què ens hi oposem», un buit entre el de dalt de la secció i el de baix. */
+#qui-som .subtitol{margin-top:clamp(44px,7vw,72px)}
 .impactes{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px 22px}
 .impactes li{border-top:5px solid var(--color-defensem-vermell);padding-top:8px}
 .impactes h4{margin:0 0 4px;font:800 1.15rem/1.2 var(--font-defensem);color:var(--color-text)}

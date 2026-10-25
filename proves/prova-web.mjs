@@ -352,7 +352,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       && p.clau === clau && p.actual === (actual || ''), JSON.stringify({ menu: p.menu, actual: p.actual, clau: p.clau }));
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
-    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=7)`, /\/css\/site\.css\?v=7,\/css\/afegits\.css\?v=7,\/css\/pagines\.css\?v=7/.test(p.css), p.css);
+    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=8)`, /\/css\/site\.css\?v=8,\/css\/afegits\.css\?v=8,\/css\/pagines\.css\?v=8/.test(p.css), p.css);
     comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
@@ -369,7 +369,11 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
 
   console.log('\n3a. El contingut de la portada antiga és a la seva pàgina');
   await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
-  comprova('Qui som: text, foto i els 5 valors', /Som una iniciativa ciutadana/.test(await pg.textContent('main')) && (await pg.$$('.valors li')).length === 5 && !!(await pg.$('.foto img')));
+  comprova('Qui som: text i foto, sense el bloc dels 5 valors', /Som una iniciativa ciutadana/.test(await pg.textContent('main')) && !(await pg.$('.valors'))
+    && !/Respectar la memòria, els pobles/.test(await pg.textContent('main')) && !!(await pg.$('.foto img')));
+  comprova('Qui som: ordre text → «Per què ens hi oposem» → preguntes freqüents', await pg.evaluate(() => {
+    const y = (s) => document.querySelector(s).getBoundingClientRect().top;
+    return y('#qui-som [data-text="qui-som"]') < y('#qui-som .subtitol') && y('#qui-som .subtitol') < y('#qui-som .impactes') && y('#qui-som .impactes') < y('#preguntes h2'); }));
   await pg.$eval('.foto img', (i) => i.scrollIntoView()); await pg.waitForTimeout(400);
   comprova('Qui som: la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
   comprova('Qui som: sense barra de botons ni bloc «El projecte»; text, valors, «Per què ens hi oposem» i preguntes al final (sense el bloc El PLATER)', !(await pg.$('.subnav, #el-projecte, .projecte, [data-text="el-projecte"], .plater, .fonts'))
@@ -583,6 +587,15 @@ console.log('\n3d. Il·lustracions de l’antic «El projecte» a les pàgines d
     comprova(`Albons @${vp.width}px: els gegants d’Albons amb el peu de sempre`, !!a && a.src === '/img/projecte/gegants-albons.webp' && /gegants d’Albons/.test(a.alt) && a.ok
       && a.peu === 'Els gegants d’Albons també hi diuen la seva.' && a.w <= 360, JSON.stringify(a));
     comprova(`Albons @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
+    await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
+    // Espais de Qui som: a dalt, el mateix buit que la primera secció de les altres pàgines (.cap-pagina + section.s);
+    // entre el text (o la foto) i «Per què ens hi oposem», un buit entre el de dalt i el de baix i més gran que el del títol.
+    const e = await pg.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect(), sec = r('#qui-som'), cols = r('#qui-som .cols'),
+      foto = r('#qui-som .foto'), txt = r('#qui-som [data-text="qui-som"]'), sub = r('#qui-som .subtitol'), imp = r('#qui-som .impactes');
+      return { dalt: Math.round(cols.top - sec.top), baix: Math.round(sec.bottom - imp.bottom), mig: Math.round(sub.top - Math.max(txt.bottom, foto.bottom + 8)), titol: Math.round(imp.top - sub.bottom) }; });
+    comprova(`Qui som @${vp.width}px: espais equilibrats (dalt ≤ text → «Per què ens hi oposem» ≤ baix, i més que el del títol)`,
+      e.dalt === (vp === MOBIL ? 36 : 64) && e.mig >= e.dalt && e.mig <= e.baix && e.mig > e.titol * 2, JSON.stringify(e));
+    comprova(`Qui som @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
     if (CAPTURES) {
       await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
       await pg.screenshot({ path: `${CAPTURES}/qui-som-${vp.width}.png`, fullPage: true });

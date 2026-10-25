@@ -86,10 +86,6 @@ h2 span{color:var(--color-defensem-vermell)}
 .foto{margin:0 8px 8px 0;border:3px solid var(--color-defensem-vermell);background:var(--color-fons);padding:6px;box-shadow:8px 8px 0 var(--color-defensem-verd)}
 .foto img{display:block;width:100%;height:auto;aspect-ratio:1600/1065;object-fit:cover}
 @media(min-width:821px){.foto{align-self:center}}
-.valors{list-style:none;margin:36px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px}
-.valors li{border-top:5px solid var(--color-defensem-verd);padding-top:12px}
-.valors h3{font-size:1.2rem;margin-bottom:6px}
-.valors p{margin:0;color:var(--color-text-suau);font-size:1rem}
 #noticies{background:var(--color-fons-fosc);border-block:2px solid var(--color-text)}
 .news{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:24px;margin-top:32px}
 .card{background:var(--color-fons);border:2px solid var(--color-text);display:flex;flex-direction:column;min-width:0}
@@ -164,7 +160,6 @@ body:not(.privat) .hero h1,body:not(.privat) .doc h1{font-family:var(--font-titu
 body:not(.privat) .hero h1 small{font-family:var(--font-titular-verd);font-weight:800;text-transform:uppercase;letter-spacing:0;font-size:max(1.5rem,.42em);line-height:1.1;color:var(--color-defensem-verd)}
 body:not(.privat) h2{font-family:var(--font-titular-verd);font-weight:800;color:var(--color-defensem-verd)}
 body:not(.privat) h2 span{color:var(--color-defensem-vermell)}
-body:not(.privat) .valors h3{color:var(--color-defensem-verd)}
 body:not(.privat) .kicker{font:400 1.6rem/1.1 var(--font-accent);letter-spacing:.01em;text-transform:none;color:var(--color-defensem-verd);margin-bottom:6px}
 /* Punt volat de la ela geminada (l·l) als titulars: en Open Sans 800 queda enganxat i sembla una «H». */
 .punt-volat{margin:0 .07em}
