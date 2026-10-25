@@ -352,7 +352,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       && p.clau === clau && p.actual === (actual || ''), JSON.stringify({ menu: p.menu, actual: p.actual, clau: p.clau }));
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
-    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=6)`, /\/css\/site\.css\?v=6,\/css\/afegits\.css\?v=6,\/css\/pagines\.css\?v=6/.test(p.css), p.css);
+    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=7)`, /\/css\/site\.css\?v=7,\/css\/afegits\.css\?v=7,\/css\/pagines\.css\?v=7/.test(p.css), p.css);
     comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
@@ -372,10 +372,10 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
   comprova('Qui som: text, foto i els 5 valors', /Som una iniciativa ciutadana/.test(await pg.textContent('main')) && (await pg.$$('.valors li')).length === 5 && !!(await pg.$('.foto img')));
   await pg.$eval('.foto img', (i) => i.scrollIntoView()); await pg.waitForTimeout(400);
   comprova('Qui som: la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
-  comprova('Qui som: sense barra de botons ni bloc «El projecte»; text, valors, El PLATER, «Per què ens hi oposem» i preguntes al final', !(await pg.$('.subnav, #el-projecte, .projecte, [data-text="el-projecte"]'))
+  comprova('Qui som: sense barra de botons ni bloc «El projecte»; text, valors, «Per què ens hi oposem» i preguntes al final (sense el bloc El PLATER)', !(await pg.$('.subnav, #el-projecte, .projecte, [data-text="el-projecte"], .plater, .fonts'))
     && (await pg.$$eval('main > section.s', (l) => l.map((x) => x.id).join())) === 'qui-som,preguntes'
-    && (await textos(pg, '#qui-som .subtitol')).join() === 'El PLATER,Per què ens hi oposem' && (await pg.$$('#qui-som .impactes li')).length === 6
-    && /segon període d’informació pública/.test(await pg.textContent('#qui-som .plater')) && (await textos(pg, '#qui-som .plater .fonts a')).join() === '3Cat,Nació Digital'
+    && (await textos(pg, '#qui-som .subtitol')).join() === 'Per què ens hi oposem' && (await pg.$$('#qui-som .impactes li')).length === 6
+    && !/segon període d’informació pública/.test(await pg.textContent('#qui-som')) && !(await pg.$('#qui-som a[href*="3cat.cat"], #qui-som a[href*="naciodigital.cat"]'))
     && (await pg.$$('#preguntes details')).length === 6 && !(await pg.$('#joc, [data-fora-molins]')) && !(await pg.$('link[href*="joc.css"], script[src*="joc.js"]')));
   comprova('Qui som: «Què puc fer jo?» porta a l’agenda i al contacte del peu; «On anirien els molins?», a les dues pàgines de projecte', !!(await pg.$('#preguntes a[href="/actualitat.html#agenda"]')) && !!(await pg.$('#preguntes a[href="#contacte"]'))
     && !!(await pg.$('footer #contacte')) && !(await pg.$('a[href="#actua"]')) && !!(await pg.$('#preguntes a[href="/projecte-la-tallada.html"]')) && !!(await pg.$('#preguntes a[href="/projecte-albons.html"]')));

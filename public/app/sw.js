@@ -3,7 +3,7 @@
    MAI no desa dades: les peticions a Supabase (notícies, usuaris, sessió…) i a /api/ van sempre a la xarxa,
    i les respostes de fora d'aquest origen no es toquen. Estratègia: primer la xarxa i, si no n'hi ha, la còpia.
    Puja VERSIO quan canviïn aquests fitxers perquè es buidi la memòria cau antiga. */
-var VERSIO = 'defensem-app-v7';
+var VERSIO = 'defensem-app-v8';
 var ARMADURA = ['/app/', '/app/app.css', '/app/app.js', '/app/manifest.webmanifest', '/css/site.css', '/js/config.js', '/js/segur.js',
   '/js/vendor-supabase.js', '/fonts/open-sans-latin-wght-normal.woff2', '/img/logo-defensem.webp', '/app/icones/icona-192.png'];
 
