@@ -79,18 +79,8 @@ body:not(.privat) .cap-pagina h1{font-family:var(--font-titular);font-weight:400
 .cap-pagina + #el-projecte{background:transparent;border-top:0}
 
 /* ---------- Portada ---------- */
-/* QR petit de la petició sota el logo, només en escriptori (en mòbil ja hi ha el botó a tocar). El logo s'hi redueix
-   perquè la columna no passi de l'alçada del text i els molins es continuïn veient sencers. */
-.hero-lat{display:contents}
-.qr-peticio{display:none}
-@media(min-width:821px){
-  .hero-lat{display:flex;flex-direction:column;align-items:center;gap:12px;flex:none;width:clamp(260px,27vw,300px)}
-  .hero-lat .hero-logo{width:196px}
-  .qr-peticio{order:2;display:flex;align-items:center;gap:12px;align-self:stretch;padding:8px 12px 8px 8px;border:2px solid var(--color-defensem-verd);background:#fff}
-  .qr-peticio img{flex:none;display:block;width:96px;height:96px}
-  .qr-peticio p{margin:0;font-size:.85rem;line-height:1.4;color:var(--color-text-suau)}
-  .qr-peticio .qr-t{margin-bottom:4px;font:800 .9rem/1.2 var(--font-titular-verd);letter-spacing:.03em;text-transform:uppercase;color:var(--color-verd-text)}
-}
+/* En escriptori, el logo queda a la dreta centrat verticalment amb el bloc del titular. */
+@media(min-width:821px){.hero-tit{align-items:center}}
 section.resum{padding:clamp(40px,7vw,72px) 0}
 .resum-alt{background:var(--color-fons-fosc);border-block:2px solid var(--color-text)}
 .resum-cap{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
@@ -146,16 +136,13 @@ section#entitats .ent-filtres{margin-top:24px}
 /* Agenda llegida de Supabase: un acte sense cartell ocupa tota l'amplada */
 .acte.sense-cartell{grid-template-columns:1fr}
 
-/* ---------- Peu: lema, «Què hi pots fer», correu i Instagram ---------- */
-footer>.w.peu-graella{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2fr) minmax(0,.9fr);gap:32px clamp(24px,4vw,48px);padding-bottom:28px}
-@media(max-width:900px){footer>.w.peu-graella{grid-template-columns:1fr}}
+/* ---------- Peu: lema a l'esquerra, correu i Instagram a la dreta ---------- */
+footer>.w.peu-graella{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:28px clamp(32px,6vw,96px);padding-bottom:28px}
+.peu-marca{flex:1 1 320px;max-width:46ch}
+.peu-marca p{margin-bottom:0}
+.peu-contacte{flex:0 1 auto;min-width:0}
 footer h2.cond{color:var(--color-fons);font-size:1.1rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px}
-.peu-accions{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:18px 24px}
-.peu-accions li{display:flex;flex-direction:column;gap:6px;border-top:3px solid var(--color-fons);padding-top:10px}
-.peu-accions h3{font-size:1.05rem}
-.peu-accions p{margin:0;font-size:.95rem;line-height:1.5;flex:1}
-.btn-peu{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:2px solid var(--color-fons);color:var(--color-fons);font:700 .82rem/1.2 var(--font-defensem);letter-spacing:.05em;text-transform:uppercase;text-decoration:none!important}
-.btn-peu:hover,.btn-peu:focus-visible{background:var(--color-fons);color:var(--color-defensem-vermell)}
+footer .contacte a{overflow-wrap:anywhere}
 footer>.w :focus-visible{outline-color:var(--color-fons)}
 footer .contacte{margin:0;gap:14px}
 footer .contacte .cond{color:var(--color-fons);font-size:.8rem;opacity:.9}

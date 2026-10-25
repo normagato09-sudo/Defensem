@@ -2,7 +2,7 @@
    (Les pàgines antigues /noticies.html, /recursos.html, /contacte.html… les redirigeix el servidor: vegeu vercel.json.
    El navegador conserva l'àncora en una redirecció: /recursos.html#eines arriba aquí com a /entitats.html#eines.)
    L'àncora (#…) no arriba mai al servidor, per això es fa aquí, abans de pintar res.
-   #actua i #contacte no es redirigeixen: «Què hi pots fer», el correu i Instagram són al peu de totes les pàgines.
+   #contacte no es redirigeix: el correu i Instagram són al peu de totes les pàgines.
    El minijoc és una app a part, a /joc. */
 (function () {
   var NOU = {

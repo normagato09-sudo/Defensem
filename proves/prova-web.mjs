@@ -320,8 +320,10 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
   const h = await pg.$eval('.hero .cta a.btn:not(.o)', (a) => ({ href: a.getAttribute('href'), target: a.target, rel: a.rel, text: a.textContent, label: a.getAttribute('aria-label') }));
   comprova('portada: «Signa la petició» porta al formulari de Google en una pestanya nova', h.href === FORM && h.text === 'Signa la petició' && h.target === '_blank'
     && h.rel === 'noopener noreferrer' && h.label === 'Signa la petició (s’obre en una pestanya nova, formulari de Google)', JSON.stringify(h));
-  const qr = await pg.$eval('.qr-peticio', (q) => ({ vis: !!q.offsetParent, src: q.querySelector('img').getAttribute('src'), alt: q.querySelector('img').alt, w: q.querySelector('img').getBoundingClientRect().width }));
-  comprova('portada: QR petit de la petició (local, amb text alternatiu) en escriptori', qr.vis && qr.src === '/img/qr-peticio.svg' && /QR/.test(qr.alt) && qr.w <= 100, JSON.stringify(qr));
+  comprova('portada: sense el recuadre del QR', !(await pg.$('.qr-peticio, img[src*="qr"]')));
+  const lg = await pg.evaluate(() => { const t = document.querySelector('.hero-text').getBoundingClientRect(), l = document.querySelector('.hero-logo').getBoundingClientRect();
+    return { dt: Math.abs((t.top + t.bottom) / 2 - (l.top + l.bottom) / 2), dreta: l.left > t.right }; });
+  comprova('portada: logo a la dreta, centrat verticalment amb el titular', lg.dreta && lg.dt <= 2, JSON.stringify(lg));
   comprova('el segon botó del hero porta a «El projecte» de Qui som', (await pg.$eval('.hero .cta a.btn.o', (a) => [a.getAttribute('href'), a.textContent].join())) === '/qui-som.html#el-projecte,El projecte');
   comprova('el formulari de Google no està incrustat', !(await pg.$('iframe[src*="docs.google.com"]')));
   comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&
@@ -345,12 +347,12 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       esquema: document.querySelector('meta[name="color-scheme"]')?.content }));
     comprova(`${ruta}: una sola capçalera i un sol peu, posats per /js/marc.js`, p.caps === 1 && p.peus === 1 && !(await (await fetch(ORIGEN + ruta)).text()).includes('<footer'));
     comprova(`${ruta}: peu amb els enllaços legals i el text petit`, !p.privada && p.legal.join() === 'Avís legal,Política de privacitat,Política de cookies,Preferències de cookies'
-      && p.petit === 'Web de l’Associació Defensem l’Empordanet · defensemlempordanet@gmail.com · Instagram', JSON.stringify(p.legal));
+      && p.petit === 'Web de la iniciativa ciutadana Defensem l’Empordanet · defensemlempordanet@gmail.com · Instagram', JSON.stringify([p.legal, p.petit]));
     comprova(`${ruta}: menú de pàgines amb l’actual marcada`, p.menu === MENU_HREFS
       && p.clau === clau && p.actual === (actual || ''), JSON.stringify({ menu: p.menu, actual: p.actual, clau: p.clau }));
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
-    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=4)`, /\/css\/site\.css\?v=4,\/css\/afegits\.css\?v=4,\/css\/pagines\.css\?v=4/.test(p.css), p.css);
+    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=5)`, /\/css\/site\.css\?v=5,\/css\/afegits\.css\?v=5,\/css\/pagines\.css\?v=5/.test(p.css), p.css);
     comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
@@ -374,7 +376,8 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
     && !!(await pg.$('section#qui-som')) && (await pg.textContent('#el-projecte h2')) === 'El projecte');
   comprova('El projecte: 3 projectes, «Per què ens hi oposem» i 6 preguntes (el minijoc ja no hi és: és a la portada)', (await pg.$$('.projecte')).length === 3 && (await pg.$$('.impactes li')).length === 6
     && (await pg.$$('#preguntes details')).length === 6 && !(await pg.$('#joc, [data-fora-molins]')) && !(await pg.$('link[href*="joc.css"], script[src*="joc.js"]')));
-  comprova('El projecte: «Què hi pots fer» de les preguntes porta al peu', !!(await pg.$('#preguntes a[href="#actua"]')) && !!(await pg.$('footer #actua')) && !!(await pg.$('#preguntes a[href="#el-projecte"]')));
+  comprova('El projecte: «Què puc fer jo?» porta a l’agenda i al contacte del peu', !!(await pg.$('#preguntes a[href="/actualitat.html#agenda"]')) && !!(await pg.$('#preguntes a[href="#contacte"]'))
+    && !!(await pg.$('footer #contacte')) && !(await pg.$('a[href="#actua"]')) && !!(await pg.$('#preguntes a[href="#el-projecte"]')));
   await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
   comprova('Actualitat: blocs Notícies de Defensem, Notícies d’energies renovables i Agenda, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#noticies,#renovables,#agenda'
     && (await pg.textContent('#noticies h2')) === 'Notícies de Defensem' && (await pg.textContent('#renovables h2')) === 'Notícies d’energies renovables' && (await pg.textContent('#agenda h2')) === 'Agenda d’actes');
@@ -395,18 +398,18 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
   comprova('projecte: mateixa plantilla amb Documents i Notícies relacionades («Pròximament» si no n’hi ha)', (await textos(pg, '.projecte-cos h2')).join() === 'Documents,Notícies relacionades'
     && (await pg.$$('.projecte-cos .proximament')).length === 3);
   comprova('Entitats i Eines: sense cercador ni filtres ni formulari d’adhesió', !(await pg.$('#ent-filtres, #ent-cerca, #eines-filtre, .filtre-btn, input[type=search], #adhesio, main form')));
-  comprova('peu: «Què hi pots fer» (4 accions), correu i Instagram a totes les pàgines', (await pg.$$('footer #actua .peu-accions li')).length === 4
-    && (await pg.textContent('footer #actua h2')) === 'Què hi pots fer' && !!(await pg.$('footer #contacte a[href="mailto:defensemlempordanet@gmail.com"]'))
-    && !!(await pg.$('footer #contacte a[href="https://www.instagram.com/defensemlempordanet/"]')));
-  const forms = await pg.$$eval('footer a[href*="docs.google.com/forms"]', (l) => l.map((a) => ({ href: a.href, target: a.target, rel: a.rel })));
-  comprova('peu: l’enllaç al formulari de Google és el de sempre i s’obre a part', forms.length === 1 && forms.every((f) => f.href === FORM && f.target === '_blank' && /noopener/.test(f.rel)), JSON.stringify(forms));
-  comprova('peu: «Veure l’agenda» porta a l’agenda d’Actualitat', !!(await pg.$('footer #actua a[href="/actualitat.html#agenda"]')));
+  comprova('peu: sense «Què hi pots fer»; lema a l’esquerra i Contacte (correu i Instagram) a la dreta', !(await pg.$('footer #actua, footer .peu-accions, footer .btn-peu'))
+    && !/Què hi pots fer/.test(await pg.textContent('footer')) && (await pg.textContent('footer #contacte h2')) === 'Contacte'
+    && !!(await pg.$('footer #contacte a[href="mailto:defensemlempordanet@gmail.com"]')) && !!(await pg.$('footer #contacte a[href="https://www.instagram.com/defensemlempordanet/"]'))
+    && await pg.evaluate(() => { const m = document.querySelector('.peu-marca').getBoundingClientRect(), c = document.querySelector('.peu-contacte').getBoundingClientRect(),
+      w = document.querySelector('footer .peu-graella').getBoundingClientRect(), pad = parseFloat(getComputedStyle(document.querySelector('footer .peu-graella')).paddingRight);
+      return m.left < c.left && Math.abs(c.right - (w.right - pad)) <= 2 && Math.abs(m.top - c.top) <= 2; }));
 
   console.log('\n3e. Enllaços antics (pàgines i àncores) → pàgina nova');
   for (const [antic, nou] of [['/#noticies', '/noticies-defensem.html'], ['/#agenda', '/actualitat.html#agenda'], ['/#qui-som', '/qui-som.html'],
     ['/#el-projecte', '/qui-som.html#el-projecte'], ['/#preguntes', '/qui-som.html#preguntes'], ['/#entitats', '/entitats.html'], ['/#eines', '/eines.html'],
     ['/projecte.html', '/qui-som.html#el-projecte'], ['/agenda.html', '/actualitat.html#agenda'], ['/noticies.html', '/noticies-defensem.html'],
-    ['/recursos.html', '/entitats.html'], ['/recursos.html#entitats', '/entitats.html#entitats'], ['/recursos.html#eines', '/eines.html'], ['/contacte.html', '/#actua']]) {
+    ['/recursos.html', '/entitats.html'], ['/recursos.html#entitats', '/entitats.html#entitats'], ['/recursos.html#eines', '/eines.html'], ['/contacte.html', '/#contacte']]) {
     await pg.goto(ORIGEN + antic); await pg.waitForURL((u) => (u.pathname !== '/' || nou.startsWith('/#')) && u.pathname + u.hash !== antic && !/recursos/.test(u.pathname) && !(antic === '/recursos.html#eines' && u.pathname === '/entitats.html'), { timeout: 5000 }).catch(() => {});
     const u = new URL(pg.url());
     comprova(`${antic} → ${nou}`, u.pathname + u.hash === nou, u.pathname + u.hash);
@@ -421,7 +424,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
     const menu = await readFile(join(ARREL, 'js/marc.js'), 'utf8'), mapa = await readFile(join(ARREL, 'sitemap.xml'), 'utf8');
     comprova('/joc no surt al menú ni al sitemap.xml', !/\/joc/.test(menu) && !/\/joc/.test(mapa));
   }
-  for (const h of ['#actua', '#contacte']) {
+  for (const h of ['#contacte']) {
     await pg.goto(ORIGEN + '/' + h, { waitUntil: 'networkidle' });
     comprova(`/${h} no redirigeix: és al peu de la mateixa pàgina`, new URL(pg.url()).pathname === '/' && !!(await pg.$('footer ' + h)));
   }
@@ -514,14 +517,14 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   comprova(`tipografia ${nom}: text corrent en Open Sans`, f.cos.font === 'Open Sans', JSON.stringify(f.cos));
   const e = await pg.evaluate(() => {
     const r = (s) => document.querySelector(s).getBoundingClientRect();
-    const sub = r('.hero h1 small'), h1 = r('.hero h1'), lead = r('.hero .lead'), cta = r('.hero .cta'), logo = r('.hero-logo'), mol = r('.molins'), lat = r('.hero-lat');
+    const sub = r('.hero h1 small'), h1 = r('.hero h1'), lead = r('.hero .lead'), cta = r('.hero .cta'), logo = r('.hero-logo'), mol = r('.molins'), txt = r('.hero-text');
     return { subParagraf: lead.top - sub.bottom, paragrafBotons: cta.top - lead.bottom, botonsMolins: mol.top - cta.bottom, logoParagraf: lead.top - logo.bottom,
-      h1Alt: h1.height, logoAlt: logo.height, h1Top: h1.top, logoTop: logo.top, latTop: lat.top, latBaix: lat.bottom, ctaBaix: cta.bottom, ordreMobil: h1.bottom <= logo.top && logo.bottom <= lead.top && lead.bottom <= cta.top,
+      h1Alt: h1.height, logoAlt: logo.height, h1Top: h1.top, logoTop: logo.top, centreText: (txt.top + txt.bottom) / 2, centreLogo: (logo.top + logo.bottom) / 2, logoAmple: logo.width, ordreMobil: h1.bottom <= logo.top && logo.bottom <= lead.top && lead.bottom <= cta.top,
       molinsSencers: mol.bottom <= innerHeight };
   });
   if (vp === ESCRIPTORI) {
     comprova(`hero ${nom}: el paràgraf va just sota el subtítol (${e.subParagraf.toFixed(0)} px ≤ 24)`, e.subParagraf >= 8 && e.subParagraf <= 24, JSON.stringify(e));
-    comprova(`hero ${nom}: el títol i la columna del logo i el QR comencen a dalt, i la columna no passa dels botons`, Math.abs(e.h1Top - e.latTop) <= 2 && e.latBaix <= e.ctaBaix + 2, JSON.stringify(e));
+    comprova(`hero ${nom}: el logo (300 px) va a la dreta, centrat verticalment amb el bloc del titular`, Math.abs(e.centreText - e.centreLogo) <= 2 && e.logoAmple >= 260 && e.logoAmple <= 300, JSON.stringify(e));
     comprova(`hero ${nom}: els molins es veuen sencers sense desplaçar`, e.molinsSencers, JSON.stringify(e));
   } else {
     comprova(`hero ${nom}: ordre títol → logo → paràgraf → botons, amb 16-24 px del logo al paràgraf`, e.ordreMobil && e.logoParagraf >= 16 && e.logoParagraf <= 24, JSON.stringify(e));
@@ -1253,7 +1256,7 @@ for (const ruta of ['/', '/noticia.html?id=no-valid', '/avis-legal.html', '/no-e
 
 console.log('\n12. Fitxers nous, icones i capçaleres de seguretat');
 {
-  for (const [ruta, tipus] of [['/css/afegits.css', 'text/css'], ['/css/pagines.css', 'text/css'], ['/js/marc.js', 'text/javascript'], ['/img/qr-peticio.svg', 'image/svg+xml'], ['/js/agenda.js', 'text/javascript'], ['/img/og-defensem.jpg', 'image/jpeg'],
+  for (const [ruta, tipus] of [['/css/afegits.css', 'text/css'], ['/css/pagines.css', 'text/css'], ['/js/marc.js', 'text/javascript'], ['/js/agenda.js', 'text/javascript'], ['/img/og-defensem.jpg', 'image/jpeg'],
     ['/img/logo-defensem-2x.webp', 'image/webp'], ['/img/logo-defensem-2x.png', 'image/png'], ['/favicon.ico', 'image/x-icon'], ['/img/icona-32.png', 'image/png'],
     ['/img/apple-touch-icon.png', 'image/png'], ['/img/icona-192.png', 'image/png'], ['/img/icona-512.png', 'image/png'], ['/site.webmanifest', 'application/manifest+json'],
     ['/docs/fulleto-moli-salancs-albons.pdf', 'application/pdf'], ['/fora-molins/assets/manifest.json', 'application/json'], ['/fora-molins/joc.js', 'text/javascript'],

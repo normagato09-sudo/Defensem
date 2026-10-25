@@ -81,7 +81,7 @@
     },
     {
       "source": "/contacte.html",
-      "destination": "/#actua",
+      "destination": "/#contacte",
       "statusCode": 301
     },
     {
