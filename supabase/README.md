@@ -71,6 +71,10 @@ Mientras no hagas estos pasos, la web pública funciona igual que antes (las not
 
 Mientras no ejecutes el esquema nuevo, `/recursos.html#entitats` muestra «Aviat hi trobareu les entitats adherides».
 
+## Todo lo pendiente en un solo SQL (octubre 2026)
+
+Si tu base de datos tiene `schema.sql` y `entitats-i-eines.sql` pero **ninguno de los SQL posteriores**, ejecuta solo **`supabase/pendent-complet.sql`**. Contiene, en orden, `sollicituds-tancades.sql`, `app.sql` (tabla `actes`) y `web-i-app.sql`. Se puede ejecutar varias veces, no borra datos y no sobrescribe lo editado. Si ejecutas `web-i-app.sql` sin `app.sql` antes, da `ERROR 42P01: relation "public.actes" does not exist`.
+
 ## Web por secciones (octubre 2026)
 
 Ejecuta **`supabase/web-i-app.sql`** en *SQL Editor* (después de los demás SQL: también fija los permisos de la app por rol) (se puede ejecutar varias veces; no borra nada ni sobrescribe lo que se haya editado). Añade:
