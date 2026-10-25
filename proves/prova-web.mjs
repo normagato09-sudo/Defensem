@@ -324,7 +324,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
   const lg = await pg.evaluate(() => { const t = document.querySelector('.hero-text').getBoundingClientRect(), l = document.querySelector('.hero-logo').getBoundingClientRect();
     return { dt: Math.abs((t.top + t.bottom) / 2 - (l.top + l.bottom) / 2), dreta: l.left > t.right }; });
   comprova('portada: logo a la dreta, centrat verticalment amb el titular', lg.dreta && lg.dt <= 2, JSON.stringify(lg));
-  comprova('el segon botó del hero porta a «El projecte» de Qui som', (await pg.$eval('.hero .cta a.btn.o', (a) => [a.getAttribute('href'), a.textContent].join())) === '/qui-som.html#el-projecte,El projecte');
+  comprova('el segon botó del hero, «Els projectes», porta a la pàgina de La Tallada', (await pg.$eval('.hero .cta a.btn.o', (a) => [a.getAttribute('href'), a.textContent].join())) === '/projecte-la-tallada.html,Els projectes');
   comprova('el formulari de Google no està incrustat', !(await pg.$('iframe[src*="docs.google.com"]')));
   comprova('cap cookie i al localStorage només la clau de consentiment', (await pg.context().cookies()).length === 0 &&
     (await pg.evaluate(() => Object.keys(localStorage).join())) === CC_CLAU);
@@ -352,7 +352,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       && p.clau === clau && p.actual === (actual || ''), JSON.stringify({ menu: p.menu, actual: p.actual, clau: p.clau }));
     comprova(`${ruta}: botó «Signa la petició» a la capçalera`, p.peticio === `Signa la petició|${FORM}|_blank|noopener noreferrer`, p.peticio);
     comprova(`${ruta}: «Salta al contingut» és el primer element i porta al <main id="inici">`, p.salta);
-    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=5)`, /\/css\/site\.css\?v=5,\/css\/afegits\.css\?v=5,\/css\/pagines\.css\?v=5/.test(p.css), p.css);
+    comprova(`${ruta}: estils site.css → afegits.css → pagines.css (amb la versió de memòria cau ?v=6)`, /\/css\/site\.css\?v=6,\/css\/afegits\.css\?v=6,\/css\/pagines\.css\?v=6/.test(p.css), p.css);
     comprova(`${ruta}: mode clar forçat (color-scheme light)`, p.esquema === 'light', p.esquema);
     if (titol) comprova(`${ruta}: <title>, description i Open Graph propis`, p.titol === titol && !!p.desc && p.og, JSON.stringify({ t: p.titol, d: p.desc }));
     if (ruta !== '/') {
@@ -372,12 +372,13 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
   comprova('Qui som: text, foto i els 5 valors', /Som una iniciativa ciutadana/.test(await pg.textContent('main')) && (await pg.$$('.valors li')).length === 5 && !!(await pg.$('.foto img')));
   await pg.$eval('.foto img', (i) => i.scrollIntoView()); await pg.waitForTimeout(400);
   comprova('Qui som: la foto carrega', await pg.$eval('.foto img', (i) => i.complete && i.naturalWidth > 0));
-  comprova('Qui som: els blocs Qui som i El projecte, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#qui-som,#el-projecte,#preguntes'
-    && !!(await pg.$('section#qui-som')) && (await pg.textContent('#el-projecte h2')) === 'El projecte');
-  comprova('El projecte: 3 projectes, «Per què ens hi oposem» i 6 preguntes (el minijoc ja no hi és: és a la portada)', (await pg.$$('.projecte')).length === 3 && (await pg.$$('.impactes li')).length === 6
+  comprova('Qui som: sense barra de botons ni bloc «El projecte»; text, valors, El PLATER, «Per què ens hi oposem» i preguntes al final', !(await pg.$('.subnav, #el-projecte, .projecte, [data-text="el-projecte"]'))
+    && (await pg.$$eval('main > section.s', (l) => l.map((x) => x.id).join())) === 'qui-som,preguntes'
+    && (await textos(pg, '#qui-som .subtitol')).join() === 'El PLATER,Per què ens hi oposem' && (await pg.$$('#qui-som .impactes li')).length === 6
+    && /segon període d’informació pública/.test(await pg.textContent('#qui-som .plater')) && (await textos(pg, '#qui-som .plater .fonts a')).join() === '3Cat,Nació Digital'
     && (await pg.$$('#preguntes details')).length === 6 && !(await pg.$('#joc, [data-fora-molins]')) && !(await pg.$('link[href*="joc.css"], script[src*="joc.js"]')));
-  comprova('El projecte: «Què puc fer jo?» porta a l’agenda i al contacte del peu', !!(await pg.$('#preguntes a[href="/actualitat.html#agenda"]')) && !!(await pg.$('#preguntes a[href="#contacte"]'))
-    && !!(await pg.$('footer #contacte')) && !(await pg.$('a[href="#actua"]')) && !!(await pg.$('#preguntes a[href="#el-projecte"]')));
+  comprova('Qui som: «Què puc fer jo?» porta a l’agenda i al contacte del peu; «On anirien els molins?», a les dues pàgines de projecte', !!(await pg.$('#preguntes a[href="/actualitat.html#agenda"]')) && !!(await pg.$('#preguntes a[href="#contacte"]'))
+    && !!(await pg.$('footer #contacte')) && !(await pg.$('a[href="#actua"]')) && !!(await pg.$('#preguntes a[href="/projecte-la-tallada.html"]')) && !!(await pg.$('#preguntes a[href="/projecte-albons.html"]')));
   await pg.goto(ORIGEN + '/actualitat.html', { waitUntil: 'networkidle' });
   comprova('Actualitat: blocs Notícies de Defensem, Notícies d’energies renovables i Agenda, amb navegació interna', (await pg.$$eval('.subnav a', (l) => l.map((a) => a.getAttribute('href')))).join() === '#noticies,#renovables,#agenda'
     && (await pg.textContent('#noticies h2')) === 'Notícies de Defensem' && (await pg.textContent('#renovables h2')) === 'Notícies d’energies renovables' && (await pg.textContent('#agenda h2')) === 'Agenda d’actes');
@@ -407,8 +408,8 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
 
   console.log('\n3e. Enllaços antics (pàgines i àncores) → pàgina nova');
   for (const [antic, nou] of [['/#noticies', '/noticies-defensem.html'], ['/#agenda', '/actualitat.html#agenda'], ['/#qui-som', '/qui-som.html'],
-    ['/#el-projecte', '/qui-som.html#el-projecte'], ['/#preguntes', '/qui-som.html#preguntes'], ['/#entitats', '/entitats.html'], ['/#eines', '/eines.html'],
-    ['/projecte.html', '/qui-som.html#el-projecte'], ['/agenda.html', '/actualitat.html#agenda'], ['/noticies.html', '/noticies-defensem.html'],
+    ['/#el-projecte', '/projecte-la-tallada.html'], ['/qui-som.html#el-projecte', '/projecte-la-tallada.html'], ['/#preguntes', '/qui-som.html#preguntes'], ['/#entitats', '/entitats.html'], ['/#eines', '/eines.html'],
+    ['/projecte.html', '/projecte-la-tallada.html'], ['/agenda.html', '/actualitat.html#agenda'], ['/noticies.html', '/noticies-defensem.html'],
     ['/recursos.html', '/entitats.html'], ['/recursos.html#entitats', '/entitats.html#entitats'], ['/recursos.html#eines', '/eines.html'], ['/contacte.html', '/#contacte']]) {
     await pg.goto(ORIGEN + antic); await pg.waitForURL((u) => (u.pathname !== '/' || nou.startsWith('/#')) && u.pathname + u.hash !== antic && !/recursos/.test(u.pathname) && !(antic === '/recursos.html#eines' && u.pathname === '/entitats.html'), { timeout: 5000 }).catch(() => {});
     const u = new URL(pg.url());
@@ -443,7 +444,7 @@ const MENU_HREFS = '/qui-som.html,/actualitat.html,/noticies-defensem.html,/noti
       return { fixa: getComputedStyle(c).position, baixCap: c.getBoundingClientRect().bottom, dalt: Math.min(t.getBoundingClientRect().top, k.getBoundingClientRect().top),
         var: getComputedStyle(document.documentElement).getPropertyValue('--alt-cap'), alt: c.offsetHeight }; });
     comprova(`/ @${vp.width}px: el titular «No al parc eòlic!» es veu sencer sota la capçalera fixa`, h.fixa === 'fixed' && h.dalt >= h.baixCap && h.var.trim() === h.alt + 'px', JSON.stringify(h));
-    for (const [ruta, sel] of [['/qui-som.html#el-projecte', '#el-projecte h2'], ['/actualitat.html#agenda', '#agenda h2'], ['/actualitat.html#renovables', '#renovables h2']]) {
+    for (const [ruta, sel] of [['/qui-som.html#preguntes', '#preguntes h2'], ['/actualitat.html#agenda', '#agenda h2'], ['/actualitat.html#renovables', '#renovables h2']]) {
       await pt.goto(ORIGEN + ruta, { waitUntil: 'networkidle' }); await pt.waitForTimeout(700);
       const t = await pt.evaluate((s) => ({ titol: document.querySelector(s).getBoundingClientRect().top, cap: document.querySelector('header.cap').getBoundingClientRect().bottom }), sel);
       comprova(`${ruta} @${vp.width}px: el bloc queda sota la capçalera`, t.titol >= t.cap, JSON.stringify(t));
@@ -565,95 +566,36 @@ for (const vp of [MOBIL, ESCRIPTORI]) {
   await pg.context().close();
 }
 
-console.log('\n3d. «El projecte» compacte: dades clau a la vista i la resta a «Més detalls»');
+console.log('\n3d. Il·lustracions de l’antic «El projecte» a les pàgines de projecte (també sense Supabase)');
 {
-  const ESC720 = { width: 1280, height: 720 };
-  const mesura = (pg) => pg.evaluate(() => {
-    const sec = document.getElementById('el-projecte'), cards = [...sec.querySelectorAll('.projecte')], r = (e) => e.getBoundingClientRect();
-    const visible = (e) => !!(e.offsetParent || e.getClientRects().length) && r(e).height > 0;
-    return {
-      seccio: Math.round(r(sec).height), finsTargetes: Math.round(r(sec.querySelector('.projectes')).bottom - r(sec).top),
-      cards: cards.map((c) => ({ h: Math.round(r(c).height), x: Math.round(r(c).left), top: Math.round(r(c).top), det: c.querySelectorAll(':scope > details.mes-detalls').length,
-        obert: c.querySelector('details').open, resum: c.querySelector('summary').textContent, titol: c.querySelector('h3').textContent,
-        // text a la vista: tot el que no és dins del <details>
-        vista: [...c.children].filter((e) => e.tagName !== 'DETAILS').map((e) => e.textContent).join(' ').replace(/\s+/g, ' ') })),
-      mides: [...sec.querySelectorAll('.projecte p:not(.fonts), .projecte dd, .projecte summary, .projecte h3')].filter(visible).map((e) => { const cs = getComputedStyle(e); return { fs: parseFloat(cs.fontSize), lh: parseFloat(cs.lineHeight) / parseFloat(cs.fontSize), t: e.tagName }; }),
-      // Les lletres petites que ja hi havia (etiquetes, fonts, peu del dibuix) es mantenen com eren: no s'ha reduït res.
-      petites: ['.projecte dt', '.projecte .fonts', '.alcada figcaption'].map((q) => parseFloat(getComputedStyle(sec.querySelector(q)).fontSize)).join(),
-      desb: document.documentElement.scrollWidth - document.documentElement.clientWidth };
-  });
-  {
-    const pg = await pagina(ESC720, false);
-    await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' }); await pg.evaluate(() => document.fonts.ready);
-    const m = await mesura(pg);
-    comprova('1280: tres targetes, cadascuna amb un sol «Més detalls», tots tancats', m.cards.length === 3 && m.cards.every((c) => c.det === 1 && !c.obert && c.resum === 'Més detalls'), JSON.stringify(m.cards.map((c) => [c.det, c.obert, c.resum])));
-    comprova('a la vista: títol i dades clau (4 molins de 200 m a la Tallada; 5 MW i 200 m a Albons; què és el PLATER)',
-      /Quatre aerogeneradors de 200 metres d’alçada al pla de la Tallada/.test(m.cards[0].vista) && /5 MW/.test(m.cards[1].vista) && /200 metres fins a la punta/.test(m.cards[1].vista)
-      && /Pla territorial sectorial/.test(m.cards[2].vista), JSON.stringify(m.cards.map((c) => c.vista)));
-    comprova('fora de la vista: distàncies, promotor, il·lustració, fulletó i fonts', !m.cards.some((c) => /Can Virosquet|Estabanell|Fonts:|Descarrega el fulletó|segon període/.test(c.vista)));
-    const alc = new Set(m.cards.map((c) => c.h));
-    comprova(`1280: tancades, les tres targetes fan la mateixa alçada (${[...alc].join(', ')} px)`, alc.size === 1, JSON.stringify(m.cards.map((c) => c.h)));
-    comprova(`1280×720: el títol de la secció i les targetes caben en una pantalla (${m.finsTargetes} px) i la secció sencera fa ${m.seccio} px (abans 2.399)`, m.finsTargetes <= 720 && m.seccio <= 1150, JSON.stringify(m));
-    comprova('les etiquetes, les fonts i el peu del dibuix mantenen la mida d’abans (no s’ha reduït cap lletra)', m.petites === '12.8,14.4,14.4', m.petites);
-    comprova('text de les targetes ≥ 16 px i interlineat ~1,5', m.mides.every((x) => x.fs >= 16) && m.mides.filter((x) => x.t !== 'H3' && x.t !== 'SUMMARY').every((x) => x.lh >= 1.45 && x.lh <= 1.55), JSON.stringify(m.mides));
-    // Teclat: el «Més detalls» es troba amb Tab, s'obre amb Intro i es tanca amb Espai.
-    await pg.focus('.projecte:nth-child(1) summary');
-    await pg.keyboard.press('Tab');
-    comprova('Tab salta el contingut tancat i va al «Més detalls» de la targeta següent', await pg.evaluate(() => document.activeElement === document.querySelector('.projecte:nth-child(2) summary')));
-    const focus = await pg.evaluate(() => { const cs = getComputedStyle(document.activeElement); return cs.outlineStyle + ' ' + cs.outlineWidth; });
-    comprova('el «Més detalls» enfocat té contorn visible', focus === 'solid 3px', focus);
-    await pg.keyboard.press('Enter');
-    const obert = await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(2) details'), im = d.querySelector('.il-lustracio img');
-      return { open: d.open, dist: d.querySelector('dl').offsetParent !== null && /Can Virosquet/.test(d.innerText), pdf: !!d.querySelector('a.doc-link').offsetParent, img: !!im.offsetParent };
-    });
-    comprova('Intro obre «Més detalls» i el contingut es veu (distàncies, il·lustració, fulletó)', obert.open && obert.dist && obert.pdf && obert.img, JSON.stringify(obert));
-    const m2 = await mesura(pg);
-    comprova('amb una oberta, les altres no s’estiren (cadascuna torna a la seva alçada)', m2.cards[1].h > m.cards[1].h && m2.cards[0].h <= m.cards[0].h && m2.cards[2].h < m.cards[2].h, JSON.stringify(m2.cards.map((c) => c.h)));
-    await pg.keyboard.press('Space');
-    comprova('Espai el torna a tancar i el focus es queda al «Més detalls»', await pg.evaluate(() => !document.querySelector('.projecte:nth-child(2) details').open
-      && document.activeElement === document.querySelector('.projecte:nth-child(2) summary')));
-    await pg.click('.projecte:nth-child(3) summary');
-    comprova('amb el ratolí també s’obre, i les fonts (3Cat · Nació Digital) són dins del desplegable', await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(3) details');
-      return d.open && [...d.querySelectorAll('.fonts a')].map((a) => a.textContent).join() === '3Cat,Nació Digital' && !!d.querySelector('.fonts').offsetParent; }));
-    await pg.click('.projecte:nth-child(1) summary');
-    const fig = await pg.evaluate(() => { const f = document.querySelector('.projecte:nth-child(1) details figure.alcada'), svg = f.querySelector('svg'), c = f.closest('.projecte'), cs = getComputedStyle(c);
-      const util = c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      return { prop: svg.getBoundingClientRect().width / util, rol: svg.getAttribute('role'), titol: document.getElementById(svg.getAttribute('aria-labelledby'))?.textContent,
-        peu: f.querySelector('figcaption').textContent, etiquetes: [...svg.querySelectorAll('text')].map((t) => { const b = t.getBBox(); return b.x >= 0 && b.x + b.width <= 330 && b.y >= 0; }) }; });
-    comprova(`el dibuix del molí fa ~60% de l’amplada d’abans (${(fig.prop * 100).toFixed(0)}%), amb text alternatiu i peu`, fig.prop > 0.55 && fig.prop < 0.65 && fig.rol === 'img'
-      && fig.titol === 'Un aerogenerador de 200 metres comparat amb el Puig Segalar, de 175 metres' && fig.peu === 'Un molí de 200 m és més alt que el Puig Segalar (175 m).', JSON.stringify(fig));
-    comprova('les etiquetes del dibuix hi caben senceres', fig.etiquetes.length === 2 && fig.etiquetes.every(Boolean), JSON.stringify(fig.etiquetes));
-    comprova('1280: sense errors', pg.errors.length === 0, JSON.stringify(pg.errors));
-    if (CAPTURES) await (await pg.$('#el-projecte .projectes')).screenshot({ path: `${CAPTURES}/projecte-obert-1280.png` });
+  for (const vp of [MOBIL, ESCRIPTORI]) {
+    const pg = await pagina(vp, false);
+    await pg.goto(ORIGEN + '/projecte-la-tallada.html', { waitUntil: 'networkidle' });
+    const t = await pg.evaluate(() => { const f = document.querySelector('.projecte-cos > figure.alcada'), r = f && f.querySelector('svg').getBoundingClientRect();
+      return f && { titol: f.querySelector('svg title').textContent, peu: f.querySelector('figcaption').textContent, w: Math.round(r.width) }; });
+    comprova(`La Tallada @${vp.width}px: comparació amb el Puig Segalar (dibuix de 200 m vs 175 m)`, !!t && /Puig Segalar/.test(t.titol) && t.peu === 'Un molí de 200 m és més alt que el Puig Segalar (175 m).'
+      && t.w > 200 && t.w <= 420, JSON.stringify(t));
+    comprova(`La Tallada @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
+    await pg.goto(ORIGEN + '/projecte-albons.html', { waitUntil: 'networkidle' });
+    const a = await pg.evaluate(async () => { const f = document.querySelector('.projecte-cos > figure.il-lustracio'), i = f && f.querySelector('img');
+      if (i) { i.loading = 'eager'; await i.decode().catch(() => {}); }
+      return f && { src: i.getAttribute('src'), alt: i.alt, ok: i.naturalWidth > 0, peu: f.querySelector('figcaption').textContent, w: Math.round(i.getBoundingClientRect().width) }; });
+    comprova(`Albons @${vp.width}px: els gegants d’Albons amb el peu de sempre`, !!a && a.src === '/img/projecte/gegants-albons.webp' && /gegants d’Albons/.test(a.alt) && a.ok
+      && a.peu === 'Els gegants d’Albons també hi diuen la seva.' && a.w <= 360, JSON.stringify(a));
+    comprova(`Albons @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
+    if (CAPTURES) {
+      await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
+      await pg.screenshot({ path: `${CAPTURES}/qui-som-${vp.width}.png`, fullPage: true });
+      await pg.goto(ORIGEN + '/projecte-la-tallada.html', { waitUntil: 'networkidle' });
+      await pg.screenshot({ path: `${CAPTURES}/la-tallada-${vp.width}.png`, fullPage: true });
+      await pg.goto(ORIGEN + '/projecte-albons.html', { waitUntil: 'networkidle' });
+      await pg.screenshot({ path: `${CAPTURES}/albons-${vp.width}.png`, fullPage: true });
+    }
     await pg.context().close();
   }
-  {
-    const pg = await pagina(MOBIL, false);
-    await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' }); await pg.evaluate(() => document.fonts.ready);
-    const m = await mesura(pg);
-    comprova('390: les targetes s’apilen, compactes (≤ 260 px tancades) i sense scroll horitzontal', new Set(m.cards.map((c) => c.x)).size === 1 && m.cards[0].top < m.cards[1].top && m.cards[1].top < m.cards[2].top
-      && m.cards.every((c) => c.h <= 260) && m.desb <= 0, JSON.stringify(m.cards.map((c) => [c.x, c.top, c.h])));
-    for (const n of [1, 2, 3]) await pg.click(`.projecte:nth-child(${n}) summary`);
-    comprova('390: amb tot obert continua sense scroll horitzontal', (await desbordament(pg)) <= 0);
-    if (CAPTURES) await (await pg.$('#el-projecte .projectes')).screenshot({ path: `${CAPTURES}/projecte-390.png` });
-    await pg.context().close();
-  }
-  {
-    // El contingut de «Més detalls» és a l'HTML (no el posa cap script) i, sense JavaScript, el desplegable funciona igual.
-    const html = await (await fetch(ORIGEN + '/qui-som.html')).text();
-    const det = await (async () => { const pg = await pagina(MOBIL, false); await pg.goto(ORIGEN + '/404.html');
-      const r = await pg.evaluate((h) => [...new DOMParser().parseFromString(h, 'text/html').querySelectorAll('#el-projecte .projecte > details.mes-detalls')].map((d) => d.textContent.replace(/\s+/g, ' ')), html);
-      await pg.context().close(); return r; })();
-    comprova('l’HTML porta dins de cada <details> el text amagat', det.length === 3 && /Puig Segalar/.test(det[0]) && /Can Virosquet a uns 510 m/.test(det[1]) && /Estabanell Generació/.test(det[1])
-      && /FUE-2025-04857993/.test(det[1]) && /Els gegants d’Albons també hi diuen la seva/.test(det[1]) && /fulletó del molí d’Albons/.test(det[1])
-      && /segon període d’informació pública/.test(det[2]) && /Fonts: 3Cat · Nació Digital/.test(det[2]), JSON.stringify(det.map((d) => d.slice(0, 60))));
-    const ctx = await nav.newContext({ viewport: MOBIL, javaScriptEnabled: false });
-    const pg = await ctx.newPage();
-    await pg.goto(ORIGEN + '/qui-som.html');
-    await pg.click('.projecte:nth-child(2) summary');
-    comprova('sense JavaScript, «Més detalls» s’obre i ensenya el contingut', await pg.evaluate(() => { const d = document.querySelector('.projecte:nth-child(2) details'); return d.open && !!d.querySelector('a.doc-link').offsetParent; }));
-    await ctx.close();
-  }
+  const html = (await Promise.all(['/qui-som.html', '/index.html', '/actualitat.html', '/projecte-la-tallada.html', '/projecte-albons.html', '/documents.html', '/entitats.html', '/eines.html',
+    '/noticies-defensem.html', '/noticies-renovables.html', '/404.html', '/js/marc.js'].map(async (r) => (await fetch(ORIGEN + r)).text()))).join('');
+  comprova('cap enllaç de la web apunta a #el-projecte', !/href="[^"]*#el-projecte"/.test(html));
 }
 
 console.log('\n3c. Enllaços legals discrets al final del peu (390 px i 1280 px)');
@@ -847,8 +789,8 @@ console.log('\n6d. Projectes, documents i textos des de Supabase');
       && doc.meta === 'PDF, 20 kB ; 25 de setembre del 2026 · PDF, 0,8 MB', JSON.stringify(doc));
     comprova(`documents @${vp.width}px: sense desbordament ni errors`, (await desbordament(pg)) <= 0 && pg.errors.length === 0, JSON.stringify(pg.errors));
     await pg.goto(ORIGEN + '/qui-som.html', { waitUntil: 'networkidle' });
-    comprova(`textos @${vp.width}px: els de l’app substitueixen Qui som i el lema del peu`, (await textos(pg, '#qui-som .txt p')).join('|') === 'Paràgraf u.|Paràgraf dos.'
-      && (await pg.textContent('footer .peu-marca p')) === 'Lema canviat des de l’app.' && /dos projectes eòlics/.test(await pg.textContent('#el-projecte .intro')));
+    comprova(`textos @${vp.width}px: els de l’app substitueixen Qui som i el lema del peu`, (await textos(pg, '#qui-som [data-text="qui-som"] p')).join('|') === 'Paràgraf u.|Paràgraf dos.'
+      && (await pg.textContent('footer .peu-marca p')) === 'Lema canviat des de l’app.' && !(await pg.$('[data-text="el-projecte"]')));
     await pg.context().close();
   }
   BD = dadesInicials();
@@ -1811,7 +1753,8 @@ console.log('\n17b. App: notícies per secció, projectes, informació (PDF), p�
     data: '2026-10-01', projecte: null, estat: 'publicat', nota_revisio: null, autor_id: U.E, created_at: '', updated_at: new Date().toISOString(), published_at: new Date().toISOString() });
   BD.projectes.push({ id: 'la-tallada', titol: 'Aerogeneradors de La Tallada', descripcio: 'Desc.', mapa: null, mapa_enllac: null, situacio: '', publicada: false, updated_at: new Date().toISOString() },
     { id: 'albons', titol: 'Aerogenerador d’Albons', descripcio: 'Desc.', mapa: null, mapa_enllac: null, situacio: 'En informació pública.', publicada: true, updated_at: new Date().toISOString() });
-  BD.pagines.push({ clau: 'qui-som', titol: 'Qui som: text', contingut: 'Som una iniciativa ciutadana.', ordre: 10 }, { clau: 'peu-lema', titol: 'Peu de pàgina: lema', contingut: 'Pensem en el que tenim.', ordre: 30 });
+  BD.pagines.push({ clau: 'qui-som', titol: 'Qui som: text', contingut: 'Som una iniciativa ciutadana.', ordre: 10 },
+    { clau: 'el-projecte', titol: 'Qui som: introducció d’«El projecte»', contingut: 'Ja no es fa servir.', ordre: 20 }, { clau: 'peu-lema', titol: 'Peu de pàgina: lema', contingut: 'Pensem en el que tenim.', ordre: 30 });
   const pg = await pagina(MOBIL, true);
   await entraApp(pg, 'editor@ex.cat');
   // Notícies: filtre Totes · Defensem · Renovables
@@ -1879,7 +1822,7 @@ console.log('\n17b. App: notícies per secció, projectes, informació (PDF), p�
   comprova('app Informació: suggereix les categories que ja hi ha', (await pg.$eval('#f-categoria-llista option', (o) => o.value)) === 'Al·legacions');
   // Pàgines: textos de Qui som i del peu; només «Desa»
   await pg.goto(ORIGEN + '/app/#/pagines'); await pg.waitForSelector('#app-llista .app-targeta');
-  comprova('app Pàgines: els textos, en ordre, sense «+ Nou» ni pestanyes', (await textos(pg, '#app-llista h3')).join() === 'Qui som: text,Peu de pàgina: lema' && !(await pg.$('.app-nou, .app-pestanyes')));
+  comprova('app Pàgines: els textos, en ordre (sense «el-projecte», que ja no es fa servir), sense «+ Nou» ni pestanyes', (await textos(pg, '#app-llista h3')).join() === 'Qui som: text,Peu de pàgina: lema' && !(await pg.$('.app-nou, .app-pestanyes')));
   await pg.click('#app-llista li:nth-child(2) .app-targeta'); await pg.waitForSelector('#f-contingut');
   comprova('app Pàgina: només «Vista prèvia» i «Desa»', (await textos(pg, '.app-accions button')).join() === 'Vista prèvia,Desa');
   await pg.fill('#f-contingut', 'Lema nou.'); await pg.click('.app-accions button:has-text("Desa")');

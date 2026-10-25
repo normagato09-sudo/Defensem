@@ -328,7 +328,8 @@
     pagines: {
       titol: 'Pàgines', rols: VEU, nou: null, taula: 'pagines', clau: /^[a-z-]{1,40}$/, idCamp: 'clau', fix: true, nomesDesa: true,
       camps: 'clau,titol,contingut,ordre,updated_at', ordre: ['ordre', true],
-      pestanyes: [['textos', 'Textos', function () { return true; }]],
+      // «el-projecte» (intro de l'antic bloc El projecte de Qui som) ja no surt a la web: la fila es conserva però no es mostra.
+      pestanyes: [['textos', 'Textos', function (r) { return r.clau !== 'el-projecte'; }]],
       targeta: function (r) {
         return [el('h3', null, [r.titol]), el('p', { class: 'app-meta' }, [(r.contingut || '').slice(0, 90) + ((r.contingut || '').length > 90 ? '…' : '')])];
       },

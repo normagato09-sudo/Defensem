@@ -7,10 +7,11 @@
 (function () {
   var NOU = {
     '/': {
-      '#qui-som': '/qui-som.html', '#el-projecte': '/qui-som.html#el-projecte', '#preguntes': '/qui-som.html#preguntes',
+      '#qui-som': '/qui-som.html', '#el-projecte': '/projecte-la-tallada.html', '#preguntes': '/qui-som.html#preguntes',
       '#noticies': '/noticies-defensem.html', '#agenda': '/actualitat.html#agenda',
       '#entitats': '/entitats.html', '#eines': '/eines.html', '#joc': '/joc'
     },
+    '/qui-som.html': { '#el-projecte': '/projecte-la-tallada.html' },
     '/entitats.html': { '#eines': '/eines.html' }
   };
   var desti = (NOU[location.pathname] || {})[location.hash];

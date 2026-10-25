@@ -75,8 +75,6 @@ body:not(.privat) .cap-pagina h1{font-family:var(--font-titular);font-weight:400
 /* Cos de les pàgines que no fan servir <section class="s"> (Entitats, Eines) */
 .pagina-cos{padding:clamp(36px,6vw,64px) 0 clamp(52px,9vw,96px)}
 .pagina-cos .ent-filtres,.pagina-cos .eines-filtre{margin-top:0}
-/* Al projecte, la primera secció ja no fa franja (la capçalera ja és de color) */
-.cap-pagina + #el-projecte{background:transparent;border-top:0}
 
 /* ---------- Portada ---------- */
 /* En escriptori, el logo queda a la dreta centrat verticalment amb el bloc del titular. */
@@ -126,7 +124,7 @@ section.resum{padding:clamp(40px,7vw,72px) 0}
 .subnav ul{list-style:none;margin:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:10px}
 .subnav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:2px solid var(--color-text);background:var(--color-fons);color:var(--color-text);font:700 .9rem var(--font-defensem);letter-spacing:.03em;text-transform:uppercase;text-decoration:none}
 .subnav a:hover,.subnav a:focus-visible{background:var(--color-verd-fosc);border-color:var(--color-verd-fosc);color:#fff}
-/* Blocs de les pàgines de dues parts: fan servir els fons i les línies de sempre (#el-projecte i #noticies en franja);
+/* Blocs de les pàgines de dues parts: fan servir els fons i les línies de sempre (#noticies en franja);
    Eines, que no en tenia, se separa d'Entitats amb una línia. */
 .subnav + #noticies{border-top:0}
 #eines{border-top:2px solid var(--color-text)}
